@@ -4,6 +4,10 @@ variable "connections" {
   type = list
 }
 
+variable "ssh_key_path" {
+  type = string
+}
+
 variable "private_interface" {
   type = string
 }
@@ -30,7 +34,9 @@ resource "null_resource" "firewall" {
   connection {
     host  = element(var.connections, count.index)
     user  = "root"
-    agent = true
+    agent = false
+    private_key = file("${var.ssh_key_path}")
+    
   }
 
   provisioner "remote-exec" {

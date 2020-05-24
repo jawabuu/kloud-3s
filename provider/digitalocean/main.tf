@@ -29,8 +29,22 @@ variable "apt_packages" {
   default = []
 }
 
+variable "ssh_key_path" {
+  type = string
+}
+
+variable "ssh_pubkey_path" {
+  type = string
+}
+
 provider "digitalocean" {
   token = var.token
+}
+
+resource "digitalocean_ssh_key" "tf-kube" {
+    count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
+    name       = "tf-kube"
+    public_key = file("${var.ssh_pubkey_path}")
 }
 
 resource "digitalocean_droplet" "host" {
@@ -40,7 +54,7 @@ resource "digitalocean_droplet" "host" {
   size               = var.size
   backups            = false
   private_networking = true
-  ssh_keys           = var.ssh_keys
+  ssh_keys           = digitalocean_ssh_key.tf-kube.*.id
 
   count = var.hosts
 
@@ -49,6 +63,8 @@ resource "digitalocean_droplet" "host" {
     type = "ssh"
     timeout = "2m"
     host = self.ipv4_address
+    agent = false
+    private_key = file("${var.ssh_key_path}")
   }
 
   provisioner "remote-exec" {
@@ -74,4 +90,8 @@ output "private_ips" {
 
 output "private_network_interface" {
   value = "eth1"
+}
+
+output "digitalocean_droplets" {
+  value = "${digitalocean_droplet.host}"
 }

@@ -4,6 +4,10 @@ variable "connections" {
   type = list
 }
 
+variable "ssh_key_path" {
+  type = string
+}
+
 variable "private_ips" {
   type = list
 }
@@ -38,7 +42,8 @@ resource "null_resource" "wireguard" {
   connection {
     host  = element(var.connections, count.index)
     user  = "root"
-    agent = true
+    agent = false
+    private_key = file("${var.ssh_key_path}")
   }
 
   provisioner "remote-exec" {

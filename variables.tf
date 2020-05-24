@@ -16,6 +16,18 @@ variable "hostname_format" {
   default = "kube%d"
 }
 
+variable "ssh_key_path" {
+  default = "./.ssh/tf-kube"
+}
+
+variable "ssh_pubkey_path" {
+  default = "./.ssh/tf-kube.pub"
+}
+
+variable "ssh_keys_dir" {
+  default = "./.ssh"
+}
+
 /* hcloud */
 variable "hcloud_token" {
   default = ""
