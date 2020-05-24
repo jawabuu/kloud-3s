@@ -15,17 +15,20 @@ resource "null_resource" "kubectl" {
 
   provisioner "local-exec" {
     command = "[ -d $HOME/.kube/${var.cluster_name} ] || mkdir -p $HOME/.kube/${var.cluster_name}"
+    interpreter = [ "bash", "-c" ]
   }
 
   provisioner "local-exec" {
+    interpreter = [ "bash", "-c" ]
     command = <<EOT
-      scp -oStrictHostKeyChecking=no \
+        ls -al && scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i ${var.ssh_key_path} \
         root@${element(var.connections, 0)}:/etc/kubernetes/pki/{apiserver-kubelet-client.key,apiserver-kubelet-client.crt,ca.crt} \
         $HOME/.kube/${var.cluster_name}
 EOT
   }
 
   provisioner "local-exec" {
+    interpreter = [ "bash", "-c" ]
     command = <<EOT
       kubectl config set-cluster ${var.cluster_name} \
       --certificate-authority=$HOME/.kube/${var.cluster_name}/ca.crt \
@@ -47,6 +50,7 @@ EOT
   }
 
   provisioner "local-exec" {
+    interpreter = [ "bash", "-c" ]
     command = "rm -rf $HOME/.kube/${var.cluster_name}"
   }
 }

@@ -16,29 +16,34 @@ provider "digitalocean" {
   token = var.token
 }
 
+# Create a new domain/zone
+resource "digitalocean_domain" "hobby-kube" {
+  name  = var.domain
+}
+
 resource "digitalocean_record" "hosts" {
   count = var.node_count
 
-  domain = var.domain
+  domain = digitalocean_domain.hobby-kube.name
   name   = element(var.hostnames, count.index)
   value  = element(var.public_ips, count.index)
   type   = "A"
-  ttl    = 300
+  ttl    = 60
 }
 
 resource "digitalocean_record" "domain" {
-  domain = var.domain
+  domain = digitalocean_domain.hobby-kube.name
   name   = "@"
-  value  = element(var.public_ips, 0)
+  value  = element(var.public_ips, 0) # Use LoadBalancer or Floating IP
   type   = "A"
-  ttl    = 300
+  ttl    = 60
 }
 
 resource "digitalocean_record" "wildcard" {
-  depends_on = ["digitalocean_record.domain"]
+  depends_on = [digitalocean_record.domain]
 
-  domain = var.domain
-  name   = "*.${var.domain}."
+  domain = digitalocean_domain.hobby-kube.name
+  name   = "*.${digitalocean_domain.hobby-kube.name}."
   value  = "@"
   type   = "CNAME"
   ttl    = 300
