@@ -45,7 +45,7 @@ module "wireguard" {
   connections  = module.provider.public_ips
   private_ips  = module.provider.private_ips
   hostnames    = module.provider.hostnames
-  overlay_cidr = module.kubernetes.overlay_cidr
+  overlay_cidr = module.k3s.overlay_cidr
   ssh_key_path = module.ssh.private_key
 }
 
@@ -57,29 +57,22 @@ module "firewall" {
   private_interface    = module.provider.private_network_interface
   vpn_interface        = module.wireguard.vpn_interface
   vpn_port             = module.wireguard.vpn_port
-  kubernetes_interface = module.kubernetes.overlay_interface
+  kubernetes_interface = module.k3s.overlay_interface
   ssh_key_path         = module.ssh.private_key
 }
 
-module "etcd" {
-  source = "./service/etcd"
+module "k3s" {
+  source = "./service/k3s"
 
-  node_count  = var.etcd_node_count
-  connections = module.provider.public_ips
-  hostnames   = module.provider.hostnames
-  vpn_unit    = module.wireguard.vpn_unit
-  vpn_ips     = module.wireguard.vpn_ips
-  ssh_key_path = module.ssh.private_key
-}
-
-module "kubernetes" {
-  source = "./service/kubernetes"
-
-  node_count     = var.node_count
-  connections    = module.provider.public_ips
-  cluster_name   = var.domain
-  vpn_interface  = module.wireguard.vpn_interface
-  vpn_ips        = module.wireguard.vpn_ips
-  etcd_endpoints = module.etcd.endpoints
-  ssh_key_path   = module.ssh.private_key
+  node_count        = var.node_count
+  connections       = module.provider.public_ips
+  cluster_name      = var.domain
+  vpn_interface     = module.wireguard.vpn_interface
+  vpn_ips           = module.wireguard.vpn_ips
+  hostname_format   = var.hostname_format
+  ssh_key_path      = module.ssh.private_key
+  k3s_version       = var.k3s_version
+  overlay_interface = "tun10"
+  overlay_cidr      = "10.42.0.0/15"
+  kubeconfig_path   = var.kubeconfig_path
 }

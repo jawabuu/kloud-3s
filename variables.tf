@@ -28,6 +28,14 @@ variable "ssh_keys_dir" {
   default = "./.ssh"
 }
 
+variable "k3s_version" {
+  default = "latest"
+}
+
+variable "kubeconfig_path" {
+  default = "./.kubeconfig"
+}
+
 /* hcloud */
 variable "hcloud_token" {
   default = ""
@@ -90,7 +98,7 @@ variable "digitalocean_region" {
 }
 
 variable "digitalocean_size" {
-  default = "1gb"
+  default = "s-1vcpu-1gb"
 }
 
 variable "digitalocean_image" {

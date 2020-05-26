@@ -21,7 +21,7 @@ resource "null_resource" "kubectl" {
   provisioner "local-exec" {
     interpreter = [ "bash", "-c" ]
     command = <<EOT
-        ls -al && scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i ${var.ssh_key_path} \
+        scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i ${var.ssh_key_path} \
         root@${element(var.connections, 0)}:/etc/kubernetes/pki/{apiserver-kubelet-client.key,apiserver-kubelet-client.crt,ca.crt} \
         $HOME/.kube/${var.cluster_name}
 EOT
