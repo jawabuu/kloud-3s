@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "net"
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      type: net
+  template:
+    metadata:
+      labels:
+        type: "net"
+    spec:
+      containers:
+      - image: giantswarm/tiny-tools
+        imagePullPolicy: Always
+        name: net
+        args: ["sh", "-c", "sleep 100000"]
+        resources:
+          requests:
+            cpu: "10m"
+      restartPolicy: Always
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: DoesNotExist
