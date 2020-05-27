@@ -139,23 +139,10 @@ resource "null_resource" "wireguard-reload" {
       "systemctl is-enabled wg-quick@${var.vpn_interface} || systemctl enable wg-quick@${var.vpn_interface}",
       "systemctl daemon-reload",
       # "systemctl restart wg-quick@${var.vpn_interface}",
-      # Test reload instead of restart to maintain active connections
+      # Reload instead of restart to maintain active connections
       # "wg-quick strip wg0 | wg setconf wg0 /dev/stdin",
       "wg-quick strip wg0 | wg syncconf wg0 /dev/stdin",
       "wg",
-    ]
-  }
-
-  provisioner "file" {
-    content     = element(data.template_file.overlay-route-service.*.rendered, count.index)
-    destination = "/etc/systemd/system/overlay-route.service"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "systemctl is-enabled overlay-route.service || systemctl enable overlay-route.service",
-      "systemctl daemon-reload",
-      # "systemctl start overlay-route.service",
     ]
   }
 
