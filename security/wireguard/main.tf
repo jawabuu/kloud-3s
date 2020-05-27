@@ -138,10 +138,11 @@ resource "null_resource" "wireguard-reload" {
       "${join("\n", formatlist("echo '%s %s' >> /etc/hosts", data.template_file.vpn_ips.*.rendered, var.hostnames))}",
       "systemctl is-enabled wg-quick@${var.vpn_interface} || systemctl enable wg-quick@${var.vpn_interface}",
       "systemctl daemon-reload",
-      "systemctl restart wg-quick@${var.vpn_interface}",
+      # "systemctl restart wg-quick@${var.vpn_interface}",
       # Test reload instead of restart to maintain active connections
       # "wg-quick strip wg0 | wg setconf wg0 /dev/stdin",
-      # "wg",
+      "wg-quick strip wg0 | wg syncconf wg0 /dev/stdin",
+      "wg",
     ]
   }
 
@@ -154,7 +155,7 @@ resource "null_resource" "wireguard-reload" {
     inline = [
       "systemctl is-enabled overlay-route.service || systemctl enable overlay-route.service",
       "systemctl daemon-reload",
-      "systemctl start overlay-route.service",
+      # "systemctl start overlay-route.service",
     ]
   }
 
