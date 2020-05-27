@@ -105,6 +105,61 @@ resource "null_resource" "wireguard" {
   }
 }
 
+
+resource "null_resource" "wireguard-reload" {
+  
+  count = var.node_count
+  
+  # Recreate wireguard configs if there's any change in the number of nodes
+  triggers =  {
+    wireguard        = join(" ", null_resource.wireguard.*.id)
+  }
+  
+  connection {
+    host  = element(var.connections, count.index)
+    user  = "root"
+    agent = false
+    private_key = file("${var.ssh_key_path}")
+  }
+
+  provisioner "file" {
+    content     = element(data.template_file.interface-conf.*.rendered, count.index)
+    destination = "/etc/wireguard/${var.vpn_interface}.conf"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod 700 /etc/wireguard/${var.vpn_interface}.conf",
+    ]
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "${join("\n", formatlist("echo '%s %s' >> /etc/hosts", data.template_file.vpn_ips.*.rendered, var.hostnames))}",
+      "systemctl is-enabled wg-quick@${var.vpn_interface} || systemctl enable wg-quick@${var.vpn_interface}",
+      "systemctl daemon-reload",
+      "systemctl restart wg-quick@${var.vpn_interface}",
+      # Test reload instead of restart to maintain active connections
+      # "wg-quick strip wg0 | wg setconf wg0 /dev/stdin",
+      # "wg",
+    ]
+  }
+
+  provisioner "file" {
+    content     = element(data.template_file.overlay-route-service.*.rendered, count.index)
+    destination = "/etc/systemd/system/overlay-route.service"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "systemctl is-enabled overlay-route.service || systemctl enable overlay-route.service",
+      "systemctl daemon-reload",
+      "systemctl start overlay-route.service",
+    ]
+  }
+
+}
+  
 data "template_file" "interface-conf" {
   count    = var.node_count
   template = file("${path.module}/templates/interface.conf")
