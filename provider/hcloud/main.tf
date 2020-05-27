@@ -33,12 +33,26 @@ variable "apt_packages" {
   default = []
 }
 
+variable "ssh_key_path" {
+  type = string
+}
+
+variable "ssh_pubkey_path" {
+  type = string
+}
+
+resource "hcloud_ssh_key" "tf-kube" {
+    count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
+    name       = "tf-kube"
+    public_key = file("${var.ssh_pubkey_path}")
+}
+
 resource "hcloud_server" "host" {
   name        = format(var.hostname_format, count.index + 1)
   location    = var.location
   image       = var.image
   server_type = var.type
-  ssh_keys    = var.ssh_keys
+  ssh_keys    = hcloud_ssh_key.tf-kube.*.id
 
   count = var.hosts
 
@@ -47,6 +61,8 @@ resource "hcloud_server" "host" {
     type = "ssh"
     timeout = "2m"
     host = self.ipv4_address
+    agent = false
+    private_key = file("${var.ssh_key_path}")
   }
 
   provisioner "remote-exec" {
@@ -58,15 +74,6 @@ resource "hcloud_server" "host" {
   }
 }
 
-#resource "hcloud_volume" "volume" {
-#  name = "${format(var.hostname_format, count.index + 1)}"
-#  size = 10
-#  server_id =  "${element(hcloud_server.host.*.id, count.index)}"
-#  automount = false
-#
-#  count = "${var.hosts}"
-#}
-
 output "hostnames" {
   value = "${hcloud_server.host.*.name}"
 }
@@ -76,9 +83,9 @@ output "public_ips" {
 }
 
 output "private_ips" {
-  value = "${hcloud_server.host.*.ipv4_address}"
+  value = "${hcloud_server_network.kube-host-network.*.ip}"
 }
 
 output "private_network_interface" {
-  value = "eth0"
+  value = "ens10"
 }
