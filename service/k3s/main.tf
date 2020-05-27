@@ -100,9 +100,11 @@ resource "null_resource" "k3s" {
   count = var.node_count
   
   triggers = {
-    ip         = element(var.vpn_ips, 0)
-    nodes      = var.node_count
-    #always_run = "${timestamp()}"
+    master_public_ip  = local.master_public_ip
+    node_public_ip    = element(var.connections, count.index)
+    k3s_version       = local.k3s_version
+    # Below is used to debug triggers
+    # always_run       = "${timestamp()}"
   }
 
   connection {
@@ -147,7 +149,7 @@ resource "null_resource" "k3s" {
         echo "[INFO] ---Finished installing k3s server---";
       %{ else ~}
         echo "[INFO] ---Installing k3s agent---";
-        until $(curl -fk -o nul https://${local.master_ip}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
+        until $(curl -fk -so nul https://${local.master_ip}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
         until $(nc -z ${local.master_ip} 9099); do echo '[WARN] Waiting for calico'; sleep 5; done;
         until [ $(curl --write-out %%{http_code} -so nul http://${local.master_ip}:9099/readiness) -eq '204' ]; do echo '[WARN] Waiting for calico to be ready'; sleep 5; done;
         INSTALL_K3S_VERSION=${local.k3s_version} K3S_URL=https://${local.master_ip}:6443 K3S_TOKEN=${local.cluster_token} \
@@ -199,7 +201,7 @@ resource null_resource k3s_cleanup {
     when = destroy
     inline = [
       "echo 'Cleaning up ${self.triggers.node_name}...'",
-      "kubectl drain ${self.triggers.node_name} --force --delete-local-data --ignore-daemonsets --timeout 180",
+      "kubectl drain ${self.triggers.node_name} --force --delete-local-data --ignore-daemonsets --timeout 180s",
       "kubectl delete node ${self.triggers.node_name}",
       "sed -i \"/${self.triggers.node_name}/d\" /var/lib/rancher/k3s/server/cred/node-passwd",
     ]

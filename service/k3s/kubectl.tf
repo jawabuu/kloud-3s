@@ -10,13 +10,12 @@ resource "null_resource" "key_wait" {
   depends_on  = [ null_resource.k3s ]
   triggers = {
     k3s        = join(" ", null_resource.k3s.*.id)
-    #always_run = "${timestamp()}"
   }
   provisioner "local-exec" {
     interpreter = [ "bash", "-c" ]
     command     = <<EOT
     ssh -i ${var.ssh_key_path} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-    root@${element(var.connections, 0)} \
+    root@${local.master_public_ip} \
     'while true; do if [ ! -f /etc/rancher/k3s/k3s.yaml ]; then sleep 5; echo '[INFO] Waiting for K3S..'; else break; fi; done'
 EOT
   }
@@ -24,13 +23,10 @@ EOT
 
 resource null_resource kubeconfig {
 
-  depends_on       = [ null_resource.key_wait ]
-
   triggers = {
-    ip              = element(var.vpn_ips, 0)
+    ip              = local.master_public_ip
     kubeconfig_path = var.kubeconfig_path
     key             = null_resource.key_wait.id
-    #always_run      = "${timestamp()}"
   }  
   
   provisioner "local-exec" {
@@ -38,11 +34,29 @@ resource null_resource kubeconfig {
     interpreter = [ "bash", "-c" ]
     command     = <<EOT
     scp -i ${var.ssh_key_path} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-    root@${element(var.connections, 0)}:/etc/rancher/k3s/k3s.yaml ${var.kubeconfig_path}/k3s.yaml;
-    #$HOME/.kube/${var.cluster_name};    
-    sed -i 's/127.0.0.1/${element(var.connections, 0)}/g' ${var.kubeconfig_path}/k3s.yaml;    
+    root@${local.master_public_ip}:/etc/rancher/k3s/k3s.yaml ${var.kubeconfig_path}/k3s.yaml;
+    
     export KUBECONFIG=${var.kubeconfig_path}/k3s.yaml;
-    kubectl config use $(kubectl config current-context);    
+    
+    # Create new cluster entry
+    kubectl config set-cluster ${var.cluster_name}-cluster --server=https://${local.master_public_ip}:${var.api_secure_port};
+    # Set certificate data
+    kubectl config set clusters.${var.cluster_name}-cluster.certificate-authority-data $(kubectl config view --raw | grep certificate-authority-data | cut -d ' ' -f 6)
+    # Create new context
+    kubectl config set-context ${var.cluster_name} --cluster=${var.cluster_name}-cluster --user ${var.cluster_name}-admin;
+    # Delete default cluster and context, cleanup
+    kubectl config delete-cluster default;
+    kubectl config delete-context default;
+    # Update username to match user created above
+    sed -i -e 's/default/${var.cluster_name}-admin/g' ${var.kubeconfig_path}/k3s.yaml;
+    
+    ## An easier less convoluted method for the block above would be; 
+    # kubectl config set-cluster ${var.cluster_name}-cluster --server=https://${local.master_public_ip}:${var.api_secure_port};
+    # sed -i -e 's/default/${var.cluster_name}/g' ${var.kubeconfig_path}/k3s.yaml;
+    ## This would set the cluster,context and user entries to the same value.
+    
+    kubectl config use ${var.cluster_name};
+    kubectl get nodes;
 EOT 
   }  
     

@@ -36,7 +36,7 @@ resource "null_resource" "wireguard" {
   count = var.node_count
 
   triggers =  {
-    count = var.node_count
+    node_public_ip    = element(var.connections, count.index)
   }
 
   connection {
