@@ -89,3 +89,7 @@ output "private_ips" {
 output "private_network_interface" {
   value = "ens10"
 }
+
+output "hcloud_servers" {
+  value = "${hcloud_server.host}"
+}
