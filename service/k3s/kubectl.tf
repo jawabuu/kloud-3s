@@ -7,9 +7,8 @@ variable "kubeconfig_path" {
 }
 
 resource "null_resource" "key_wait" {
-  depends_on  = [ null_resource.k3s ]
   triggers = {
-    k3s        = join(" ", null_resource.k3s.*.id)
+    k3s        = null_resource.k3s[0].id
   }
   provisioner "local-exec" {
     interpreter = [ "bash", "-c" ]
@@ -27,6 +26,7 @@ resource null_resource kubeconfig {
     ip              = local.master_public_ip
     kubeconfig_path = var.kubeconfig_path
     key             = null_resource.key_wait.id
+    cluster_name    = var.cluster_name
   }  
   
   provisioner "local-exec" {
