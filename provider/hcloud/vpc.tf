@@ -14,5 +14,5 @@ resource "hcloud_server_network" "kube-host-network" {
   count        =  var.hosts
   server_id    =  hcloud_server.host[count.index].id
   network_id   =  hcloud_network.kube-vpc.id
-  ip           =  cidrhost(hcloud_network_subnet.kube-hosts.ip_range, count.index + 2)
+  ip           =  cidrhost(hcloud_network_subnet.kube-hosts.ip_range, count.index + 101)
 }
