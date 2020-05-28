@@ -135,14 +135,21 @@ resource "null_resource" "wireguard-reload" {
 
   provisioner "remote-exec" {
     inline = [
+      #"echo '------WIREGUARD 1-----'",
+      #"wg",
       "${join("\n", formatlist("echo '%s %s' >> /etc/hosts", data.template_file.vpn_ips.*.rendered, var.hostnames))}",
       "systemctl is-enabled wg-quick@${var.vpn_interface} || systemctl enable wg-quick@${var.vpn_interface}",
+      #"echo '------WIREGUARD 2-----'",
+      #"wg",
       "systemctl daemon-reload",
-      #"systemctl restart wg-quick@${var.vpn_interface}",
-      # Reload instead of restart to maintain active connections
-      "wg-quick strip wg0 | wg setconf wg0 /dev/stdin",
+      # Restart is required on changes
+      "systemctl restart wg-quick@${var.vpn_interface}",
+      # Reload instead of restart to maintain active connections. Does not work.
+      #"wg-quick strip wg0 | wg setconf wg0 /dev/stdin",
+      #"wg-quick strip wg0 | wg addconf wg0 /dev/stdin",
       #"wg-quick strip wg0 | wg syncconf wg0 /dev/stdin",
-      "wg",
+      #"echo '------WIREGUARD 3-----'",
+      #"wg",
     ]
   }
 
