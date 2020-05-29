@@ -34,9 +34,9 @@ resource null_resource kubeconfig {
     interpreter = [ "bash", "-c" ]
     command     = <<EOT
     scp -i ${var.ssh_key_path} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-    root@${local.master_public_ip}:/etc/rancher/k3s/k3s.yaml ${var.kubeconfig_path}/k3s.yaml;
+    root@${local.master_public_ip}:/etc/rancher/k3s/k3s.yaml ${var.kubeconfig_path}/${var.cluster_name}-k3s.yaml;
     
-    export KUBECONFIG=${var.kubeconfig_path}/k3s.yaml;
+    export KUBECONFIG=${var.kubeconfig_path}/${var.cluster_name}-k3s.yaml;
     
     # Create new cluster entry
     kubectl config set-cluster ${var.cluster_name}-cluster --server=https://${local.master_public_ip}:${var.api_secure_port};
@@ -48,11 +48,11 @@ resource null_resource kubeconfig {
     kubectl config delete-cluster default;
     kubectl config delete-context default;
     # Update username to match user created above
-    sed -i -e 's/default/${var.cluster_name}-admin/g' ${var.kubeconfig_path}/k3s.yaml;
+    sed -i -e 's/default/${var.cluster_name}-admin/g' ${var.kubeconfig_path}/${var.cluster_name}-k3s.yaml;
     
     ## An easier less convoluted method for the block above would be; 
     # kubectl config set-cluster ${var.cluster_name}-cluster --server=https://${local.master_public_ip}:${var.api_secure_port};
-    # sed -i -e 's/default/${var.cluster_name}/g' ${var.kubeconfig_path}/k3s.yaml;
+    # sed -i -e 's/default/${var.cluster_name}/g' ${var.kubeconfig_path}/${var.cluster_name}-k3s.yaml;
     ## This would set the cluster,context and user entries to the same value.
     
     kubectl config use ${var.cluster_name};
@@ -63,10 +63,10 @@ EOT
   provisioner "local-exec" {
     when        = destroy
     on_failure  = continue
-    command     = "rm -f ${self.triggers.kubeconfig_path}/k3s.yaml"
+    command     = "rm -f ${self.triggers.kubeconfig_path}/${self.triggers.cluster_name}-k3s.yaml"
   }
 }
 
 output "kubeconfig" {
-  value = "export KUBECONFIG=${abspath(var.kubeconfig_path)}/k3s.yaml"
+  value = "export KUBECONFIG=${abspath(var.kubeconfig_path)}/${var.cluster_name}-k3s.yaml"
 }
