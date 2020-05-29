@@ -45,6 +45,8 @@ resource "null_resource" "metallb_install" {
       "echo 'Cleaning up metal-lb...'",
       "kubectl delete -n metallb-system",
     ]
+    # Handle race conditions
+    on_failure = continue
   }
   
 }
@@ -119,5 +121,7 @@ resource "null_resource" "metallb_apply" {
       "echo 'Cleaning up metal-lb...'",
       "kubectl delete -n metallb-system configmap config",
     ]
+    # Handle race conditions
+    on_failure = continue
   }
 }
