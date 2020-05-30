@@ -73,9 +73,35 @@ resource "vultr_server" "host" {
     inline = [
       "while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done",
       "apt-get update",
-      "apt-get install -yq ufw ${join(" ", var.apt_packages)}",
+      "apt-get install -yq jq ufw ${join(" ", var.apt_packages)}",
     ]
   }
+  
+  # Set up private interface
+  provisioner "remote-exec" {
+    inline = [<<EOT
+INSTANCE_METADATA=$(curl --silent http://169.254.169.254/v1.json);
+PRIVATE_IP=$(curl --silent http://169.254.169.254/v1.json | jq -r .interfaces[1].ipv4.address);
+PUBLIC_MAC=$(curl --silent http://169.254.169.254/v1.json | jq -r '.interfaces[] | select(.["network-type"]=="public") | .mac');
+PRIVATE_MAC=$(curl --silent http://169.254.169.254/v1.json | jq -r '.interfaces[] | select(.["network-type"]=="private") | .mac');
+cat <<-EOF > /etc/systemd/network/public.network
+  [Match]
+  MACAddress=$PUBLIC_MAC
+  [Network]
+  DHCP=yes
+EOF
+cat <<-EOF > /etc/systemd/network/private.network
+  [Match]
+  MACAddress=$PRIVATE_MAC
+  [Network]
+  Address=$PRIVATE_IP
+EOF
+systemctl restart systemd-networkd systemd-resolved;
+ip -o addr show scope global | awk '{split($4, a, "/"); print $2" : "a[1]}';
+    EOT
+    ]
+  }
+  
 }
 
 output "hostnames" {
@@ -91,7 +117,7 @@ output "private_ips" {
 }
 
 output "private_network_interface" {
-  value = "ens3"
+  value = "ens7"
 }
 
 output "vultr_servers" {
