@@ -6,6 +6,21 @@ module "ssh" {
 }
 
 module "provider" {
+  source = "./provider/vultr"
+
+  api_key         = var.vultr_api_key
+  ssh_keys        = var.vultr_ssh_keys
+  region_id       = var.vultr_region_id
+  plan_id         = var.vultr_plan_id
+  os_id           = var.vultr_os_id
+  hosts           = var.node_count
+  hostname_format = var.hostname_format
+  ssh_key_path    = module.ssh.private_key #var.ssh_key_path Override to use predefined key
+  ssh_pubkey_path = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
+}
+
+
+module "provider" {
   source = "./provider/hcloud"
 
   token           = var.hcloud_token
@@ -43,13 +58,14 @@ module "swap" {
 
 
 module "dns" {
-  source     = "./dns/digitalocean"
+  source      = "./dns/digitalocean"
 
-  node_count = var.node_count
-  token      = var.digitalocean_token
-  domain     = var.domain
-  public_ips = module.provider.public_ips
-  hostnames  = module.provider.hostnames
+  node_count  = var.node_count
+  token       = var.digitalocean_token
+  domain      = var.domain
+  public_ips  = module.provider.public_ips
+  hostnames   = module.provider.hostnames
+  create_zone = var.create_zone
 }
 
 module "wireguard" {
@@ -87,6 +103,6 @@ module "k3s" {
   ssh_key_path      = module.ssh.private_key
   k3s_version       = var.k3s_version
   overlay_interface = "tun10" # The interface created by your CNI e.g. tun10 for calico, the private network interface for flannel
-  overlay_cidr      = "10.42.0.0/15" # The cidr for the network interface above
+  overlay_cidr      = "10.42.0.0/16" # The cidr for the network interface above, should be 10.42.0.0/15?
   kubeconfig_path   = var.kubeconfig_path
 }
