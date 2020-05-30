@@ -6,5 +6,5 @@ resource "digitalocean_vpc" "kube-vpc"{
     region = var.region
 
     # The private ip range within our VPC
-    ip_range = "10.114.0.0/24"
+    ip_range = "10.115.0.0/24"
 }
