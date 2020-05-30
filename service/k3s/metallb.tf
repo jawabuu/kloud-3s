@@ -3,7 +3,9 @@ resource "null_resource" "metallb_install" {
   triggers = {
     ssh_key_path     = null_resource.k3s_cache[0].triggers.ssh_key_path
     master_public_ip = null_resource.k3s_cache[0].triggers.master_public_ip
-  }  
+  }
+  
+  depends_on = [ null_resource.k3s ]
   
   # Use master(s)
   connection {

@@ -88,7 +88,9 @@ locals {
     "--tls-san ${local.master_ip}",
     #"--node-external-ip ${local.master_public_ip}",
     #"--cluster-domain ${var.cluster_name}",
-    "--kube-apiserver-arg 'requestheader-allowed-names=system:auth-proxy,kubernetes-proxy'",
+    #"--kube-apiserver-arg 'requestheader-allowed-names=system:auth-proxy,kubernetes-proxy'",
+    "--cluster-cidr ${var.cluster_cidr_pods}",
+    "--service-cidr ${var.cluster_cidr_services}",
     "--token ${local.cluster_token}",
   ]
   
