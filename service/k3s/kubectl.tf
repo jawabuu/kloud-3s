@@ -70,3 +70,7 @@ EOT
 output "kubeconfig" {
   value = "export KUBECONFIG=${abspath(var.kubeconfig_path)}/${var.cluster_name}-k3s.yaml"
 }
+
+output "ssh-master" {
+  value = "ssh -i ${abspath(var.ssh_key_path)} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${local.master_public_ip}"
+}
