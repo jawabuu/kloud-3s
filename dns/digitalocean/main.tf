@@ -45,7 +45,7 @@ resource "digitalocean_record" "domain" {
   name   = "@"
   value  = element(var.public_ips, 0) # Use LoadBalancer or Floating IP
   type   = "A"
-  ttl    = 60
+  ttl    = 300
 }
 
 resource "digitalocean_record" "wildcard" {
