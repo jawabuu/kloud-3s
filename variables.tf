@@ -36,6 +36,31 @@ variable "kubeconfig_path" {
   default = "./.kubeconfig"
 }
 
+/* vultr */
+variable "vultr_api_key" {
+  default = ""
+}
+
+variable "vultr_ssh_keys" {
+  type    = list(string)
+  default = [""]
+}
+
+variable "vultr_region_id" {
+  /* London */
+  default = "8"
+}
+
+variable "vultr_plan_id" {
+  /* 1024 MB RAM,25 GB SSD,1.00 TB BW */
+  default = "201"
+}
+
+variable "vultr_os_id" {
+  /* Ubuntu 18.04 x64 */
+  default = "270"
+}
+
 /* hcloud */
 variable "hcloud_token" {
   default = ""
