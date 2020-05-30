@@ -1,13 +1,13 @@
 resource "hcloud_network" "kube-vpc" {
   name     = "kube-vpc"
-  ip_range = "10.114.0.0/20"
+  ip_range = "10.115.0.0/20"
 }
 
 resource hcloud_network_subnet kube-hosts {
   type         = "server"
   network_id   = hcloud_network.kube-vpc.id
   network_zone = "eu-central"
-  ip_range     = "10.114.0.0/24"
+  ip_range     = "10.115.0.0/24"
 }
 
 resource "hcloud_server_network" "kube-host-network" {
