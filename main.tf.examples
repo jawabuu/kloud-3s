@@ -106,3 +106,27 @@ module "k3s" {
   overlay_cidr      = "10.42.0.0/16" # The cidr for the network interface above, should be 10.42.0.0/15?
   kubeconfig_path   = var.kubeconfig_path
 }
+
+output "private_key" {
+  value = abspath(module.ssh.private_key)
+}
+
+output "public_key" {
+  value = abspath(module.ssh.public_key)
+}
+
+output "ssh-master" {
+  value = "ssh -i ${abspath(module.ssh.private_key)} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${module.provider.public_ips[0]}"
+}
+
+output "instances" {
+  value = module.provider
+}
+
+output "kubeconfig" {
+  value = module.k3s.kubeconfig
+}
+
+output "kubernetes" {
+  value = module.k3s
+}
