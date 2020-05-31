@@ -69,9 +69,23 @@ resource "hcloud_server" "host" {
     inline = [
       "while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done",
       "apt-get update",
-      "apt-get install -yq ufw ${join(" ", var.apt_packages)}",
+      "apt-get install -yq jq ufw ${join(" ", var.apt_packages)}",
     ]
   }
+}
+
+data "external" "network_interfaces" {
+
+  program = [
+  "ssh", 
+  "-i", "${abspath(var.ssh_key_path)}", 
+  "-o", "IdentitiesOnly=yes",
+  "-o", "StrictHostKeyChecking=no", 
+  "-o", "UserKnownHostsFile=/dev/null", 
+  "root@${hcloud_server.host[0].ipv4_address}",
+  "IFACE=$(ip -json addr show scope global | jq -r '.|tostring'); jq -n --arg iface $IFACE '{\"iface\":$iface}';"
+  ]
+
 }
 
 output "hostnames" {
@@ -86,8 +100,14 @@ output "private_ips" {
   value = "${hcloud_server_network.kube-host-network.*.ip}"
 }
 
+output "public_network_interface" {
+  # eth0
+  value = jsondecode(lookup(data.external.network_interfaces.result, "iface"))[0].ifname
+}
+
 output "private_network_interface" {
-  value = "ens10"
+  # ens10
+  value = jsondecode(lookup(data.external.network_interfaces.result, "iface"))[1].ifname
 }
 
 output "hcloud_servers" {
