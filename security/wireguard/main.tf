@@ -112,7 +112,8 @@ resource "null_resource" "wireguard-reload" {
   
   # Recreate wireguard configs if there's any change in the number of nodes
   triggers =  {
-    wireguard        = join(" ", null_resource.wireguard.*.id)
+    wireguard        = join(" ", null_resource.wireguard.*.id)    
+    overlay_cidr     = var.overlay_cidr
   }
   
   connection {
