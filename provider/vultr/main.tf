@@ -104,6 +104,20 @@ ip -o addr show scope global | awk '{split($4, a, "/"); print $2" : "a[1]}';
   
 }
 
+data "external" "network_interfaces" {
+
+  program = [
+  "ssh", 
+  "-i", "${abspath(var.ssh_key_path)}", 
+  "-o", "IdentitiesOnly=yes",
+  "-o", "StrictHostKeyChecking=no", 
+  "-o", "UserKnownHostsFile=/dev/null", 
+  "root@${vultr_server.host[0].main_ip}",
+  "IFACE=$(ip -json addr show scope global | jq -r '.|tostring'); jq -n --arg iface $IFACE '{\"iface\":$iface}';"
+  ]
+
+}
+
 output "hostnames" {
   value = "${vultr_server.host.*.hostname}"
 }
@@ -116,8 +130,14 @@ output "private_ips" {
   value = "${vultr_server.host.*.internal_ip}"
 }
 
+output "public_network_interface" {
+  # ens3
+  value = jsondecode(lookup(data.external.network_interfaces.result, "iface"))[0].ifname
+}
+
 output "private_network_interface" {
-  value = "ens7"
+  # ens7
+  value = jsondecode(lookup(data.external.network_interfaces.result, "iface"))[1].ifname
 }
 
 output "vultr_servers" {
