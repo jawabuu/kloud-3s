@@ -24,6 +24,10 @@ variable "kubernetes_interface" {
   type = string
 }
 
+variable "overlay_cidr" {
+  type = string
+}
+
 resource "null_resource" "firewall" {
   count = var.node_count
 
@@ -55,5 +59,6 @@ data "template_file" "ufw" {
     kubernetes_interface = var.kubernetes_interface
     vpn_interface        = var.vpn_interface
     vpn_port             = var.vpn_port
+    overlay_cidr         = var.overlay_cidr
   }
 }
