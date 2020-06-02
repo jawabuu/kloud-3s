@@ -3,6 +3,7 @@ resource "null_resource" "metallb_install" {
   triggers = {
     ssh_key_path     = null_resource.k3s_cache[0].triggers.ssh_key_path
     master_public_ip = null_resource.k3s_cache[0].triggers.master_public_ip
+    k3s_id           = join(" ", null_resource.k3s.*.id)
   }
   
   depends_on = [ null_resource.k3s ]
@@ -38,18 +39,6 @@ resource "null_resource" "metallb_install" {
     ]
   }
   
-  
-  # Clean up on modifying metal-lb
-  provisioner remote-exec { 
-    
-    when = destroy
-    inline = [
-      "echo 'Cleaning up metal-lb...'",
-      "kubectl delete -n metallb-system",
-    ]
-    # Handle race conditions
-    on_failure = continue
-  }
   
 }
 
