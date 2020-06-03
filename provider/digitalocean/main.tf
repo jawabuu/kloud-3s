@@ -77,6 +77,20 @@ resource "digitalocean_droplet" "host" {
   }
 }
 
+data "external" "network_interfaces" {
+
+  program = [
+  "ssh", 
+  "-i", "${abspath(var.ssh_key_path)}", 
+  "-o", "IdentitiesOnly=yes",
+  "-o", "StrictHostKeyChecking=no", 
+  "-o", "UserKnownHostsFile=/dev/null", 
+  "root@${vultr_server.host[0].main_ip}",
+  "IFACE=$(ip -json addr show scope global | jq -r '.|tostring'); jq -n --arg iface $IFACE '{\"iface\":$iface}';"
+  ]
+
+}
+
 output "hostnames" {
   value = "${digitalocean_droplet.host.*.name}"
 }
@@ -87,6 +101,14 @@ output "public_ips" {
 
 output "private_ips" {
   value = "${digitalocean_droplet.host.*.ipv4_address_private}"
+}
+
+output "network_interfaces" {
+  value = jsondecode(lookup(data.external.network_interfaces.result, "iface"))
+}
+
+output "public_network_interface" {
+  value = "eth0"
 }
 
 output "private_network_interface" {

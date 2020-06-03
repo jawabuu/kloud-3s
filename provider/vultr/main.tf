@@ -8,15 +8,15 @@ variable "hostname_format" {
   type = string
 }
 
-variable "region_id" {
+variable "region" {
   type = string
 }
 
-variable "plan_id" {
+variable "plan" {
   type = string
 }
 
-variable "os_id" {
+variable "os" {
   type = string
 }
 
@@ -43,6 +43,28 @@ variable "ssh_pubkey_path" {
   type = string
 }
 
+data "vultr_region" "region" {
+  filter {
+    name = "name"
+    values = [ var.region ]
+  }
+}
+
+data "vultr_plan" "plan" {
+  filter {
+    name = "name"
+    values = [ var.plan ]
+  }
+}
+
+data "vultr_os" "os" {
+  filter {
+    name = "name"
+    values = [ var.os ]
+  }
+}
+
+
 resource "vultr_ssh_key" "tf-kube" {
     count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
     name       = "tf-kube"
@@ -51,9 +73,9 @@ resource "vultr_ssh_key" "tf-kube" {
 
 resource "vultr_server" "host" {
   hostname    = format(var.hostname_format, count.index + 1)
-  region_id   = var.region_id
-  os_id       = var.os_id
-  plan_id     = var.plan_id
+  region_id   = data.vultr_region.region.id
+  os_id       = data.vultr_os.os.id
+  plan_id     = data.vultr_plan.plan.id
   ssh_key_ids = vultr_ssh_key.tf-kube.*.id
   network_ids = [ vultr_network.kube-vpc.id ]
   enable_private_network = true
@@ -130,14 +152,16 @@ output "private_ips" {
   value = "${vultr_server.host.*.internal_ip}"
 }
 
+output "network_interfaces" {
+  value = jsondecode(lookup(data.external.network_interfaces.result, "iface"))
+}
+
 output "public_network_interface" {
-  # ens3
-  value = jsondecode(lookup(data.external.network_interfaces.result, "iface"))[0].ifname
+  value = "ens3"
 }
 
 output "private_network_interface" {
-  # ens7
-  value = jsondecode(lookup(data.external.network_interfaces.result, "iface"))[1].ifname
+  value = "ens7"
 }
 
 output "vultr_servers" {
