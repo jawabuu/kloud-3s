@@ -36,6 +36,28 @@ variable "kubeconfig_path" {
   default = "./.kubeconfig"
 }
 
+/* linode */
+variable "linode_token" {
+  default = ""
+}
+
+variable "linode_ssh_keys" {
+  type    = list(string)
+  default = [""]
+}
+
+variable "linode_region" {
+  default = "eu-central"
+}
+
+variable "linode_type" {
+  default = "g6-nanode-1"
+}
+
+variable "linode_image" {
+  default = "linode/ubuntu18.04"
+}
+
 /* vultr */
 variable "vultr_api_key" {
   default = ""
