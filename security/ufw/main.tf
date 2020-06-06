@@ -20,7 +20,7 @@ variable "vpn_port" {
   type = string
 }
 
-variable "kubernetes_interface" {
+variable "overlay_interface" {
   type = string
 }
 
@@ -56,7 +56,7 @@ data "template_file" "ufw" {
 
   vars = {
     private_interface    = var.private_interface
-    kubernetes_interface = var.kubernetes_interface
+    overlay_interface    = var.overlay_interface
     vpn_interface        = var.vpn_interface
     vpn_port             = var.vpn_port
     overlay_cidr         = var.overlay_cidr
