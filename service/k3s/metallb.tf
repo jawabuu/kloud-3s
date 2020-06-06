@@ -58,13 +58,13 @@ data:
       avoid-buggy-ips: true
       addresses:
       - ${local.master_public_ip}/32
-      auto-assign: true
+      auto-assign: true %{ if length(var.connections) > 1 }
     - name: backup
       protocol: layer2
       avoid-buggy-ips: true
       addresses:%{ for connection in slice(var.connections,1,length(var.connections))}
       - ${connection}/32 %{ endfor }
-      auto-assign: false
+      auto-assign: false %{ endif }
 YAML
   }
 
