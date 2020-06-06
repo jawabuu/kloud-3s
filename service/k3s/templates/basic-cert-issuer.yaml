@@ -1,0 +1,77 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: ClusterIssuer
+metadata:
+  name: self-signed
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-test
+spec:
+  acme:
+    # You must replace this email address with your own.
+    # Let's Encrypt will use this to contact you about expiring
+    # certificates, and issues related to your account.
+    email: admin@${domain}
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      # Secret resource used to store the account's private key.
+      name: test-issuer-account-key
+    # Add a single challenge solver, HTTP01
+    solvers:
+      - http01:
+          ingress:
+            class: traefik-cert-manager
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-live
+spec:
+  acme:
+    # You must replace this email address with your own.
+    # Let's Encrypt will use this to contact you about expiring
+    # certificates, and issues related to your account.
+    email: admin@${domain}
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      # Secret resource used to store the account's private key.
+      name: live-issuer-account-key
+    # Add a single challenge solver, HTTP01
+    solvers:
+      - http01:
+          ingress:
+            class: traefik-cert-manager
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: self-signed-cert
+  namespace: default
+spec:
+  commonName: ${domain}
+  secretName: self-signed-cert
+  dnsNames:
+    - ${domain}
+    - "*.${domain}"
+  issuerRef:
+    name: self-signed
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: self-signed-cert
+  namespace: kube-system
+spec:
+  commonName: ${domain}
+  secretName: self-signed-cert
+  dnsNames:
+    - ${domain}
+    - "*.${domain}"
+  issuerRef:
+    name: self-signed
+    kind: ClusterIssuer
+
