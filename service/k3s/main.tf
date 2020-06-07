@@ -106,7 +106,8 @@ locals {
     "-v 5",
     "--server https://${local.master_ip}:6443",
     "--token ${local.cluster_token}",
-    local.cni == "flannel" ? "--flannel-iface ${local.kubernetes_interface}" : "--kubelet-arg 'network-plugin=cni'",
+    # local.cni == "flannel" ? "--flannel-iface ${local.kubernetes_interface}" : "--flannel-backend=none",
+    #local.cni == "flannel" ? "" : "--flannel-backend=none",
   ]
   
   agent_install_flags = join(" ", concat(local.agent_default_flags))
@@ -114,7 +115,8 @@ locals {
   server_default_flags = [
     "-v 5",
     # Explicitly set flannel interface
-    local.cni == "flannel" ? "--flannel-iface ${local.kubernetes_interface}" : "--flannel-backend=none",
+    # local.cni == "flannel" ? "--flannel-iface ${local.kubernetes_interface}" : "--flannel-backend=none",
+    local.cni == "flannel" ? "--flannel-backend=none" : "--flannel-backend=none",
     # Optionally disable network policy
     local.cni == "flannel" ? "--disable-network-policy" : "--disable-network-policy",
     # Optionally disable service load balancer
@@ -188,6 +190,12 @@ resource "null_resource" "k3s" {
     destination = "/tmp/calico.yaml"
   }
   
+  # Upload flannel.yaml for CNI
+  provisioner "file" {
+    content     = data.template_file.flannel-configuration.rendered
+    destination = "/tmp/flannel.yaml"
+  }
+  
   # Upload basic certificate issuer
   provisioner "file" {
     content     = data.template_file.basic-cert-issuer.rendered
@@ -244,6 +252,11 @@ resource "null_resource" "k3s" {
         
         %{ if local.cni == "weave" ~}
         kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.NO_MASQ_LOCAL=1&env.IPALLOC_RANGE=${local.overlay_cidr}&env.WEAVE_MTU=1500";
+        %{ endif ~}
+        
+        %{ if local.cni == "flannel" ~}
+        kubectl apply -f /tmp/flannel.yaml;
+        kubectl rollout status ds kube-flannel-ds-amd64 -n kube-system;
         %{ endif ~}
         
         echo "[INFO] ---Finished installing CNI ${local.cni}---";
@@ -349,6 +362,15 @@ data "template_file" "calico-configuration" {
   vars = {
     interface     =  local.kubernetes_interface
     calico_cidr   =  local.overlay_cidr
+  }
+}
+
+data "template_file" "flannel-configuration" {
+  template = file("${path.module}/templates/flannel.yaml")
+
+  vars = {
+    interface     =  local.kubernetes_interface
+    flannel_cidr  =  local.overlay_cidr
   }
 }
 
