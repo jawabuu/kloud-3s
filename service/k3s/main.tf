@@ -24,6 +24,11 @@ variable "vpn_interface" {
   type = string
 }
 
+variable "private_ips" {
+  type = list
+  default = []
+}
+
 variable "etcd_endpoints" {
   type    = list
   default = []
@@ -42,15 +47,32 @@ variable "cluster_cidr_services" {
 }
 
 variable "overlay_interface" {
-  default = "weave"
+  default = "cni0"
+}
+
+variable "kubernetes_interface" {
+  default     = ""
+  description = "Interface on host that nodes use to communicate with each other. Can be the private interface or wg0 if wireguard is enabled."
 }
 
 variable "overlay_cidr" {
-  default = "10.96.0.0/16"
+  default = "10.42.0.0/16"
+}
+
+variable "cni" {
+  default = "flannel"
+}
+
+variable "private_interface" {
+  default = "eth0"
+}
+
+variable "domain" {
+  default = "example.com"
 }
 
 variable "drain_timeout" {
-  default = "180"
+  default = "60"
 }
 
 resource "random_string" "token1" {
@@ -67,31 +89,51 @@ resource "random_string" "token2" {
 
 locals {
   cluster_token = "${random_string.token1.result}.${random_string.token2.result}"  
-  k3s_version = var.k3s_version == "latest" ? jsondecode(data.http.k3s_version[0].body).tag_name : var.k3s_version
+  k3s_version   = var.k3s_version == "latest" ? jsondecode(data.http.k3s_version[0].body).tag_name : var.k3s_version
+  domain        = var.domain
+  cni           = var.cni
   
-  master_ip        = element(var.vpn_ips, 0)
-  master_public_ip = element(var.connections, 0)
+  overlay_cidr         = var.overlay_cidr
+  overlay_interface    = var.overlay_interface
+  private_interface    = var.private_interface
+  kubernetes_interface = var.kubernetes_interface == "" ? var.vpn_interface : var.kubernetes_interface
+  
+  master_ip            = element(var.vpn_ips, 0)
+  master_public_ip     = element(var.connections, 0)
+  master_private_ip    = element(var.private_ips, 0)
   
   agent_default_flags = [
-    "-v 10",
+    "-v 5",
     "--server https://${local.master_ip}:6443",
-    "--token ${local.cluster_token}"
+    "--token ${local.cluster_token}",
+    local.cni == "flannel" ? "--flannel-iface ${local.kubernetes_interface}" : "--kubelet-arg 'network-plugin=cni'",
   ]
   
   agent_install_flags = join(" ", concat(local.agent_default_flags))
   
   server_default_flags = [
-    "-v 10",
-    "--disable servicelb", "--disable traefik", "--flannel-backend=none",
+    "-v 5",
+    # Explicitly set flannel interface
+    local.cni == "flannel" ? "--flannel-iface ${local.kubernetes_interface}" : "--flannel-backend=none",
+    # Optionally disable network policy
+    local.cni == "flannel" ? "--disable-network-policy" : "--disable-network-policy",
+    # Optionally disable service load balancer
+    local.cni == "flannel" ? "--disable servicelb" : "--disable servicelb",
+    "--disable traefik",
     "--node-ip ${local.master_ip}",
-    "--tls-san ${local.master_public_ip}",
     "--tls-san ${local.master_ip}",
-    #"--node-external-ip ${local.master_public_ip}",
-    #"--cluster-domain ${var.cluster_name}",
-    #"--kube-apiserver-arg 'requestheader-allowed-names=system:auth-proxy,kubernetes-proxy'",
-    "--cluster-cidr ${var.cluster_cidr_pods}",
-    "--service-cidr ${var.cluster_cidr_services}",
+    "--tls-san ${local.master_public_ip}",
+    "--tls-san ${local.master_private_ip}",
+    "--cluster-cidr ${local.overlay_cidr}",
     "--token ${local.cluster_token}",
+    "--kubelet-arg 'network-plugin=cni'",
+    # Flags left below to serve as examples for args that may need editing.    
+    #"--node-external-ip ${local.master_private_ip}",
+    #"--cluster-domain ${var.cluster_name}",  
+    #"--cluster-cidr ${var.cluster_cidr_pods}",
+    #"--service-cidr ${var.cluster_cidr_services}",    
+    #"--kube-apiserver-arg 'requestheader-allowed-names=system:auth-proxy,kubernetes-proxy'",  
+    
   ]
   
   server_install_flags = join(" ", concat(local.server_default_flags))
@@ -102,11 +144,16 @@ resource "null_resource" "k3s" {
   count = var.node_count
   
   triggers = {
-    master_public_ip  = local.master_public_ip
-    node_public_ip    = element(var.connections, count.index)
-    k3s_version       = local.k3s_version
+    master_public_ip      = local.master_public_ip
+    node_public_ip        = element(var.connections, count.index)
+    node_name             = format(var.hostname_format, count.index + 1)
+    k3s_version           = local.k3s_version
+    overlay_cidr          = local.overlay_cidr
+    overlay_interface     = local.overlay_interface
+    private_interface     = local.private_interface
+    kubernetes_interface  = local.kubernetes_interface
     # Below is used to debug triggers
-    # always_run       = "${timestamp()}"
+    always_run            = "${timestamp()}"
   }
 
   connection {
@@ -129,33 +176,119 @@ resource "null_resource" "k3s" {
     destination = "/tmp/k3s-installer"
   }
   
-  # Upload calico.yaml for CNI
+  # Upload manifests 
   provisioner file {
-    source      = "${path.module}/manifests/calico.yaml"
+    source      = "${path.module}/manifests"
+    destination = "/tmp"
+  }
+  
+  # Upload calico.yaml for CNI
+  provisioner "file" {
+    content     = data.template_file.calico-configuration.rendered
     destination = "/tmp/calico.yaml"
+  }
+  
+  # Upload basic certificate issuer
+  provisioner "file" {
+    content     = data.template_file.basic-cert-issuer.rendered
+    destination = "/tmp/basic-cert-issuer.yaml"
+  }
+  
+  # Upload basic traefik test
+  provisioner "file" {
+    content     = data.template_file.basic-traefik-test.rendered
+    destination = "/tmp/basic-traefik-test.yaml"
   }
       
   # Install K3S server
   provisioner "remote-exec" {
     inline = [<<EOT
       %{ if count.index == 0 ~}
+      
+        echo "[INFO] ---Uninstalling k3s-sever---";
+        k3s-uninstall.sh && ip route | grep 'calico\|weave\|cilium' | while read -r line; do ip route del $line; done; \
+        ls /sys/class/net | grep 'cili\|cali\|weave\|veth\|vxlan' | while read -r line; do ip link delete $line; done; \
+        rm -rf /etc/cni/net.d/*; \
+        echo "[INFO] ---Uninstalled k3s-server---" || \
+        echo "[INFO] ---k3s not found. Skipping...---";
+        
         echo "[INFO] ---Installing k3s server---";
-        ls -al /tmp;
-        INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer ${local.server_install_flags};
-        until kubectl get nodes | grep -v '[WARN] No resources found'; do sleep 5; done;
+        
+        %{ if local.cni == "weave" ~}
+        wget https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz && tar zxvf cni-plugins-linux-amd64-v0.8.6.tgz && mkdir -p /opt/cni/bin && mv * /opt/cni/bin/;
+        %{ endif ~}
+        
+        INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer ${local.server_install_flags} \
+        --node-name ${self.triggers.node_name};
+        # until kubectl get nodes | grep -v '[WARN] No resources found'; do sleep 5; done;
         until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
-        kubectl apply -f /tmp/calico.yaml;
-        #kubectl -n kube-system patch ds calico-node -p '{"spec":{"template":{"spec":{"containers":[{"env":[{"name":"IP_AUTODETECTION_METHOD","value":"interface=${var.overlay_interface}"},{"name":"CALICO_IPV4POOL_CIDR","value":"${var.overlay_cidr}"},{"name":"FELIX_HEALTHHOST","value":"0.0.0.0"}],"name":"calico-node"}]}}}}'
-        #kubectl -n kube-system patch ds calico-node -p '{"spec":{"template":{"spec":{"containers":[{"env":[{"name":"IP_AUTODETECTION_METHOD","value":"interface=wg0"},{"name":"CALICO_IPV4POOL_CIDR","value":"10.42.0.0/16"},{"name":"FELIX_HEALTHHOST","value":"0.0.0.0"}],"name":"calico-node"}]}}}}'
-        #kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')";
+        echo "[SUCCESS] API server is ready";
+        until $(curl -fk -so nul https://${local.master_ip}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
+        
+        echo "[SUCCESS] Master is ready";
+        echo "[INFO] ---Installing CNI ${local.cni}---";
+        
+        %{ if local.cni == "cilium" ~}
+        sudo mount bpffs -t bpf /sys/fs/bpf
+        kubectl apply -f /tmp/manifests/cilium.yaml;
+        echo "[INFO] ---Master waiting for cilium---";
+        kubectl rollout status ds cilium -n kube-system;
+        %{ endif ~}
+        
+        %{ if local.cni == "calico" ~}
+        until kubectl apply -f /tmp/calico.yaml;do nc -zvv localhost 6443; sleep 5; done;
+        echo "[INFO] ---Master waiting for calico---";
+        kubectl rollout status ds calico-node -n kube-system;
+        until $(nc -z ${local.master_ip} 9099); do echo '[WARN] Waiting for calico'; sleep 5; done;
+        %{ endif ~}
+        
+        %{ if local.cni == "weave" ~}
+        kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.NO_MASQ_LOCAL=1&env.IPALLOC_RANGE=${local.overlay_cidr}&env.WEAVE_MTU=1500";
+        %{ endif ~}
+        
+        echo "[INFO] ---Finished installing CNI ${local.cni}---";
+        
+        # Install cert-manager
+        kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.15.1/cert-manager.yaml;
+        # Wait for cert-manager-webhook to be ready
+        kubectl rollout status -n cert-manager deployment cert-manager-webhook --timeout 150s;
+        # Install basic cert issuer
+        kubectl apply -f /tmp/basic-cert-issuer.yaml;
+        # Install traefik
+        kubectl apply -f /tmp/manifests/traefik-k3s.yaml;
+        # Install basic traefik test
+        kubectl apply -f /tmp/basic-traefik-test.yaml;
+        
         echo "[INFO] ---Finished installing k3s server---";
       %{ else ~}
-        echo "[INFO] ---Installing k3s agent---";
-        until $(curl -fk -so nul https://${local.master_ip}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
+        echo "[INFO] ---Uninstalling k3s---";
+        k3s-agent-uninstall.sh && ip route | grep 'calico\|weave\|cilium' | while read -r line; do ip route del $line; done; \
+        ls /sys/class/net | grep 'cili\|cali\|weave\|veth\|vxlan' | while read -r line; do ip link delete $line; done; \
+        rm -rf /etc/cni/net.d/*; \
+        echo "[INFO] ---Uninstalled k3s-server---" || \
+        echo "[INFO] ---k3s not found. Skipping...---";
+        
+        echo "[INFO] ---Installing k3s agent---";        
+        # CNI specific commands to run for nodes.
+        # It is desirable to wait for networking to complete before proceeding with agent installation
+        %{ if local.cni == "cilium" ~}
+        sudo mount bpffs -t bpf /sys/fs/bpf
+        %{ endif ~}
+        
+        %{ if local.cni == "calico" ~}
+        echo "[INFO] ---Agent waiting for calico---";
         until $(nc -z ${local.master_ip} 9099); do echo '[WARN] Waiting for calico'; sleep 5; done;
-        until [ $(curl --write-out %%{http_code} -so nul http://${local.master_ip}:9099/readiness) -eq '204' ]; do echo '[WARN] Waiting for calico to be ready'; sleep 5; done;
+        %{ endif ~}
+        
+        %{ if local.cni == "weave" ~}
+        wget https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz && tar zxvf cni-plugins-linux-amd64-v0.8.6.tgz && mkdir -p /opt/cni/bin && mv * /opt/cni/bin/;
+        %{ endif ~}
+        
+        until $(curl -fk -so nul https://${local.master_ip}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
+        
         INSTALL_K3S_VERSION=${local.k3s_version} K3S_URL=https://${local.master_ip}:6443 K3S_TOKEN=${local.cluster_token} \
-        sh /tmp/k3s-installer ${local.agent_install_flags} --node-ip ${element(var.vpn_ips, count.index)};
+        sh /tmp/k3s-installer ${local.agent_install_flags} --node-ip ${element(var.vpn_ips, count.index)} \
+        --node-name ${self.triggers.node_name};
         echo "[INFO] ---Finished installing k3s agent---";
       %{ endif ~}
     EOT
@@ -182,7 +315,6 @@ resource null_resource k3s_cleanup {
   triggers = {
     node_init        = null_resource.k3s[count.index].id
     k3s_cache        = null_resource.k3s_cache[count.index].id
-    #k3s_cache_obj   = null_resource.k3s_cache[count.index].triggers
     ssh_key_path     = null_resource.k3s_cache[count.index].triggers.ssh_key_path
     master_public_ip = null_resource.k3s_cache[count.index].triggers.master_public_ip
     node_name        = null_resource.k3s_cache[count.index].triggers.node_name
@@ -211,6 +343,30 @@ resource null_resource k3s_cleanup {
   
 }
 
+data "template_file" "calico-configuration" {
+  template = file("${path.module}/templates/calico.yaml")
+
+  vars = {
+    interface     =  local.kubernetes_interface
+    calico_cidr   =  local.overlay_cidr
+  }
+}
+
+data "template_file" "basic-cert-issuer" {
+  template = file("${path.module}/templates/basic-cert-issuer.yaml")
+
+  vars = {
+    domain        =  local.domain
+  }
+}
+
+data "template_file" "basic-traefik-test" {
+  template = file("${path.module}/templates/basic-traefik-test.yaml")
+
+  vars = {
+    domain        =  local.domain
+  }
+}
 
 data "http" "k3s_version" {
   count = var.k3s_version == "latest" ? 1 : 0

@@ -83,7 +83,7 @@ spec:
         - name: api@internal
           kind: TraefikService
   tls:
-    secretName: dash-http01-cert
+    secretName: live-http01-cert
 ---
 apiVersion: traefik.containo.us/v1alpha1
 kind: TLSStore
@@ -100,10 +100,10 @@ metadata:
   name: test-http01-cert
   namespace: whoami
 spec:
-  commonName: test.${domain}
+  commonName: whoami.${domain}
   secretName: test-http01-cert
   dnsNames:
-    - test.${domain}
+    - whoami.${domain}
   issuerRef:
     name: letsencrypt-test
     kind: ClusterIssuer
@@ -118,8 +118,7 @@ spec:
   secretName: live-http01-cert
   dnsNames:
     - dash.${domain}
-    - test.${domain}
     - whoami.${domain}
   issuerRef:
-    name: letsencrypt-live
+    name: letsencrypt-test
     kind: ClusterIssuer
