@@ -85,7 +85,7 @@ data "external" "network_interfaces" {
   "-o", "IdentitiesOnly=yes",
   "-o", "StrictHostKeyChecking=no", 
   "-o", "UserKnownHostsFile=/dev/null", 
-  "root@${vultr_server.host[0].main_ip}",
+  "root@${digitalocean_droplet.host[0].ipv4_address}",
   "IFACE=$(ip -json addr show scope global | jq -r '.|tostring'); jq -n --arg iface $IFACE '{\"iface\":$iface}';"
   ]
 
