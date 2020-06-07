@@ -37,6 +37,10 @@ variable "ssh_pubkey_path" {
   type = string
 }
 
+variable "vpc_cidr" {
+  default = "10.115.0.0/24"
+}
+
 provider "digitalocean" {
   token = var.token
 }

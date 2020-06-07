@@ -24,6 +24,10 @@ variable "ssh_keys" {
   type = list
 }
 
+variable "vpc_cidr" {
+  default = "10.115.0.0/24"
+}
+
 provider "vultr" {
   api_key     = var.api_key
   rate_limit  = 700
