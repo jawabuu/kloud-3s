@@ -106,21 +106,20 @@ locals {
     "-v 5",
     "--server https://${local.master_ip}:6443",
     "--token ${local.cluster_token}",
-    # local.cni == "flannel" ? "--flannel-iface ${local.kubernetes_interface}" : "--flannel-backend=none",
-    #local.cni == "flannel" ? "" : "--flannel-backend=none",
+    local.cni == "default" ? "--flannel-iface ${local.kubernetes_interface}" : "",
   ]
   
   agent_install_flags = join(" ", concat(local.agent_default_flags))
   
   server_default_flags = [
     "-v 5",
-    # Explicitly set flannel interface
-    # local.cni == "flannel" ? "--flannel-iface ${local.kubernetes_interface}" : "--flannel-backend=none",
-    local.cni == "flannel" ? "--flannel-backend=none" : "--flannel-backend=none",
-    # Optionally disable network policy
-    local.cni == "flannel" ? "--disable-network-policy" : "--disable-network-policy",
-    # Optionally disable service load balancer
-    local.cni == "flannel" ? "--disable servicelb" : "--disable servicelb",
+    # Explicitly set default flannel interface
+    local.cni == "default" ? "--flannel-iface ${local.kubernetes_interface}" : "--flannel-backend=none",
+    # Disable network policy
+    "--disable-network-policy",
+    # Disable service load balancer
+    "--disable servicelb",
+    # Disable Traefik
     "--disable traefik",
     "--node-ip ${local.master_ip}",
     "--tls-san ${local.master_ip}",
@@ -215,7 +214,7 @@ resource "null_resource" "k3s" {
       
         echo "[INFO] ---Uninstalling k3s-sever---";
         k3s-uninstall.sh && ip route | grep 'calico\|weave\|cilium' | while read -r line; do ip route del $line; done; \
-        ls /sys/class/net | grep 'cili\|cali\|weave\|veth\|vxlan' | while read -r line; do ip link delete $line; done; \
+        ls /sys/class/net | grep 'cili\|cali\|weave\|veth\|vxlan\|datapath' | while read -r line; do ip link delete $line; done; \
         rm -rf /etc/cni/net.d/*; \
         echo "[INFO] ---Uninstalled k3s-server---" || \
         echo "[INFO] ---k3s not found. Skipping...---";
@@ -276,7 +275,7 @@ resource "null_resource" "k3s" {
       %{ else ~}
         echo "[INFO] ---Uninstalling k3s---";
         k3s-agent-uninstall.sh && ip route | grep 'calico\|weave\|cilium' | while read -r line; do ip route del $line; done; \
-        ls /sys/class/net | grep 'cili\|cali\|weave\|veth\|vxlan' | while read -r line; do ip link delete $line; done; \
+        ls /sys/class/net | grep 'cili\|cali\|weave\|veth\|vxlan\|datapath' | while read -r line; do ip link delete $line; done; \
         rm -rf /etc/cni/net.d/*; \
         echo "[INFO] ---Uninstalled k3s-server---" || \
         echo "[INFO] ---k3s not found. Skipping...---";
