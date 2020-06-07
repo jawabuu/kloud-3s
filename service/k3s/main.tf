@@ -60,7 +60,7 @@ variable "overlay_cidr" {
 }
 
 variable "cni" {
-  default = "flannel"
+  default = "default"
 }
 
 variable "private_interface" {
@@ -219,6 +219,13 @@ resource "null_resource" "k3s" {
         echo "[INFO] ---Uninstalled k3s-server---" || \
         echo "[INFO] ---k3s not found. Skipping...---";
         
+        # Download CNI plugins to /opt/cni/bin/ because most CNI's will look in that path
+        %{ if local.cni != "default" ~}
+        [ -d "/opt/cni/bin" ] || \
+        (wget https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz && \
+        tar zxvf cni-plugins-linux-amd64-v0.8.6.tgz && mkdir -p /opt/cni/bin && mv * /opt/cni/bin/);
+        %{ endif ~}
+        
         echo "[INFO] ---Installing k3s server---";
         
         %{ if local.cni == "weave" ~}
@@ -263,7 +270,7 @@ resource "null_resource" "k3s" {
         # Install cert-manager
         kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.15.1/cert-manager.yaml;
         # Wait for cert-manager-webhook to be ready
-        kubectl rollout status -n cert-manager deployment cert-manager-webhook --timeout 150s;
+        kubectl rollout status -n cert-manager deployment cert-manager-webhook --timeout 120s;
         # Install basic cert issuer
         kubectl apply -f /tmp/basic-cert-issuer.yaml;
         # Install traefik
@@ -283,6 +290,14 @@ resource "null_resource" "k3s" {
         echo "[INFO] ---Installing k3s agent---";        
         # CNI specific commands to run for nodes.
         # It is desirable to wait for networking to complete before proceeding with agent installation
+        
+        # Download CNI plugins to /opt/cni/bin/ because most CNI's will look in that path
+        %{ if local.cni != "default" ~}
+        [ -d "/opt/cni/bin" ] || \
+        (wget https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz && \
+        tar zxvf cni-plugins-linux-amd64-v0.8.6.tgz && mkdir -p /opt/cni/bin && mv * /opt/cni/bin/);
+        %{ endif ~}
+        
         %{ if local.cni == "cilium" ~}
         sudo mount bpffs -t bpf /sys/fs/bpf
         %{ endif ~}
@@ -291,11 +306,7 @@ resource "null_resource" "k3s" {
         echo "[INFO] ---Agent waiting for calico---";
         until $(nc -z ${local.master_ip} 9099); do echo '[WARN] Waiting for calico'; sleep 5; done;
         %{ endif ~}
-        
-        %{ if local.cni == "weave" ~}
-        wget https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz && tar zxvf cni-plugins-linux-amd64-v0.8.6.tgz && mkdir -p /opt/cni/bin && mv * /opt/cni/bin/;
-        %{ endif ~}
-        
+                
         until $(curl -fk -so nul https://${local.master_ip}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
         
         INSTALL_K3S_VERSION=${local.k3s_version} K3S_URL=https://${local.master_ip}:6443 K3S_TOKEN=${local.cluster_token} \
