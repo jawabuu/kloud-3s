@@ -59,12 +59,7 @@ resource null_resource kubeconfig {
     kubectl get nodes;
 EOT 
   }  
-    
-  provisioner "local-exec" {
-    when        = destroy
-    on_failure  = continue
-    command     = "rm -f ${self.triggers.kubeconfig_path}/${self.triggers.cluster_name}-k3s.yaml"
-  }
+  
 }
 
 output "kubeconfig" {
