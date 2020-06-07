@@ -116,7 +116,7 @@ cat <<-EOF > /etc/systemd/network/private.network
   [Match]
   MACAddress=$PRIVATE_MAC
   [Network]
-  Address=$PRIVATE_IP
+  Address=$PRIVATE_IP/24
 EOF
 systemctl restart systemd-networkd systemd-resolved;
 ip -o addr show scope global | awk '{split($4, a, "/"); print $2" : "a[1]}';
