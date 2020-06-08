@@ -171,3 +171,7 @@ output "private_network_interface" {
 output "vultr_servers" {
   value = "${vultr_server.host}"
 }
+
+output "nodes" {
+  value = zipmap(vultr_server.host.*.hostname, vultr_server.host.*.main_ip)
+}
