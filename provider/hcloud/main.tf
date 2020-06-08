@@ -120,3 +120,7 @@ output "private_network_interface" {
 output "hcloud_servers" {
   value = "${hcloud_server.host}"
 }
+
+output "nodes" {
+  value = zipmap(hcloud_server.host.*.name, hcloud_server.host.*.ipv4_address)
+}
