@@ -18,6 +18,7 @@ variable "cluster_name" {
 
 variable "vpn_ips" {
   type = list
+  default = []
 }
 
 variable "vpn_interface" {
@@ -47,7 +48,7 @@ variable "cluster_cidr_services" {
 }
 
 variable "overlay_interface" {
-  default = "cni0"
+  default = ""
 }
 
 variable "kubernetes_interface" {
@@ -68,11 +69,22 @@ variable "private_interface" {
 }
 
 variable "domain" {
-  default = "example.com"
+  default = "kloud3s.io"
 }
 
 variable "drain_timeout" {
   default = "60"
+}
+
+variable "cni_to_overlay_interface_map" {
+  description = "The interface created by the CNI e.g. calico=tun10, cilium=cilium_vxlan, weave-net=weave, flannel=cni0/flannel.1"
+  type        = map
+  default = {
+    flannel   = "cni0"
+    weave     = "weave"
+    cilium    = "cilium_host"
+    calico    = "tun10"
+  }
 }
 
 resource "random_string" "token1" {
@@ -92,9 +104,11 @@ locals {
   k3s_version   = var.k3s_version == "latest" ? jsondecode(data.http.k3s_version[0].body).tag_name : var.k3s_version
   domain        = var.domain
   cni           = var.cni
-  
+  valid_cni     = ["weave","calico","cilium","flannel","default"]
+  validate_cni  = index(local.valid_cni,local.cni)
+  # Set overlay interface from map, but optionally allow override
+  overlay_interface    = var.overlay_interface == "" ? lookup(var.cni_to_overlay_interface_map, local.cni, "cni0") : var.overlay_interface
   overlay_cidr         = var.overlay_cidr
-  overlay_interface    = var.overlay_interface
   private_interface    = var.private_interface
   kubernetes_interface = var.kubernetes_interface == "" ? var.vpn_interface : var.kubernetes_interface
   
@@ -410,9 +424,9 @@ data "http" "k3s_installer" {
 }
 
 output "overlay_interface" {
-  value = var.overlay_interface
+  value = local.overlay_interface
 }
 
 output "overlay_cidr" {
-  value = var.overlay_cidr
+  value = local.overlay_cidr
 }
