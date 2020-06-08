@@ -72,11 +72,9 @@ module "k3s" {
   vpn_interface     = module.wireguard.vpn_interface #module.provider.private_network_interface
   vpn_ips           = module.wireguard.vpn_ips #module.provider.private_ips
   hostname_format   = var.hostname_format
-  ssh_key_path      = module.ssh.private_key
   k3s_version       = var.k3s_version
-  cni               = "cilium" # Choice of CNI to install e.g. flannel, weave, cilium, calico
-  overlay_interface = "cilium_host" # The interface created by your CNI e.g. flannel=cni0/flannel.1, weave=weave, cilium=cilium_host/cilium_vxlan, calico=tun10/vxlan.calico
-  overlay_cidr      = "10.42.0.0/16" # Pod cidr
+  cni               = var.cni
+  overlay_cidr      = var.overlay_cidr
   kubeconfig_path   = var.kubeconfig_path
   private_ips       = module.provider.private_ips
   private_interface = module.provider.private_network_interface

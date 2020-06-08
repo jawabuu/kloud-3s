@@ -9,7 +9,7 @@ variable "etcd_node_count" {
 }
 
 variable "domain" {
-  default = "example.com"
+  default = "kloud3s.io"
 }
 
 variable "hostname_format" {
@@ -34,6 +34,20 @@ variable "k3s_version" {
 
 variable "kubeconfig_path" {
   default = "./.kubeconfig"
+}
+
+variable "create_zone" {
+  default = false
+}
+
+variable "cni" {
+  default = "cilium"
+  description = "Choice of CNI to install e.g. flannel, weave, cilium, calico"
+}
+
+variable "overlay_cidr" {
+  default = "10.42.0.0/16"
+  description = "Cluster cidr"
 }
 
 /* linode */
