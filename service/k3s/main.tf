@@ -227,9 +227,15 @@ resource "null_resource" "k3s" {
       %{ if count.index == 0 ~}
       
         echo "[INFO] ---Uninstalling k3s-sever---";
+        # Clear CNI interfaces
         k3s-uninstall.sh && ip route | grep 'calico\|weave\|cilium' | while read -r line; do ip route del $line; done; \
+        # Clear CNI routes
         ls /sys/class/net | grep 'cili\|cali\|weave\|veth\|vxlan\|datapath' | while read -r line; do ip link delete $line; done; \
+        # Clean CNI config folder
         rm -rf /etc/cni/net.d/*; \
+        # Rename weave interface as it cannot be deleted
+        ifconfig datapath down; \
+        ip link set datapath name dt$(date +'%y%m%d%H%M%S'); \
         echo "[INFO] ---Uninstalled k3s-server---" || \
         echo "[INFO] ---k3s not found. Skipping...---";
         
@@ -267,7 +273,6 @@ resource "null_resource" "k3s" {
         until kubectl apply -f /tmp/calico.yaml;do nc -zvv localhost 6443; sleep 5; done;
         echo "[INFO] ---Master waiting for calico---";
         kubectl rollout status ds calico-node -n kube-system;
-        until $(nc -z ${local.master_ip} 9099); do echo '[WARN] Waiting for calico'; sleep 5; done;
         %{ endif ~}
         
         %{ if local.cni == "weave" ~}
@@ -296,9 +301,15 @@ resource "null_resource" "k3s" {
         echo "[INFO] ---Finished installing k3s server---";
       %{ else ~}
         echo "[INFO] ---Uninstalling k3s---";
+        # Clear CNI interfaces
         k3s-agent-uninstall.sh && ip route | grep 'calico\|weave\|cilium' | while read -r line; do ip route del $line; done; \
+        # Clear CNI routes
         ls /sys/class/net | grep 'cili\|cali\|weave\|veth\|vxlan\|datapath' | while read -r line; do ip link delete $line; done; \
+        # Clean CNI config folder
         rm -rf /etc/cni/net.d/*; \
+        # Rename weave interface as it cannot be deleted
+        ifconfig datapath down; \
+        ip link set datapath name dt$(date +'%y%m%d%H%M%S'); \
         echo "[INFO] ---Uninstalled k3s-server---" || \
         echo "[INFO] ---k3s not found. Skipping...---";
         
