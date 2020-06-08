@@ -27,7 +27,7 @@ module "swap" {
   ssh_key_path = module.ssh.private_key
 }
 
-
+## Comment out if you do not have a domain ###
 module "dns" {
   source     = "../../dns/digitalocean"
 
