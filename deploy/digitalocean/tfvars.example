@@ -1,0 +1,8 @@
+# DNS Settings
+# Delete the DNS module in main.tf if you do not have these
+create_zone = "true"
+domain = "<required>"
+
+k3s_version = "v1.17.5+k3s1"
+node_count = 2
+digitalocean_token = "<required>"
