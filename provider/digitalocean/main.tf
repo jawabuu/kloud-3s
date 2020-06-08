@@ -122,3 +122,7 @@ output "private_network_interface" {
 output "digitalocean_droplets" {
   value = "${digitalocean_droplet.host}"
 }
+
+output "nodes" {
+  value = zipmap(digitalocean_droplet.host.*.name, digitalocean_droplet.host.*.ipv4_address_private)
+}
