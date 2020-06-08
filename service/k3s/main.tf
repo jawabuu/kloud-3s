@@ -77,13 +77,13 @@ variable "drain_timeout" {
 }
 
 variable "cni_to_overlay_interface_map" {
-  description = "The interface created by the CNI e.g. calico=tun10, cilium=cilium_vxlan, weave-net=weave, flannel=cni0/flannel.1"
+  description = "The interface created by the CNI e.g. calico=vxlan.calico, cilium=cilium_vxlan, weave-net=weave, flannel=cni0/flannel.1"
   type        = map
   default = {
     flannel   = "cni0"
     weave     = "weave"
     cilium    = "cilium_host"
-    calico    = "tun10"
+    calico    = "vxlan.calico"
   }
 }
 
@@ -272,6 +272,7 @@ resource "null_resource" "k3s" {
         
         %{ if local.cni == "weave" ~}
         kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.NO_MASQ_LOCAL=1&env.IPALLOC_RANGE=${local.overlay_cidr}&env.WEAVE_MTU=1500";
+        kubectl rollout status ds weave-net -n kube-system;
         %{ endif ~}
         
         %{ if local.cni == "flannel" ~}
