@@ -29,7 +29,7 @@ module "provider" {
 # }
 
 
-## Delete if you do not have a domain ###
+## Comment out if you do not have a domain ###
 module "dns" {
   source     = "../../dns/digitalocean"
 
