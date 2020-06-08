@@ -29,13 +29,14 @@ module "swap" {
 
 
 module "dns" {
-  source     = "./dns/digitalocean"
+  source      = "./dns/digitalocean"
 
-  node_count = var.node_count
-  token      = var.digitalocean_token
-  domain     = var.domain
-  public_ips = module.provider.public_ips
-  hostnames  = module.provider.hostnames
+  node_count  = var.node_count
+  token       = var.digitalocean_token
+  domain      = var.domain
+  public_ips  = module.provider.public_ips
+  hostnames   = module.provider.hostnames
+  create_zone = var.create_zone
 }
 
 module "wireguard" {
@@ -57,7 +58,8 @@ module "firewall" {
   private_interface    = module.provider.private_network_interface
   vpn_interface        = module.wireguard.vpn_interface
   vpn_port             = module.wireguard.vpn_port
-  kubernetes_interface = module.k3s.overlay_interface
+  overlay_interface    = module.k3s.overlay_interface
+  overlay_cidr         = module.k3s.overlay_cidr
   ssh_key_path         = module.ssh.private_key
 }
 
@@ -67,12 +69,16 @@ module "k3s" {
   node_count        = var.node_count
   connections       = module.provider.public_ips
   cluster_name      = var.domain
-  vpn_interface     = module.wireguard.vpn_interface
-  vpn_ips           = module.wireguard.vpn_ips
+  vpn_interface     = module.wireguard.vpn_interface #module.provider.private_network_interface
+  vpn_ips           = module.wireguard.vpn_ips #module.provider.private_ips
   hostname_format   = var.hostname_format
   ssh_key_path      = module.ssh.private_key
   k3s_version       = var.k3s_version
-  overlay_interface = "tun10"
-  overlay_cidr      = "10.42.0.0/15"
+  cni               = "cilium" # Choice of CNI to install e.g. flannel, weave, cilium, calico
+  overlay_interface = "cilium_host" # The interface created by your CNI e.g. flannel=cni0/flannel.1, weave=weave, cilium=cilium_host/cilium_vxlan, calico=tun10/vxlan.calico
+  overlay_cidr      = "10.42.0.0/16" # Pod cidr
   kubeconfig_path   = var.kubeconfig_path
+  private_ips       = module.provider.private_ips
+  private_interface = module.provider.private_network_interface
+  domain            = var.domain
 }
