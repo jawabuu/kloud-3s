@@ -103,7 +103,6 @@ output "private_ips" {
   value = "${linode_instance.host.*.private_ip_address}"
 }
 
-
 output "network_interfaces" {
   value = jsondecode(lookup(data.external.network_interfaces.result, "iface"))
 }
@@ -118,4 +117,8 @@ output "private_network_interface" {
 
 output "linode_servers" {
   value = "${linode_instance.host}"
+}
+
+output "nodes" {
+  value = zipmap(linode_instance.host.*.label, linode_instance.host.*.ip_address)
 }
