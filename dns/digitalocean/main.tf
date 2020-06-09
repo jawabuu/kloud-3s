@@ -27,7 +27,8 @@ resource "digitalocean_domain" "hobby-kube" {
 }
 
 locals{
-  do_domain = var.create_zone ? digitalocean_domain.hobby-kube[0].name : var.domain
+  do_domain        = var.create_zone ? digitalocean_domain.hobby-kube[0].name : var.domain
+  master_public_ip = length(var.public_ips) > 0 ? var.public_ips[0] : ""
 }
 
 resource "digitalocean_record" "hosts" {
@@ -43,7 +44,7 @@ resource "digitalocean_record" "hosts" {
 resource "digitalocean_record" "domain" {
   domain = local.do_domain
   name   = "@"
-  value  = element(var.public_ips, 0) # Use LoadBalancer or Floating IP
+  value  = local.master_public_ip # Use LoadBalancer or Floating IP
   type   = "A"
   ttl    = 300
 }

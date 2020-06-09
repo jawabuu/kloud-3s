@@ -7,13 +7,14 @@ variable "kubeconfig_path" {
 }
 
 resource "null_resource" "key_wait" {
+  count    = local.master_public_ip == "" ? 0 : 1
   triggers = {
     k3s        = null_resource.k3s[0].id
   }
   provisioner "local-exec" {
     interpreter = [ "bash", "-c" ]
     command     = <<EOT
-    ssh -i ${var.ssh_key_path} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+    ssh -i ${local.ssh_key_path} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
     root@${local.master_public_ip} \
     'while true; do if [ ! -f /etc/rancher/k3s/k3s.yaml ]; then sleep 5; echo '[INFO] Waiting for K3S..'; else break; fi; done'
 EOT
@@ -22,10 +23,11 @@ EOT
 
 resource null_resource kubeconfig {
 
+  count    = local.master_public_ip == "" ? 0 : 1
   triggers = {
     ip              = local.master_public_ip
     kubeconfig_path = var.kubeconfig_path
-    key             = null_resource.key_wait.id
+    key             = join(" ", null_resource.key_wait.*.id)
     cluster_name    = var.cluster_name
   }  
   
@@ -33,7 +35,7 @@ resource null_resource kubeconfig {
     on_failure  = continue
     interpreter = [ "bash", "-c" ]
     command     = <<EOT
-    scp -i ${var.ssh_key_path} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+    scp -i ${local.ssh_key_path} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
     root@${local.master_public_ip}:/etc/rancher/k3s/k3s.yaml ${var.kubeconfig_path}/${var.cluster_name}-k3s.yaml;
     
     export KUBECONFIG=${var.kubeconfig_path}/${var.cluster_name}-k3s.yaml;
@@ -67,5 +69,5 @@ output "kubeconfig" {
 }
 
 output "ssh-master" {
-  value = "ssh -i ${abspath(var.ssh_key_path)} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${local.master_public_ip}"
+  value = "ssh -i ${abspath(local.ssh_key_path)} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${local.master_public_ip}"
 }
