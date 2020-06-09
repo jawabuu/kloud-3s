@@ -228,10 +228,12 @@ resource "null_resource" "k3s" {
       %{ if count.index == 0 ~}
       
         echo "[INFO] ---Uninstalling k3s-server---";
-        # Clear CNI interfaces
-        k3s-uninstall.sh && ip route | grep 'calico\|weave\|cilium' | while read -r line; do ip route del $line; done; \
         # Clear CNI routes
-        ls /sys/class/net | grep 'cili\|cali\|weave\|veth\|vxlan\|datapath' | while read -r line; do ip link delete $line; done; \
+        k3s-uninstall.sh && ip route | grep -e 'calico' -e 'weave' -e 'cilium' -e 'bird' | \
+        while read -r line; do ip route del $line; done; \
+        # Clear CNI interfaces
+        ls /sys/class/net | grep -e 'cili' -e 'cali' -e 'weave' -e 'veth' -e 'vxlan' -e 'datapath' | \
+        while read -r line; do ip link delete $line; done; \
         # Clean CNI config folder
         rm -rf /etc/cni/net.d/*; \
         # Rename weave interface as it cannot be deleted
@@ -302,10 +304,12 @@ resource "null_resource" "k3s" {
         echo "[INFO] ---Finished installing k3s server---";
       %{ else ~}
         echo "[INFO] ---Uninstalling k3s---";
-        # Clear CNI interfaces
-        k3s-agent-uninstall.sh && ip route | grep 'calico\|weave\|cilium' | while read -r line; do ip route del $line; done; \
         # Clear CNI routes
-        ls /sys/class/net | grep 'cili\|cali\|weave\|veth\|vxlan\|datapath' | while read -r line; do ip link delete $line; done; \
+        k3s-agent-uninstall.sh && ip route | grep -e 'calico' -e 'weave' -e 'cilium' -e 'bird' | \
+        while read -r line; do ip route del $line; done; \
+        # Clear CNI interfaces
+        ls /sys/class/net | grep -e 'cili' -e 'cali' -e 'weave' -e 'veth' -e 'vxlan' -e 'datapath' | \
+        while read -r line; do ip link delete $line; done; \
         # Clean CNI config folder
         rm -rf /etc/cni/net.d/*; \
         # Rename weave interface as it cannot be deleted
