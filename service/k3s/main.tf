@@ -227,7 +227,7 @@ resource "null_resource" "k3s" {
     inline = [<<EOT
       %{ if count.index == 0 ~}
       
-        echo "[INFO] ---Uninstalling k3s-sever---";
+        echo "[INFO] ---Uninstalling k3s-server---";
         # Clear CNI interfaces
         k3s-uninstall.sh && ip route | grep 'calico\|weave\|cilium' | while read -r line; do ip route del $line; done; \
         # Clear CNI routes
