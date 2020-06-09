@@ -168,7 +168,7 @@ resource "null_resource" "k3s" {
     private_interface     = local.private_interface
     kubernetes_interface  = local.kubernetes_interface
     # Below is used to debug triggers
-    always_run            = "${timestamp()}"
+    # always_run            = "${timestamp()}"
   }
 
   connection {
