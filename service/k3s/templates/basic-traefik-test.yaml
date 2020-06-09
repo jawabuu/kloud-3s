@@ -120,5 +120,5 @@ spec:
     - dash.${domain}
     - whoami.${domain}
   issuerRef:
-    name: letsencrypt-test
+    name: letsencrypt-live
     kind: ClusterIssuer
