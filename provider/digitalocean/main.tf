@@ -108,7 +108,7 @@ output "private_ips" {
 }
 
 output "network_interfaces" {
-  value = var.hosts > 0 ? jsondecode(lookup(data.external.network_interfaces[0].result, "iface")) : {}
+  value = var.hosts > 0 ? lookup(data.external.network_interfaces[0].result, "iface") : ""
 }
 
 output "public_network_interface" {
