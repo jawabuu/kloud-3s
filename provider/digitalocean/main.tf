@@ -124,5 +124,12 @@ output "digitalocean_droplets" {
 }
 
 output "nodes" {
-  value = zipmap(digitalocean_droplet.host.*.name, digitalocean_droplet.host.*.ipv4_address)
+
+value = [for index, server in digitalocean_droplet.host: {
+    hostname    = server.name
+    public_ip   = server.ipv4_address,
+    private_ip  = server.ipv4_address_private,
+    role        = index > 0 ? "agent" : "master",
+  }]
+  
 }
