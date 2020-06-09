@@ -112,9 +112,10 @@ locals {
   private_interface    = var.private_interface
   kubernetes_interface = var.kubernetes_interface == "" ? var.vpn_interface : var.kubernetes_interface
   
-  master_ip            = element(var.vpn_ips, 0)
-  master_public_ip     = element(var.connections, 0)
-  master_private_ip    = element(var.private_ips, 0)
+  master_ip            = length(var.vpn_ips) > 0 ? var.vpn_ips[0] : ""
+  master_public_ip     = length(var.connections) > 0 ? var.connections[0] : ""
+  master_private_ip    = length(var.private_ips) > 0 ? var.private_ips[0] : ""
+  ssh_key_path         = var.ssh_key_path
   
   agent_default_flags = [
     "-v 5",

@@ -79,7 +79,7 @@ resource "hcloud_server" "host" {
 }
 
 data "external" "network_interfaces" {
-
+  count = var.hosts > 0 ? 1 : 0
   program = [
   "ssh", 
   "-i", "${abspath(var.ssh_key_path)}", 
@@ -106,7 +106,7 @@ output "private_ips" {
 
 
 output "network_interfaces" {
-  value = jsondecode(lookup(data.external.network_interfaces.result, "iface"))
+  value = var.hosts > 0 ? jsondecode(lookup(data.external.network_interfaces[0].result, "iface")) : {}
 }
 
 output "public_network_interface" {
