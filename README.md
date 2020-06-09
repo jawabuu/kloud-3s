@@ -115,7 +115,7 @@ Deployment
     deploy/digitalocean$ $(terraform output kubeconfig)
     ```
 
-1. Check resources KUBECONFIG`
+1. Check resources `kubectl get po -A -o wide`
     ```sh
     deploy/digitalocean$ kubectl get po -A -o wide
     NAMESPACE        NAME                                       READY   STATUS    RESTARTS   AGE   IP            NODE    NOMINATED NODE   READINESS GATES
