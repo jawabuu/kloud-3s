@@ -328,11 +328,6 @@ resource "null_resource" "k3s" {
         %{ if local.cni == "cilium" ~}
         sudo mount bpffs -t bpf /sys/fs/bpf
         %{ endif ~}
-        
-        %{ if local.cni == "calico" ~}
-        echo "[INFO] ---Agent waiting for calico---";
-        until $(nc -z ${local.master_ip} 9099); do echo '[WARN] Waiting for calico'; sleep 5; done;
-        %{ endif ~}
                 
         until $(curl -fk -so nul https://${local.master_ip}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
         
