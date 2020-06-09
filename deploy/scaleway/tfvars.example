@@ -1,0 +1,12 @@
+# DNS Settings
+# Delete the DNS module in main.tf if you do not have these
+create_zone = "true"
+domain = "<required>"
+digitalocean_token = "<required>"
+
+k3s_version = "v1.17.5+k3s1"
+node_count = 2
+scaleway_access_key = "<required>"
+scaleway_secret_key = "<required>"
+scaleway_organization_id = "<required>"
+cni = "calico"
