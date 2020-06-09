@@ -7,7 +7,7 @@ variable "kubeconfig_path" {
 }
 
 resource "null_resource" "key_wait" {
-  count    = local.master_public_ip == "" ? 0 : 1
+  count    = var.node_count > 0 ? 1 : 0
   triggers = {
     k3s        = null_resource.k3s[0].id
   }
@@ -23,7 +23,7 @@ EOT
 
 resource null_resource kubeconfig {
 
-  count    = local.master_public_ip == "" ? 0 : 1
+  count    = var.node_count > 0 ? 1 : 0
   triggers = {
     ip              = local.master_public_ip
     kubeconfig_path = var.kubeconfig_path

@@ -1,5 +1,5 @@
 resource "null_resource" "metallb_install" {
-  count    = local.master_public_ip == "" ? 0 : 1
+  count    = var.node_count > 0 ? 1 : 0
   triggers = {
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip
@@ -74,7 +74,7 @@ YAML
 ### End Notes
 
 resource "null_resource" "metallb_apply" {
-  count    = local.master_public_ip == "" ? 0 : 1
+  count    = var.node_count > 0 ? 1 : 0
   triggers = {
     metallb          = join(" ", null_resource.metallb_install.*.id)
     metallb_config   = md5(local_file.metallb_config.content)
