@@ -6,6 +6,7 @@ The following are currently tested;
 * [Vultr](https://www.vultr.com/?ref=8601755)
 * [DigitalOcean](https://www.digitalocean.com/?refcode=661c567f71b1)
 * [Linode](https://www.linode.com/?r=b402c474596a2d1656eac49aefe071916cbb2d61)
+* [ScaleWay](https://www.scaleway.com/)
 
 You may support the project by using the referral links above.
 
@@ -173,7 +174,8 @@ Provider variables
 | **DigitalOcean** | digitalocean_token | digitalocean_size | digitalocean_image | digitalocean_region |
 | **HetznerCloud** | hcloud_token | hcloud_type | hcloud_image | hcloud_location |
 | **Vultr** | vultr_api_key | vultr_plan | vultr_os | vultr_region |
-| **Linode** | linode_token | linode_type | linode_image | linode_image |
+| **Linode** | linode_token | linode_type | linode_image | linode_region |
+| **ScaleWay** | scaleway_organization_id, scaleway_access_key, scaleway_secret_key | scaleway_type | scaleway_image | scaleway_zone |
 
 </details>
 
