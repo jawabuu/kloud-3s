@@ -104,9 +104,8 @@ output "private_ips" {
   value = "${hcloud_server_network.kube-host-network.*.ip}"
 }
 
-
 output "network_interfaces" {
-  value = var.hosts > 0 ? jsondecode(lookup(data.external.network_interfaces[0].result, "iface")) : {}
+  value = var.hosts > 0 ? lookup(data.external.network_interfaces[0].result, "iface") : ""
 }
 
 output "public_network_interface" {
