@@ -104,15 +104,4 @@ resource "null_resource" "metallb_apply" {
     ]
   }
   
-  # Clean up on modifying metal-lb
-  provisioner remote-exec { 
-    
-    when = destroy
-    inline = [
-      "echo 'Cleaning up metal-lb...'",
-      "kubectl delete -n metallb-system configmap config",
-    ]
-    # Handle race conditions
-    on_failure = continue
-  }
 }
