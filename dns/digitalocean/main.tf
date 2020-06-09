@@ -42,6 +42,7 @@ resource "digitalocean_record" "hosts" {
 }
 
 resource "digitalocean_record" "domain" {
+  count  = var.node_count > 0 ? 1 : 0
   domain = local.do_domain
   name   = "@"
   value  = local.master_public_ip # Use LoadBalancer or Floating IP
