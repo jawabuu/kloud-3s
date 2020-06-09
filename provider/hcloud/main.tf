@@ -121,5 +121,12 @@ output "hcloud_servers" {
 }
 
 output "nodes" {
-  value = zipmap(hcloud_server.host.*.name, hcloud_server.host.*.ipv4_address)
+
+value = [for index, server in hcloud_server.host: {
+    hostname    = server.name
+    public_ip   = server.ipv4_address,
+    private_ip  = hcloud_server_network.kube-host-network[index].ip,
+    role        = index > 0 ? "agent" : "master",
+  }]
+  
 }
