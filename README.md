@@ -192,8 +192,8 @@ Todos
 
 References
 ----
-https://github.com/xunleii/terraform-module-k3s
-https://github.com/hobby-kube/guide
+* https://github.com/xunleii/terraform-module-k3s
+* https://github.com/hobby-kube/guide
 
 License
 ----
