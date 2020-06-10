@@ -189,6 +189,12 @@ Todos
  - [ ] Support more DNS providers
  - [ ] Add Cloud Controller Manager module
 
+
+References
+----
+https://github.com/xunleii/terraform-module-k3s
+https://github.com/hobby-kube/guide
+
 License
 ----
 
