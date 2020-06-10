@@ -35,7 +35,7 @@ kloud-3s aims to add the following;
 1. Add testing by using some popular cloud-native projects, namely:
     * [traefik](https://github.com/containous/traefik)
     * [cert-manger](https://github.com/jetstack/cert-manager)
-    * [metallb](https://github.com/metallb/metallb)
+    * [metallb](https://github.com/metallb/metallb)  
 A successful deployment will complete without any error from these deployments.
 
 Features
