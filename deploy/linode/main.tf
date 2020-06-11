@@ -6,26 +6,28 @@ module "ssh" {
 }
 
 module "provider" {
-  source = "../../provider/hcloud"
+  source = "../../provider/linode"
 
-  token           = var.hcloud_token
-  ssh_keys        = var.hcloud_ssh_keys
-  location        = var.hcloud_location
-  type            = var.hcloud_type
-  image           = var.hcloud_image
+  token           = var.linode_token
+  ssh_keys        = var.linode_ssh_keys
+  location        = var.linode_region
+  type            = var.linode_type
+  image           = var.linode_image
   hosts           = var.node_count
   hostname_format = var.hostname_format
   ssh_key_path    = module.ssh.private_key #var.ssh_key_path Override to use predefined key
   ssh_pubkey_path = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
 }
 
-module "swap" {
-  source = "../../service/swap"
+## Swap is set on instance creation for linode ###
+# module "swap" {
+#  source = "../../service/swap"
 
-  node_count   = var.node_count
-  connections  = module.provider.public_ips
-  ssh_key_path = module.ssh.private_key
-}
+#  node_count   = var.node_count
+#  connections  = module.provider.public_ips
+#  ssh_key_path = module.ssh.private_key
+# }
+
 
 ## Comment out if you do not have a domain ###
 module "dns" {
