@@ -132,7 +132,6 @@ value = [for index, server in scaleway_instance_server.host: {
     hostname    = server.name
     public_ip   = server.public_ip,
     private_ip  = server.private_ip,
-    role        = index > 0 ? "agent" : "master",
   }]
 
 }

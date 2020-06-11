@@ -178,7 +178,6 @@ value = [for index, server in vultr_server.host: {
     hostname    = server.hostname
     public_ip   = server.main_ip,
     private_ip  = server.internal_ip,
-    role        = index > 0 ? "agent" : "master",
   }]
   
 }
