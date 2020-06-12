@@ -55,7 +55,7 @@ data:
     address-pools:
     - name: default
       protocol: layer2
-      avoid-buggy-ips: true
+      avoid-buggy-ips: true %{ if local.ha_cluster != true }      
       addresses:
       - ${local.master_public_ip}/32
       auto-assign: true %{ if length(var.connections) > 1 }
@@ -64,7 +64,18 @@ data:
       avoid-buggy-ips: true
       addresses:%{ for connection in slice(var.connections,1,length(var.connections))}
       - ${connection}/32 %{ endfor }
+      auto-assign: false %{ endif } %{ else }
+      # Handle HA with multiple master IPs
+      addresses:%{ for connection in slice(var.connections,0,3) }
+      - ${connection}/32 %{ endfor }
+      auto-assign: true %{ if length(var.connections) > 3 }
+    - name: backup
+      protocol: layer2
+      avoid-buggy-ips: true
+      addresses:%{ for connection in slice(var.connections,3,length(var.connections))}
+      - ${connection}/32 %{ endfor }
       auto-assign: false %{ endif }
+      %{ endif ~}
 YAML
   }
 
