@@ -33,7 +33,7 @@ variable "k3s_version" {
 }
 
 variable "kubeconfig_path" {
-  default = "../../.ssh/kubeconfig"
+  default = "../../.kubeconfig"
 }
 
 variable "create_zone" {
