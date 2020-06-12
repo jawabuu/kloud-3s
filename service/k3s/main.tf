@@ -251,13 +251,8 @@ resource "null_resource" "k3s" {
         
         echo "[INFO] ---Installing k3s server---";
         
-        %{ if local.cni == "weave" ~}
-        wget https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz && tar zxvf cni-plugins-linux-amd64-v0.8.6.tgz && mkdir -p /opt/cni/bin && mv * /opt/cni/bin/;
-        %{ endif ~}
-        
         INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer ${local.server_install_flags} \
         --node-name ${self.triggers.node_name};
-        # until kubectl get nodes | grep -v '[WARN] No resources found'; do sleep 5; done;
         until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
         echo "[SUCCESS] API server is ready";
         until $(curl -fk -so nul https://${local.master_ip}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
