@@ -82,6 +82,12 @@ variable "ha_cluster" {
   description = "Enable High Availability, Minimum number of nodes must be 3"
 }
 
+variable "use_longhorn" {
+  default     = false
+  type        = bool
+  description = "Use Longhorn for storage"
+}
+
 variable "cni_to_overlay_interface_map" {
   description = "The interface created by the CNI e.g. calico=vxlan.calico, cilium=cilium_vxlan, weave-net=weave, flannel=cni0/flannel.1"
   type        = map
@@ -146,6 +152,8 @@ locals {
     "--disable servicelb",
     # Disable Traefik
     "--disable traefik",
+    # Disable Local Storage
+    var.use_longhorn == true ? "--disable local-storage" : "",
     "--token ${local.cluster_token}",
     # Flags left below to serve as examples for args that may need editing.    
     #"--node-external-ip ${local.master_private_ip}",
@@ -282,11 +290,7 @@ resource "null_resource" "k3s" {
         %{ endif ~}
         
         echo "[INFO] ---Installing k3s server---";
-        
-        %{ if local.cni == "weave" ~}
-        wget https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz && tar zxvf cni-plugins-linux-amd64-v0.8.6.tgz && mkdir -p /opt/cni/bin && mv * /opt/cni/bin/;
-        %{ endif ~}
-        
+                
         INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer server ${local.server_install_flags} \
         --node-name ${self.triggers.node_name};
         until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
@@ -294,6 +298,10 @@ resource "null_resource" "k3s" {
         until $(curl -fk -so nul https://${local.master_ip}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
         
         echo "[SUCCESS] Master is ready";
+        
+        # Patch coredns to tolerate external cloud provider taint
+        kubectl -n kube-system patch deployment coredns --type json -p '[{"op":"add","path":"/spec/template/spec/tolerations/-","value":{"key":"node.cloudprovider.kubernetes.io/uninitialized","value":"true","effect":"NoSchedule"}}]';
+        
         echo "[INFO] ---Installing CNI ${local.cni}---";
         
         %{ if local.cni == "cilium" ~}
@@ -320,7 +328,16 @@ resource "null_resource" "k3s" {
         kubectl rollout status ds kube-flannel-ds-amd64 -n kube-system;
         %{ endif ~}
         
-        echo "[INFO] ---Finished installing CNI ${local.cni}---";
+        echo "[INFO] ---Finished installing CNI ${local.cni}---";        
+        
+        %{ if var.use_longhorn == true ~}
+        
+        # Install Longhorn
+        echo "[INFO] ---Installing Longhorn---";
+        until kubectl apply --validate=false -f /tmp/manifests/longhorn.yaml; do nc -zvv localhost 6443; sleep 5; done;
+        echo "[INFO] ---Finished installing Longhorn---";
+        
+        %{ endif ~}
         
         # Install cert-manager
         kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.15.1/cert-manager.yaml;
@@ -329,10 +346,15 @@ resource "null_resource" "k3s" {
         # Install basic cert issuer
         kubectl apply -f /tmp/basic-cert-issuer.yaml;
         # Install traefik
+        %{ if local.ha_cluster == true }
+        kubectl apply -f /tmp/manifests/traefik-ds-k3s.yaml;
+        %{ else ~}
         kubectl apply -f /tmp/manifests/traefik-k3s.yaml;
-        # Install basic traefik test
-        kubectl apply -f /tmp/basic-traefik-test.yaml;
+        %{ endif ~}
         
+        # Install basic traefik test
+        kubectl apply -f /tmp/basic-traefik-test.yaml;        
+                
         echo "[INFO] ---Finished installing k3s server---";
       %{ else ~}
         echo "[INFO] ---Uninstalling k3s---";
