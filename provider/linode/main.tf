@@ -125,7 +125,6 @@ value = [for index, server in linode_instance.host: {
     hostname    = server.label
     public_ip   = server.ip_address,
     private_ip  = server.private_ip_address,
-    role        = index > 0 ? "agent" : "master",
   }]
   
 }

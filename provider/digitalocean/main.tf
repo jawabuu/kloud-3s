@@ -129,7 +129,6 @@ value = [for index, server in digitalocean_droplet.host: {
     hostname    = server.name
     public_ip   = server.ipv4_address,
     private_ip  = server.ipv4_address_private,
-    role        = index > 0 ? "agent" : "master",
   }]
   
 }
