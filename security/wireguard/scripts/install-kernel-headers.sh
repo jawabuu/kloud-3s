@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+if modprobe wireguard; then
+  echo "Skipping Linux Headers Install.."
+  exit 0
+fi
+
+
 # Install kernel headers with apt
 if apt-cache show -q linux-headers-$(uname -r) > /dev/null 2>&1 /dev/null; then
   echo "Installing Linux headers using apt"
