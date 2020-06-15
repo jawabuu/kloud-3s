@@ -72,7 +72,7 @@ variable "scaleway_type" {
 }
 
 variable "scaleway_image" {
-  default = "Ubuntu Bionic"
+  default = "ubuntu_focal"
 }
 
 /* digitalocean */

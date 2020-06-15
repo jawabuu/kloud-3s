@@ -72,11 +72,11 @@ resource "linode_instance" "host" {
     inline = [
       "while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done",
       "apt-get update",
-      "apt-get install -yq jq ufw ${join(" ", var.apt_packages)}",
+      "apt-get install -yq jq net-tools ufw ${join(" ", var.apt_packages)}",
     ]
   }
 }
-
+/*
 data "external" "network_interfaces" {
   count   = var.hosts > 0 ? 1 : 0
   program = [
@@ -90,7 +90,7 @@ data "external" "network_interfaces" {
   ]
 
 }
-
+*/
 output "hostnames" {
   value = "${linode_instance.host.*.label}"
 }
@@ -102,11 +102,11 @@ output "public_ips" {
 output "private_ips" {
   value = "${linode_instance.host.*.private_ip_address}"
 }
-
+/*
 output "network_interfaces" {
   value = var.hosts > 0 ? lookup(data.external.network_interfaces[0].result, "iface") : ""
 }
-
+*/
 output "public_network_interface" {
   value = "eth0"
 }

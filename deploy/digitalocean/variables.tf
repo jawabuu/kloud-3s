@@ -69,7 +69,7 @@ variable "digitalocean_size" {
 }
 
 variable "digitalocean_image" {
-  default = "ubuntu-18-04-x64"
+  default = "ubuntu-20-04-x64"
 }
 
 /* aws dns */

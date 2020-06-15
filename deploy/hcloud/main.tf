@@ -102,3 +102,6 @@ output "kubeconfig" {
   value = module.k3s.kubeconfig
 }
 
+output "test" {
+  value = "curl -Lkvv test.${var.domain} --resolve test.${var.domain}:80:${try(module.provider.public_ips[0],"localhost")} --resolve test.${var.domain}:443:${try(module.provider.public_ips[0],"localhost")}"
+}

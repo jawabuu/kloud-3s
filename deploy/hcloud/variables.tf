@@ -69,7 +69,7 @@ variable "hcloud_type" {
 }
 
 variable "hcloud_image" {
-  default = "ubuntu-18.04"
+  default = "ubuntu-20.04"
 }
 
 /* digitalocean */

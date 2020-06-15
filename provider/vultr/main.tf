@@ -99,7 +99,7 @@ resource "vultr_server" "host" {
     inline = [
       "while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done",
       "apt-get update",
-      "apt-get install -yq jq ufw ${join(" ", var.apt_packages)}",
+      "apt-get install -yq net-tools jq ufw ${join(" ", var.apt_packages)}",
     ]
   }
   
@@ -129,7 +129,7 @@ ip -o addr show scope global | awk '{split($4, a, "/"); print $2" : "a[1]}';
   }
   
 }
-
+/*
 data "external" "network_interfaces" {
   count   = var.hosts > 0 ? 1 : 0
   program = [
@@ -143,7 +143,7 @@ data "external" "network_interfaces" {
   ]
 
 }
-
+*/
 output "hostnames" {
   value = "${vultr_server.host.*.hostname}"
 }
@@ -155,11 +155,11 @@ output "public_ips" {
 output "private_ips" {
   value = "${vultr_server.host.*.internal_ip}"
 }
-
+/*
 output "network_interfaces" {
   value = var.hosts > 0 ? lookup(data.external.network_interfaces[0].result, "iface") : ""
 }
-
+*/
 output "public_network_interface" {
   value = "ens3"
 }
