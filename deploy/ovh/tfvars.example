@@ -1,0 +1,31 @@
+# DNS Settings
+# Delete the DNS module in main.tf if you do not have these
+create_zone = "true"
+domain = <required>
+digitalocean_token = <required>
+
+node_count = 2
+k3s_version = "v1.17.5+k3s1"
+cni = "flannel"
+
+region      = <required>
+tenant_name = <required>
+user_name   = <required>
+password    = <required>
+auth_url    = "https://auth.cloud.ovh.net/v3"
+
+# Openstack Credentials
+# Create Public Cloud Project > Users & Roles > Add User > Set Password > Download OpenStack RC File
+# Use the following map;
+# region      = OS_REGION_NAME
+# tenant_name = OS_PROJECT_NAME
+# user_name   = OS_USERNAME
+# password    = Your Password
+# auth_url    = OS_AUTH_URL
+
+# OVH Credentials
+# Get these here https://api.ovh.com/createToken/index.cgi?GET=/*&POST=/*&PUT=/*&DELETE=/*
+# application_key = 
+# application_secret = 
+# consumer_key = 
+# endpoint     = 

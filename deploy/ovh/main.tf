@@ -6,17 +6,24 @@ module "ssh" {
 }
 
 module "provider" {
-  source = "../../provider/vultr"
+  source = "../../provider/ovh"
 
-  api_key         = var.vultr_api_key
-  ssh_keys        = var.vultr_ssh_keys
-  region          = var.vultr_region
-  plan            = var.vultr_plan
-  os              = var.vultr_os
-  hosts           = var.node_count
-  hostname_format = var.hostname_format
-  ssh_key_path    = module.ssh.private_key #var.ssh_key_path Override to use predefined key
-  ssh_pubkey_path = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
+  application_key    = var.application_key
+  application_secret = var.application_secret
+  consumer_key       = var.consumer_key
+  endpoint           = var.endpoint
+  region             = var.region
+  tenant_name        = var.tenant_name
+  user_name          = var.user_name
+  password           = var.password
+  auth_url           = var.auth_url
+  ssh_keys           = var.ovh_ssh_keys
+  size               = var.ovh_type
+  image              = var.ovh_image
+  hosts              = var.node_count
+  hostname_format    = var.hostname_format
+  ssh_key_path       = module.ssh.private_key #var.ssh_key_path Override to use predefined key
+  ssh_pubkey_path    = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
 }
 
 module "swap" {
@@ -69,8 +76,8 @@ module "k3s" {
   node_count        = var.node_count
   connections       = module.provider.public_ips
   cluster_name      = var.domain
-  vpn_interface     = module.wireguard.vpn_interface
-  vpn_ips           = module.wireguard.vpn_ips
+  vpn_interface     = module.wireguard.vpn_interface #module.provider.private_network_interface
+  vpn_ips           = module.wireguard.vpn_ips #module.provider.private_ips
   hostname_format   = var.hostname_format
   ssh_key_path      = module.ssh.private_key
   k3s_version       = var.k3s_version
@@ -108,6 +115,6 @@ output "test" {
 
 /*
 output "servers" {
-  value = module.provider.vultr_servers
+  value = module.provider.ovh_servers
 }
 */
