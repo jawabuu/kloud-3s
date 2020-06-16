@@ -143,6 +143,7 @@ locals {
     "--cluster-cidr ${local.overlay_cidr}",
     "--token ${local.cluster_token}",
     "--kubelet-arg 'network-plugin=cni'",
+    "--node-external-ip ${local.master_public_ip}",
     # Flags left below to serve as examples for args that may need editing.    
     #"--node-external-ip ${local.master_private_ip}",
     #"--cluster-domain ${var.cluster_name}",  
@@ -168,6 +169,7 @@ resource "null_resource" "k3s" {
     overlay_interface     = local.overlay_interface
     private_interface     = local.private_interface
     kubernetes_interface  = local.kubernetes_interface
+    server_install_flags  = local.server_install_flags
     # Below is used to debug triggers
     # always_run            = "${timestamp()}"
   }
