@@ -51,7 +51,7 @@ The objective is to provide a consistent deployment experience across the suppor
 
     | Software | Version |
     | ------ | ------ |
-    | Ubuntu| 18.04 LTS|
+    | Ubuntu| 20.04 LTS|
     | K3S | v1.17.5+k3s1|
 1. kloud-3s tests a successful deployment by using traefik and cert-manager deployments sending requests to the following endpoints;
     | Test | Response Code | Certificate Issuer |
