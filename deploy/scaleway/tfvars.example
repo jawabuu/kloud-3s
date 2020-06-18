@@ -10,3 +10,9 @@ scaleway_access_key = "<required>"
 scaleway_secret_key = "<required>"
 scaleway_organization_id = "<required>"
 cni = "calico"
+# ScaleWay's Public IP's are NATted to the instance, hence one must use the following;
+# 1. Traefik ServiceLB
+# 2. Traefik Deployment with HostPort
+# 3. Use Instance Private IP with MetalLB.
+# Here we use option 1
+loadbalancer = "traefik"

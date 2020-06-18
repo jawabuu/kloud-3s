@@ -50,6 +50,11 @@ variable "overlay_cidr" {
   description = "Cluster cidr"
 }
 
+variable "loadbalancer" {
+  default     = "metallb"
+  description = "How LoadBalancer IPs are assigned. Options are metallb(default), traefik, ccm & akrobateo"
+}
+
 /* scaleway */
 variable "scaleway_organization_id" {
   default = ""

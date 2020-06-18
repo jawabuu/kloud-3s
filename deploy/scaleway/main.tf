@@ -81,6 +81,7 @@ module "k3s" {
   private_ips       = module.provider.private_ips
   private_interface = module.provider.private_network_interface
   domain            = var.domain
+  loadbalancer      = var.loadbalancer
 }
 
 output "private_key" {
