@@ -1,6 +1,17 @@
 #!/bin/sh
 set -e
 
+# Uncomment below to use HWE kernel if on Ubuntu 18.04. Solves Wireguard Issue.
+#apt-get -yq install --install-recommends linux-generic-hwe-18.04
+#(sleep 2 && reboot)&
+#shutdown -r +0
+
+if modprobe wireguard; then
+  echo "Skipping Linux Headers Install.."
+  exit 0
+fi
+
+
 # Install kernel headers with apt
 if apt-cache show -q linux-headers-$(uname -r) > /dev/null 2>&1 /dev/null; then
   echo "Installing Linux headers using apt"
