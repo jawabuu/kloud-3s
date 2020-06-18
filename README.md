@@ -7,6 +7,7 @@ The following are currently tested;
 * [DigitalOcean](https://www.digitalocean.com/?refcode=661c567f71b1)
 * [Linode](https://www.linode.com/?r=b402c474596a2d1656eac49aefe071916cbb2d61)
 * [ScaleWay](https://www.scaleway.com/)
+* [OVH](https://www.ovhcloud.com/en/public-cloud/)
 
 You may support the project by using the referral links above.
 
@@ -50,7 +51,7 @@ The objective is to provide a consistent deployment experience across the suppor
 
     | Software | Version |
     | ------ | ------ |
-    | Ubuntu| 18.04 LTS|
+    | Ubuntu| 20.04 LTS|
     | K3S | v1.17.5+k3s1|
 1. kloud-3s tests a successful deployment by using traefik and cert-manager deployments sending requests to the following endpoints;
     | Test | Response Code | Certificate Issuer |
@@ -169,13 +170,14 @@ Common variables for deployment
 |kubeconfig_path|`./../../.kubeconfig`|Directory to store kubeconfig file|
 
 Provider variables
-| ************ | Token | Machine Size | Machine OS | Machine Region |
+| ************ | Authentication | Machine Size | Machine OS | Machine Region |
 |-|-|-|-|-|
 | **DigitalOcean** | digitalocean_token | digitalocean_size | digitalocean_image | digitalocean_region |
 | **HetznerCloud** | hcloud_token | hcloud_type | hcloud_image | hcloud_location |
 | **Vultr** | vultr_api_key | vultr_plan | vultr_os | vultr_region |
 | **Linode** | linode_token | linode_type | linode_image | linode_region |
 | **ScaleWay** | scaleway_organization_id, scaleway_access_key, scaleway_secret_key | scaleway_type | scaleway_image | scaleway_zone |
+| **OVH** | tenant_name, user_name, password | ovh_type | ovh_image | region |
 
 </details>
 
