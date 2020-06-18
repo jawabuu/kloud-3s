@@ -85,6 +85,22 @@ spec:
   tls:
     secretName: live-http01-cert
 ---
+# Use PassThrough TLS
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: kube-api
+  namespace: default
+spec:
+  routes:
+    - match: HostSNI(`kube-api.${domain}`)
+      kind: Rule
+      services:
+        - name: kubernetes
+          port: 443
+  tls:
+    passthrough: true
+---
 apiVersion: traefik.containo.us/v1alpha1
 kind: TLSStore
 metadata:
