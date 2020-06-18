@@ -230,8 +230,6 @@ spec:
             - matchExpressions:
               - key: node-role.kubernetes.io/master
                 operator: Exists
-              - key: kloud-3s.io/deploy-traefik
-                operator: Exists
       tolerations:
         - key: node.kubernetes.io/not-ready
           operator: Exists
