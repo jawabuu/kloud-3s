@@ -50,6 +50,11 @@ variable "overlay_cidr" {
   description = "Cluster cidr"
 }
 
+variable "ha_cluster" {
+  default = false
+  description = "Create highly available cluster. Currently experimental and requires node_count >= 3"
+}
+
 /* ovh */
 variable "tenant_name" {
   type        = string
