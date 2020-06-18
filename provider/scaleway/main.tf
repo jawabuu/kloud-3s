@@ -54,7 +54,7 @@ provider "scaleway" {
 resource "scaleway_instance_server" "host" {
   name                = format(var.hostname_format, count.index + 1)
   type                = var.type
-  image               = data.scaleway_instance_image.image.id
+  image               = var.image
   enable_dynamic_ip   = true
 
   count = var.hosts
@@ -72,13 +72,13 @@ resource "scaleway_instance_server" "host" {
   provisioner "remote-exec" {
     inline = [
       "apt-get update",
-      "apt-get install -yq apt-transport-https jq ufw netcat-traditional ${join(" ", var.apt_packages)}",
+      "apt-get install -yq apt-transport-https net-tools jq ufw netcat-traditional ${join(" ", var.apt_packages)}",
       # fix a problem with later wireguard installation
       "DEBIAN_FRONTEND=noninteractive apt-get install -yq -o Dpkg::Options::=--force-confnew sudo",
     ]
   }
 }
-
+/*
 data "scaleway_instance_image" "image" {
   architecture = "x86_64"
   name         = var.image
@@ -97,6 +97,7 @@ data "external" "network_interfaces" {
   ]
 
 }
+*/
 
 output "hostnames" {
   value = scaleway_instance_server.host.*.name
@@ -109,11 +110,11 @@ output "public_ips" {
 output "private_ips" {
   value = scaleway_instance_server.host.*.private_ip
 }
-
+/*
 output "network_interfaces" {
   value = var.hosts > 0 ? lookup(data.external.network_interfaces[0].result, "iface") : ""
 }
-
+*/
 output "public_network_interface" {
   value = "ens3"
 }

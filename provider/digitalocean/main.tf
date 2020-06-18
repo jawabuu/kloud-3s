@@ -76,11 +76,11 @@ resource "digitalocean_droplet" "host" {
     inline = [
       "until [ -f /var/lib/cloud/instance/boot-finished ]; do sleep 1; done",
       "apt-get update",
-      "apt-get install -yq jq ufw ${join(" ", var.apt_packages)}",
+      "apt-get install -yq jq net-tools ufw ${join(" ", var.apt_packages)}",
     ]
   }
 }
-
+/*
 data "external" "network_interfaces" {
   count   = var.hosts > 0 ? 1 : 0
   program = [
@@ -94,7 +94,7 @@ data "external" "network_interfaces" {
   ]
 
 }
-
+*/
 output "hostnames" {
   value = "${digitalocean_droplet.host.*.name}"
 }
@@ -106,11 +106,11 @@ output "public_ips" {
 output "private_ips" {
   value = "${digitalocean_droplet.host.*.ipv4_address_private}"
 }
-
+/*
 output "network_interfaces" {
   value = var.hosts > 0 ? lookup(data.external.network_interfaces[0].result, "iface") : ""
 }
-
+*/
 output "public_network_interface" {
   value = "eth0"
 }
