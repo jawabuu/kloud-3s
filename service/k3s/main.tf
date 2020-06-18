@@ -76,6 +76,11 @@ variable "drain_timeout" {
   default = "60"
 }
 
+variable "loadbalancer" {
+  default = "metallb"
+  description = "How LoadBalancer IPs are assigned. Options are metallb(default), traefik, ccm & akrobateo"
+}
+
 variable "cni_to_overlay_interface_map" {
   description = "The interface created by the CNI e.g. calico=vxlan.calico, cilium=cilium_vxlan, weave-net=weave, flannel=cni0/flannel.1"
   type        = map
@@ -106,6 +111,7 @@ locals {
   cni           = var.cni
   valid_cni     = ["weave","calico","cilium","flannel","default"]
   validate_cni  = index(local.valid_cni,local.cni)
+  loadbalancer  = var.loadbalancer
   # Set overlay interface from map, but optionally allow override
   overlay_interface    = var.overlay_interface == "" ? lookup(var.cni_to_overlay_interface_map, local.cni, "cni0") : var.overlay_interface
   overlay_cidr         = var.overlay_cidr
@@ -132,8 +138,8 @@ locals {
     local.cni == "default" ? "--flannel-iface ${local.kubernetes_interface}" : "--flannel-backend=none",
     # Disable network policy
     "--disable-network-policy",
-    # Disable service load balancer
-    "--disable servicelb",
+    # Conditonally Disable service load balancer
+    local.loadbalancer == "traefik" ? "" : "--disable servicelb",
     # Disable Traefik
     "--disable traefik",
     "--node-ip ${local.master_ip}",

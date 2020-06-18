@@ -74,7 +74,7 @@ YAML
 ### End Notes
 
 resource "null_resource" "metallb_apply" {
-  count    = var.node_count > 0 ? 1 : 0
+  count    = var.node_count > 0 && local.loadbalancer == "metallb" ? 1 : 0
   triggers = {
     metallb          = join(" ", null_resource.metallb_install.*.id)
     metallb_config   = md5(local_file.metallb_config.content)
@@ -100,6 +100,9 @@ resource "null_resource" "metallb_apply" {
   provisioner "remote-exec" {
     inline = [<<EOT
       kubectl apply -f /tmp/metallb_config.yaml;
+      # Required to reload config if IPs change
+      # https://github.com/metallb/metallb/issues/462
+      kubectl -n=metallb-system delete po -l=component=controller;
     EOT
     ]
   }
