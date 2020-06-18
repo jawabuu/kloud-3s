@@ -6,18 +6,24 @@ module "ssh" {
 }
 
 module "provider" {
-  source = "../../provider/scaleway"
+  source = "../../provider/ovh"
 
-  organization_id = var.scaleway_organization_id
-  access_key      = var.scaleway_access_key
-  secret_key      = var.scaleway_secret_key
-  zone            = var.scaleway_zone
-  type            = var.scaleway_type
-  image           = var.scaleway_image
-  hosts           = var.node_count
-  hostname_format = var.hostname_format
-  ssh_key_path    = module.ssh.private_key #var.ssh_key_path Override to use predefined key
-  ssh_pubkey_path = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
+  application_key    = var.application_key
+  application_secret = var.application_secret
+  consumer_key       = var.consumer_key
+  endpoint           = var.endpoint
+  region             = var.region
+  tenant_name        = var.tenant_name
+  user_name          = var.user_name
+  password           = var.password
+  auth_url           = var.auth_url
+  ssh_keys           = var.ovh_ssh_keys
+  size               = var.ovh_type
+  image              = var.ovh_image
+  hosts              = var.node_count
+  hostname_format    = var.hostname_format
+  ssh_key_path       = module.ssh.private_key #var.ssh_key_path Override to use predefined key
+  ssh_pubkey_path    = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
 }
 
 module "swap" {
@@ -81,8 +87,6 @@ module "k3s" {
   private_ips       = module.provider.private_ips
   private_interface = module.provider.private_network_interface
   domain            = var.domain
-  ha_cluster        = var.ha_cluster
-  loadbalancer      = var.loadbalancer
 }
 
 output "private_key" {
@@ -111,6 +115,6 @@ output "test" {
 
 /*
 output "servers" {
-  value = module.provider.scaleway_servers
+  value = module.provider.ovh_servers
 }
 */

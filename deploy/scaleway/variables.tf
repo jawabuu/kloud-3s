@@ -55,6 +55,11 @@ variable "ha_cluster" {
   description = "Create highly available cluster. Currently experimental and requires node_count >= 3"
 }
 
+variable "loadbalancer" {
+  default     = "metallb"
+  description = "How LoadBalancer IPs are assigned. Options are metallb(default), traefik, ccm & akrobateo"
+}
+
 /* scaleway */
 variable "scaleway_organization_id" {
   default = ""
@@ -77,7 +82,7 @@ variable "scaleway_type" {
 }
 
 variable "scaleway_image" {
-  default = "Ubuntu Bionic"
+  default = "ubuntu_focal"
 }
 
 /* digitalocean */

@@ -74,7 +74,7 @@ variable "vultr_plan" {
 }
 
 variable "vultr_os" {
-  default = "Ubuntu 18.04 x64"
+  default = "Ubuntu 20.04 x64"
 }
 
 /* digitalocean */

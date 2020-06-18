@@ -74,7 +74,7 @@ variable "linode_type" {
 }
 
 variable "linode_image" {
-  default = "linode/ubuntu18.04"
+  default = "linode/ubuntu20.04"
 }
 
 /* digitalocean */
