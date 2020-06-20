@@ -55,27 +55,10 @@ data:
     address-pools:
     - name: default
       protocol: layer2
-      avoid-buggy-ips: true %{ if local.ha_cluster != true }      
+      avoid-buggy-ips: true     
       addresses:
       - ${local.master_public_ip}/32
-      auto-assign: true %{ if length(var.connections) > 1 }
-    - name: backup
-      protocol: layer2
-      avoid-buggy-ips: true
-      addresses:%{ for connection in slice(var.connections,1,length(var.connections))}
-      - ${connection}/32 %{ endfor }
-      auto-assign: false %{ endif } %{ else }
-      # Handle HA with multiple master IPs
-      addresses:%{ for connection in slice(var.connections,0,3) }
-      - ${connection}/32 %{ endfor }
-      auto-assign: true %{ if length(var.connections) > 3 }
-    - name: backup
-      protocol: layer2
-      avoid-buggy-ips: true
-      addresses:%{ for connection in slice(var.connections,3,length(var.connections))}
-      - ${connection}/32 %{ endfor }
-      auto-assign: false %{ endif }
-      %{ endif ~}
+      auto-assign: true
 YAML
   }
 
@@ -113,7 +96,9 @@ resource "null_resource" "metallb_apply" {
       kubectl apply -f /tmp/metallb_config.yaml;
       # Required to reload config if IPs change
       # https://github.com/metallb/metallb/issues/462
-      kubectl -n=metallb-system delete po -l=component=controller;
+      # kubectl -n=metallb-system delete po -l=component=controller;
+      # Apply ip-config
+      kubectl apply -f /tmp/manifests/ip-config.yaml;
     EOT
     ]
   }
