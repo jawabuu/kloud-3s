@@ -71,6 +71,7 @@ resource "linode_instance" "host" {
   provisioner "remote-exec" {
     inline = [
       "while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done",
+      "hostnamectl set-hostname ${self.label}",
       "apt-get update",
       "apt-get install -yq jq net-tools ufw ${join(" ", var.apt_packages)}",
     ]
