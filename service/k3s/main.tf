@@ -308,7 +308,7 @@ resource "null_resource" "k3s" {
         echo "[INFO] ---Installing k3s server---";
                 
         INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer server ${local.server_install_flags} \
-        --node-name ${self.triggers.node_name};
+        --node-name ${self.triggers.node_name} --node-external-ip ${self.triggers.node_public_ip};
         until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
         echo "[SUCCESS] API server is ready";
         until $(curl -fk -so nul https://${local.master_ip}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
@@ -409,7 +409,7 @@ resource "null_resource" "k3s" {
         
         echo "[INFO] ---Installing k3s server-follower---";
         INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer server ${local.follower_install_flags} \
-        --node-name ${self.triggers.node_name} --node-ip ${self.triggers.node_ip} \
+        --node-name ${self.triggers.node_name} --node-ip ${self.triggers.node_ip} --node-external-ip ${self.triggers.node_public_ip} \
         --tls-san ${self.triggers.node_ip} --tls-san ${self.triggers.node_public_ip} --tls-san ${self.triggers.node_private_ip};
         echo "[INFO] ---Finished installing k3s server-follower---";
         
@@ -418,7 +418,7 @@ resource "null_resource" "k3s" {
         echo "[INFO] ---Installing k3s agent---"; 
         INSTALL_K3S_VERSION=${local.k3s_version} \
         sh /tmp/k3s-installer agent ${local.agent_install_flags} --node-ip ${self.triggers.node_ip} \
-        --node-name ${self.triggers.node_name};
+        --node-name ${self.triggers.node_name} --node-external-ip ${self.triggers.node_public_ip};
         echo "[INFO] ---Finished installing k3s agent---";
         
         %{ endif ~}
