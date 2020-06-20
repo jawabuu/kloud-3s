@@ -144,6 +144,12 @@ locals {
     local.cni == "default" ? "--flannel-iface ${local.kubernetes_interface}" : "",
     # https://github.com/kubernetes/kubernetes/issues/75457
     "--kubelet-arg 'node-labels=role.node.kubernetes.io/worker=worker'",
+    "--kubelet-arg 'node-status-update-frequency=4s'",
+    "--kube-controller-manager-arg 'node-monitor-period=2s'",
+    "--kube-controller-manager-arg 'node-monitor-grace-period=16s'",
+    "--kube-controller-manager-arg 'pod-eviction-timeout=30s'",
+    "--kube-apiserver-arg 'default-not-ready-toleration-seconds=20'",
+    "--kube-apiserver-arg 'default-unreachable-toleration-seconds=20'",
   ]
   
   agent_install_flags = join(" ", concat(local.agent_default_flags))
@@ -161,13 +167,17 @@ locals {
     # Disable Local Storage
     var.use_longhorn == true ? "--disable local-storage" : "",
     "--token ${local.cluster_token}",
-    # Flags left below to serve as examples for args that may need editing.    
-    #"--node-external-ip ${local.master_private_ip}",
+    "--kubelet-arg 'node-status-update-frequency=4s'",
+    "--kube-controller-manager-arg 'node-monitor-period=2s'",
+    "--kube-controller-manager-arg 'node-monitor-grace-period=16s'",
+    "--kube-controller-manager-arg 'pod-eviction-timeout=30s'",
+    "--kube-apiserver-arg 'default-not-ready-toleration-seconds=20'",
+    "--kube-apiserver-arg 'default-unreachable-toleration-seconds=20'",
+    # Flags left below to serve as examples for args that may need editing.
     #"--cluster-domain ${var.cluster_name}",  
     #"--cluster-cidr ${var.cluster_cidr_pods}",
     #"--service-cidr ${var.cluster_cidr_services}",    
     #"--kube-apiserver-arg 'requestheader-allowed-names=system:auth-proxy,kubernetes-proxy'",
-    #"--kubelet-arg 'network-plugin=cni'",
     
   ]
   
