@@ -54,7 +54,7 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
   name: external-ip-updater
   namespace: ip-config
@@ -70,19 +70,12 @@ spec:
         app: external-ip-updater
     spec:
       serviceAccountName: ip-config
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: node-role.kubernetes.io/master
-                operator: Exists
       tolerations:
       - effect: NoSchedule
         key: node-role.kubernetes.io/master
       containers:
       - name: external-ip-updater
-        image: bskim45/helm-kubectl-jq
+        image: linkyard/kubectl #bskim45/helm-kubectl-jq
         env:
         - name: CURRENT_NODE
           valueFrom:
@@ -91,29 +84,30 @@ spec:
         command: ['sh', '-c' ]
         args:
         - | #!/bin/sh
-
+            # If a node goes down, kubernetes service still loadbalances to it's api server hence the generous use of `until kubectl..`
+            # https://github.com/kubernetes/kubernetes/issues/18174
             export CONFIGMAP="-n metallb-system configmap/config"
             export SERVICE="-n default service/traefik"
 
             while true
             do
-                SERVICE_IP=`kubectl get $SERVICE -o go-template --template='{{ (index .status.loadBalancer.ingress 0).ip }}'`
-                LEADER_NODE=`kubectl get endpoints kube-scheduler -n kube-system -o jsonpath='{.metadata.annotations.control-plane\.alpha\.kubernetes\.io/leader}' | jq -r .holderIdentity | sed "s/_[^_]*$//"`
-                LEADER_IP=`kubectl get nodes $LEADER_NODE -o jsonpath={.status.addresses[?\(@.type==\"ExternalIP\"\)].address}`
+                until LEADER_NODE_DATA=`kubectl get endpoints kube-scheduler -n kube-system -o jsonpath='{.metadata.annotations.control-plane\.alpha\.kubernetes\.io/leader}'` ; do sleep 1; done
+                LEADER_NODE=`echo $LEADER_NODE_DATA | jq -r .holderIdentity | sed "s/_[^_]*$//"`
+                until LEADER_IP=`kubectl get nodes $LEADER_NODE -o jsonpath={.status.addresses[?\(@.type==\"ExternalIP\"\)].address}` ; do sleep 1; done
+                until SERVICE_IP=`kubectl get $SERVICE -o go-template --template='{{ (index .status.loadBalancer.ingress 0).ip }}'` ; do sleep 1; done
                 echo "TIME        : `date +'%Y-%m-%d %H:%M:%S'`"
+                echo "LEADER_DATA : ${LEADER_NODE_DATA}"
                 echo "LEADER_NODE : ${LEADER_NODE}"
                 echo "LEADER_IP   : ${LEADER_IP}"
                 echo "SERVICE_IP  : ${SERVICE_IP}"
                 echo "CURRENT_NODE: ${CURRENT_NODE}"
                 
-                if test "$CURRENT_NODE" != "$LEADER_NODE" ; then
-                  echo "Skipping IP Configuration : Current Node is not Leader Node."
-                elif test "$LEADER_IP" = "$SERVICE_IP" ; then
+                if test "$LEADER_IP" = "$SERVICE_IP" ; then
                   echo "Skipping IP Configuration : No IP Changes Detected."
                 else
                   if [ $LEADER_IP ] && [ $SERVICE_IP ] ; then
-                    kubectl get $CONFIGMAP -o yaml | sed -re "s/([0-9]{1,3}\.){3}[0-9]{1,3}/$LEADER_IP/" | kubectl apply -f -
-                    kubectl -n=metallb-system delete po -l=component=controller
+                    until kubectl get $CONFIGMAP -o yaml | sed -re "s/([0-9]{1,3}\.){3}[0-9]{1,3}/$LEADER_IP/" | kubectl apply -f -; do sleep 1; done
+                    until kubectl -n=metallb-system delete po -l=component=controller; do sleep 1; done
                   else
                     echo "Skipping IP Configuration : Required IP's Missing."
                   fi
