@@ -302,13 +302,7 @@ resource "null_resource" "k3s" {
     content     = data.template_file.basic-cert-issuer.rendered
     destination = "/tmp/basic-cert-issuer.yaml"
   }
-  
-  # Upload basic traefik test
-  provisioner "file" {
-    content     = data.template_file.basic-traefik-test.rendered
-    destination = "/tmp/basic-traefik-test.yaml"
-  }
-      
+    
   # Install K3S server
   provisioner "remote-exec" {
     inline = [<<EOT
@@ -398,10 +392,7 @@ resource "null_resource" "k3s" {
         %{ else ~}
         kubectl apply -f /tmp/manifests/traefik-k3s.yaml;
         %{ endif ~}
-        
-        # Install basic traefik test
-        kubectl apply -f /tmp/basic-traefik-test.yaml;        
-                
+                        
         echo "[INFO] ---Finished installing k3s server---";
       %{ else ~}
         echo "[INFO] ---Uninstalling k3s---";
@@ -537,14 +528,6 @@ data "template_file" "weave-configuration" {
 
 data "template_file" "basic-cert-issuer" {
   template = file("${path.module}/templates/basic-cert-issuer.yaml")
-
-  vars = {
-    domain        =  local.domain
-  }
-}
-
-data "template_file" "basic-traefik-test" {
-  template = file("${path.module}/templates/basic-traefik-test.yaml")
 
   vars = {
     domain        =  local.domain
