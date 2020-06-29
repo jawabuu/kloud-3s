@@ -18,6 +18,12 @@ variable "public_ips" {
   type = list
 }
 
+variable "trform_domain" {
+  type        = bool
+  default     = false
+  description = "Manage the root and wildcard domain using this module."
+}
+
 provider "cloudflare" {
   email     = var.email
   api_token = var.api_token
@@ -42,6 +48,7 @@ resource "cloudflare_record" "hosts" {
 }
 
 resource "cloudflare_record" "domain" {
+  count   = var.trform_domain && var.node_count > 0 ? 1 : 0
   zone_id = local.zone_id
   name    = var.domain
   value   = element(var.public_ips, 0)
@@ -52,6 +59,7 @@ resource "cloudflare_record" "domain" {
 resource "cloudflare_record" "wildcard" {
   depends_on = [cloudflare_record.domain]
 
+  count   = var.trform_domain && var.node_count > 0 ? 1 : 0
   zone_id = local.zone_id
   name    = "*"
   value   = var.domain
@@ -61,4 +69,16 @@ resource "cloudflare_record" "wildcard" {
 
 output "domains" {
   value = "${cloudflare_record.hosts.*.hostname}"
+}
+
+
+output "dns_auth" {
+  sensitive = true
+  value     = {
+    provider  = "cloudflare"
+    domain    = var.domain
+    email     = var.email
+    api_token = var.api_token
+    
+  }
 }

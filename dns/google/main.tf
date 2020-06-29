@@ -18,6 +18,12 @@ variable "public_ips" {
   type = list
 }
 
+variable "trform_domain" {
+  type        = bool
+  default     = false
+  description = "Manage the root and wildcard domain using this module."
+}
+
 provider "google" {
   credentials = file(var.creds_file)
   project     = var.project
@@ -35,6 +41,7 @@ resource "google_dns_record_set" "hosts" {
 }
 
 resource "google_dns_record_set" "domain" {
+  count        = var.trform_domain && var.node_count > 0 ? 1 : 0
   name         = "${var.domain}."
   type         = "A"
   ttl          = 300
@@ -44,7 +51,8 @@ resource "google_dns_record_set" "domain" {
 
 resource "google_dns_record_set" "wildcard" {
   depends_on = ["google_dns_record_set.domain"]
-
+  
+  count        = var.trform_domain && var.node_count > 0 ? 1 : 0
   name         = "*.${var.domain}."
   type         = "CNAME"
   ttl          = 300
@@ -54,4 +62,15 @@ resource "google_dns_record_set" "wildcard" {
 
 output "domains" {
   value = "${google_dns_record_set.hosts.*.name}"
+}
+
+output "dns_auth" {
+  sensitive = true
+  value     = {
+    provider    = "google"
+    domain      = var.domain
+    credentials = file(var.creds_file)
+    project     = var.project
+    region      = var.region    
+  }
 }
