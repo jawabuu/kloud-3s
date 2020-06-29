@@ -38,12 +38,13 @@ module "swap" {
 module "dns" {
   source     = "../../dns/digitalocean"
 
-  node_count  = var.node_count
-  token       = var.digitalocean_token
-  domain      = var.domain
-  public_ips  = module.provider.public_ips
-  hostnames   = module.provider.hostnames
-  create_zone = var.create_zone
+  node_count    = var.node_count
+  token         = var.digitalocean_token
+  domain        = var.domain
+  public_ips    = module.provider.public_ips
+  hostnames     = module.provider.hostnames
+  create_zone   = var.create_zone
+  trform_domain = var.trform_domain
 }
 
 module "wireguard" {
@@ -88,6 +89,12 @@ module "k3s" {
   private_interface = module.provider.private_network_interface
   domain            = var.domain
   ha_cluster        = var.ha_cluster
+  ### Optional Settings Below. You may safely omit them. ###
+  # Uncomment below if you have specified the DNS module
+  dns_auth          = module.dns.dns_auth
+  trform_domain     = module.dns.trform_domain
+  create_certs      = var.create_certs
+  longhorn_replicas = var.longhorn_replicas
 }
 
 output "private_key" {
@@ -111,7 +118,7 @@ output "kubeconfig" {
 }
 
 output "test" {
-  value = "curl -Lkvv test.${var.domain} --resolve test.${var.domain}:80:${try(module.provider.public_ips[0],"localhost")} --resolve test.${var.domain}:443:${try(module.provider.public_ips[0],"localhost")}"
+  value = "curl -Lkvv test.${var.domain}"
 }
 
 /*

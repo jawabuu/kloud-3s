@@ -60,6 +60,29 @@ variable "loadbalancer" {
   description = "How LoadBalancer IPs are assigned. Options are metallb(default), traefik, ccm & akrobateo"
 }
 
+variable "trform_domain" {
+  type        = bool
+  default     = false
+  description = "Manage this domain and it's wildcard domain using terraform."
+}
+
+variable "test-traefik" {
+  type        = bool
+  default     = true
+  description = "Deploy traefik test."
+}
+
+variable "create_certs" {
+  type        = bool
+  default     = false
+  description = "Option to create letsencrypt certs. Only enable if certain that your deployment is reachable."
+}
+
+variable "longhorn_replicas" {
+  default     = 3
+  description = "Number of longhorn replicas"
+}
+
 /* scaleway */
 variable "scaleway_organization_id" {
   default = ""
