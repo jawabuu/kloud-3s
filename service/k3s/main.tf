@@ -82,12 +82,6 @@ variable "ha_cluster" {
   description = "Enable High Availability, Minimum number of nodes must be 3"
 }
 
-variable "use_longhorn" {
-  default     = false
-  type        = bool
-  description = "Use Longhorn for storage"
-}
-
 variable "loadbalancer" {
   default = "metallb"
   description = "How LoadBalancer IPs are assigned. Options are metallb(default), traefik, ccm & akrobateo"
@@ -370,16 +364,7 @@ resource "null_resource" "k3s" {
         %{ endif ~}
         
         echo "[INFO] ---Finished installing CNI ${local.cni}---";        
-        
-        %{ if var.use_longhorn == true ~}
-        
-        # Install Longhorn
-        echo "[INFO] ---Installing Longhorn---";
-        until kubectl apply --validate=false -f /tmp/manifests/longhorn.yaml; do nc -zvv localhost 6443; sleep 5; done;
-        echo "[INFO] ---Finished installing Longhorn---";
-        
-        %{ endif ~}
-        
+                
         # Install cert-manager
         kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.15.1/cert-manager.yaml;
         # Wait for cert-manager-webhook to be ready
