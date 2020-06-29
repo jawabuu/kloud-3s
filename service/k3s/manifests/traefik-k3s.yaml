@@ -168,10 +168,7 @@ kind: Service
 metadata:
   name: traefik
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: example.com
-    external-dns.alpha.kubernetes.io/ttl: "300"
     metallb.universe.tf/allow-shared-ip: traefik
-
 spec:
   ports:
   - port: 80
