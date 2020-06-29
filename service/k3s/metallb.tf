@@ -33,8 +33,8 @@ resource "null_resource" "metallb_install" {
   provisioner "remote-exec" {
     inline = [<<EOT
       until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
-      kubectl apply -f /tmp/metallb.yaml;
-      kubectl apply -f /tmp/net-tools.yaml;
+      until kubectl apply -f /tmp/metallb.yaml; do nc -zvv localhost 6443; sleep 5; done;
+      until kubectl apply -f /tmp/net-tools.yaml; do nc -zvv localhost 6443; sleep 5; done;
     EOT
     ]
   }
@@ -93,12 +93,12 @@ resource "null_resource" "metallb_apply" {
   # Start metallb
   provisioner "remote-exec" {
     inline = [<<EOT
-      kubectl apply -f /tmp/metallb_config.yaml;
+      until kubectl apply -f /tmp/metallb_config.yaml; do nc -zvv localhost 6443; sleep 5; done;
       # Required to reload config if IPs change
       # https://github.com/metallb/metallb/issues/462
       # kubectl -n=metallb-system delete po -l=component=controller;
       # Apply ip-config
-      kubectl apply -f /tmp/manifests/ip-config.yaml;
+      until kubectl apply -f /tmp/manifests/ip-config.yaml; do nc -zvv localhost 6443; sleep 5; done;
     EOT
     ]
   }
