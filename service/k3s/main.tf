@@ -136,10 +136,11 @@ locals {
   ssh_key_path         = var.ssh_key_path
   # Add validation for high availability here i.e. node_count > 3
   ha_cluster           = var.ha_cluster
+  registration_domain  = "k3s.${local.domain}"
   
   agent_default_flags = [
     "-v 5",
-    "--server https://${local.master_ip}:6443",
+    "--server https://${local.registration_domain}:6443",
     "--token ${local.cluster_token}",
     local.cni == "default" ? "--flannel-iface ${local.kubernetes_interface}" : "",
     # https://github.com/kubernetes/kubernetes/issues/75457
@@ -147,7 +148,7 @@ locals {
     "--kubelet-arg 'node-status-update-frequency=4s'",
     "--kube-controller-manager-arg 'node-monitor-period=2s'",
     "--kube-controller-manager-arg 'node-monitor-grace-period=16s'",
-    "--kube-controller-manager-arg 'pod-eviction-timeout=30s'",
+    "--kube-controller-manager-arg 'pod-eviction-timeout=24s'",
     "--kube-apiserver-arg 'default-not-ready-toleration-seconds=20'",
     "--kube-apiserver-arg 'default-unreachable-toleration-seconds=20'",
   ]
@@ -164,17 +165,14 @@ locals {
     local.loadbalancer == "traefik" ? "" : "--disable servicelb",
     # Disable Traefik
     "--disable traefik",
-    # Disable Local Storage
-    var.use_longhorn == true ? "--disable local-storage" : "",
     "--token ${local.cluster_token}",
     "--kubelet-arg 'node-status-update-frequency=4s'",
     "--kube-controller-manager-arg 'node-monitor-period=2s'",
     "--kube-controller-manager-arg 'node-monitor-grace-period=16s'",
-    "--kube-controller-manager-arg 'pod-eviction-timeout=30s'",
+    "--kube-controller-manager-arg 'pod-eviction-timeout=24s'",
     "--kube-apiserver-arg 'default-not-ready-toleration-seconds=20'",
     "--kube-apiserver-arg 'default-unreachable-toleration-seconds=20'",
     # Flags left below to serve as examples for args that may need editing.
-    #"--cluster-domain ${var.cluster_name}",  
     #"--cluster-cidr ${var.cluster_cidr_pods}",
     #"--service-cidr ${var.cluster_cidr_services}",    
     #"--kube-apiserver-arg 'requestheader-allowed-names=system:auth-proxy,kubernetes-proxy'",
@@ -193,12 +191,44 @@ locals {
   ]
   
   server_follower_flags = [
-    "--server https://${local.master_ip}:6443",  
+    "--server https://${local.registration_domain}:6443",  
   ]
   
   server_install_flags = join(" ", concat(local.server_default_flags, local.server_leader_flags))
   follower_install_flags = join(" ", concat(local.server_default_flags, local.server_follower_flags))
   
+}
+
+resource "null_resource" "set_dns_rr" {
+  # Use for fixed registration address
+  count    = var.node_count
+  triggers = {
+    registration_domain  = local.registration_domain
+    vpn_ips              = local.ha_cluster == true ? join(" ", slice(var.vpn_ips,0,3)) : local.master_ip
+    node_public_ip       = element(var.connections, count.index)
+    ssh_key_path         = var.ssh_key_path
+    domain               = local.domain
+  }
+  
+  connection {
+    host  = self.triggers.node_public_ip
+    user  = "root"
+    agent = false
+    private_key = file("${self.triggers.ssh_key_path}")
+  }
+  
+  provisioner "remote-exec" {
+      inline = [
+        "${join("\n", formatlist("echo '%s %s' >> /etc/hosts", split(" ", self.triggers.vpn_ips), self.triggers.registration_domain))}",
+        ]
+  }
+  
+  provisioner "remote-exec" {
+      when   = destroy
+      inline = [
+        "grep -F -v '${self.triggers.registration_domain}' /etc/hosts > /etc/hosts.tmp && mv /etc/hosts.tmp /etc/hosts",
+        ]
+  }
 }
 
 resource "null_resource" "k3s" {
@@ -218,6 +248,7 @@ resource "null_resource" "k3s" {
     server_install_flags  = local.server_install_flags
     agent_install_flags   = local.agent_install_flags
     follower_install_flags= local.follower_install_flags
+    registration_domain   = null_resource.set_dns_rr[count.index].triggers.registration_domain
     # Below is used to debug triggers
     # always_run            = "${timestamp()}"
   }
@@ -311,7 +342,7 @@ resource "null_resource" "k3s" {
         --node-name ${self.triggers.node_name} --node-external-ip ${self.triggers.node_public_ip};
         until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
         echo "[SUCCESS] API server is ready";
-        until $(curl -fk -so nul https://${local.master_ip}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
+        until $(curl -fk -so nul https://${local.registration_domain}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
         
         echo "[SUCCESS] Master is ready";
         
@@ -403,7 +434,7 @@ resource "null_resource" "k3s" {
         sudo mount bpffs -t bpf /sys/fs/bpf
         %{ endif ~}
                 
-        until $(curl -fk -so nul https://${local.master_ip}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
+        until $(curl -fk -so nul https://${local.registration_domain}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
         
         %{ if local.ha_cluster == true && count.index < 3 ~}
         
@@ -465,7 +496,8 @@ resource null_resource k3s_cleanup {
   # Clean up on deleting node
   provisioner remote-exec { 
     
-    when = destroy
+    when        = destroy
+    on_failure  = continue
     inline = [
       "echo 'Cleaning up ${self.triggers.node_name}...'",
       "kubectl drain ${self.triggers.node_name} --force --delete-local-data --ignore-daemonsets --timeout 180s",
