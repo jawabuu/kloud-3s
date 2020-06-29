@@ -98,6 +98,18 @@ variable "cni_to_overlay_interface_map" {
   }
 }
 
+variable "install_app" {
+  description = "Additional apps to Install"
+  type        = map
+  default     = {
+    kubernetes_dashboard = true
+    kube_prometheus      = true
+    k8dash               = false
+    elastic_cloud        = false
+    longhorn             = false
+  }
+}
+
 resource "random_string" "token1" {
   length  = 6
   upper   = false
@@ -118,6 +130,7 @@ locals {
   valid_cni     = ["weave","calico","cilium","flannel","default"]
   validate_cni  = index(local.valid_cni,local.cni)
   loadbalancer  = var.loadbalancer
+  
   # Set overlay interface from map, but optionally allow override
   overlay_interface    = var.overlay_interface == "" ? lookup(var.cni_to_overlay_interface_map, local.cni, "cni0") : var.overlay_interface
   overlay_cidr         = var.overlay_cidr
