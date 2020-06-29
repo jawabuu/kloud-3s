@@ -13,5 +13,5 @@ ufw allow 6443 # Kubernetes API secure remote port
 ufw allow 80
 ufw allow 443
 ufw default deny incoming
-ufw --force enable
+ufw --force enable || ufw logging off && ufw --force enable
 ufw status verbose
