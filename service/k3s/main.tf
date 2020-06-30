@@ -103,7 +103,7 @@ variable "install_app" {
   type        = map
   default     = {
     kubernetes_dashboard = true
-    kube_prometheus      = true
+    kube_prometheus      = false
     k8dash               = false
     elastic_cloud        = false
     longhorn             = false
