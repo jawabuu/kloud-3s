@@ -134,36 +134,6 @@ spec:
     - name: kubernetes-dashboard
       port: 80
 ---
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: monitoring-ingress
-  namespace: monitoring
-
-spec:
-  routes:
-  - match: Host(`grafana.${domain}`)
-    kind: Rule
-    # middlewares:
-    # - name: basic-auth
-    services:
-    - name: grafana
-      port: 3000
-  - match: Host(`proms.${domain}`)
-    kind: Rule
-    # middlewares:
-    # - name: basic-auth
-    services:
-    - name: prometheus-k8s
-      port: 9090
-  - match: Host(`alertm.${domain}`)
-    kind: Rule
-    # middlewares:
-    # - name: basic-auth
-    services:
-    - name: alertmanager-main
-      port: 9093
----
 apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
@@ -249,21 +219,6 @@ spec:
   dnsNames:
     - dash.${domain}
     - k8dash.${domain}
-  issuerRef:
-    name: letsencrypt-live
-    kind: ClusterIssuer
----
-apiVersion: cert-manager.io/v1alpha2
-kind: Certificate
-metadata:
-  name: live-http01-cert-longhorn
-  namespace: longhorn-system
-spec:
-  commonName: longhorn.${domain}
-  secretName: live-http01-cert-longhorn
-  dnsNames:    
-    - longhorn.${domain}
-    - whoami.${domain}
   issuerRef:
     name: letsencrypt-live
     kind: ClusterIssuer

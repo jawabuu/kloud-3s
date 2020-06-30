@@ -46,7 +46,7 @@ resource "null_resource" "traefik_test_apply" {
   provisioner "remote-exec" {
     inline = [<<EOT
       until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
-      until kubectl apply -f /tmp/traefik_test.yaml; do nc -zvv localhost 6443; sleep 5; done;
+      kubectl apply -f /tmp/traefik_test.yaml;
     EOT
     ]
   }
