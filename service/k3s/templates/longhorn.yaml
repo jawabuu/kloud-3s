@@ -469,19 +469,4 @@ parameters:
 #  recurringJobs: '[{"name":"snap", "task":"snapshot", "cron":"*/1 * * * *", "retain":1},
 #                   {"name":"backup", "task":"backup", "cron":"*/2 * * * *", "retain":1,
 #                    "labels": {"interval":"2m"}}]'
----
-# Serve global default cert i.e. self-signed-cert
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: longhorn
-  namespace: longhorn-system
-spec:
-  routes:
-    - match: Host(`longhorn.${domain}`)
-      kind: Rule
-      services:
-        - name: longhorn-frontend
-          port: 80
-  tls:
-    secretName: live-http01-cert-longhorn
+
