@@ -42,36 +42,18 @@ resource "null_resource" "metallb_install" {
   
 }
 
-resource "local_file" "metallb_config" {
-  filename = "${path.module}/manifests/metallb_config.yaml"
-  content = <<YAML
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  namespace: metallb-system
-  name: config
-data:
-  config: |
-    address-pools:
-    - name: default
-      protocol: layer2
-      avoid-buggy-ips: true     
-      addresses:
-      - ${local.master_public_ip}/32
-      auto-assign: true
-YAML
-  }
 
-### Notes: Make all IPs available for metallb
-#addresses:%{ for connection in slice(var.connections,1,length(var.connections))}
-#addresses:%{ for connection in var.connections}
-### End Notes
+locals {
+  metallb_config  = templatefile("${path.module}/templates/metallb_config.yaml", {
+    master_public_ip = local.master_public_ip
+  })
+}
 
 resource "null_resource" "metallb_apply" {
   count    = var.node_count > 0 && local.loadbalancer == "metallb" ? 1 : 0
   triggers = {
     metallb          = join(" ", null_resource.metallb_install.*.id)
-    metallb_config   = md5(local_file.metallb_config.content)
+    metallb_config   = md5(local.metallb_config)
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip
   }  
@@ -86,7 +68,7 @@ resource "null_resource" "metallb_apply" {
   
   # Upload metallb_config.yaml
   provisioner file {
-    source      = local_file.metallb_config.filename
+    source      = local.metallb_config
     destination = "/tmp/metallb_config.yaml"
   }
   
@@ -103,4 +85,8 @@ resource "null_resource" "metallb_apply" {
     ]
   }
   
+}
+
+output metallb_config {
+  value = local.metallb_config
 }
