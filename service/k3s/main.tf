@@ -380,11 +380,7 @@ resource "null_resource" "k3s" {
         # Install basic cert issuer
         kubectl apply -f /tmp/basic-cert-issuer.yaml;
         # Install traefik
-        %{ if local.ha_cluster == true }
         kubectl apply -f /tmp/manifests/traefik-ds-k3s.yaml;
-        %{ else ~}
-        kubectl apply -f /tmp/manifests/traefik-k3s.yaml;
-        %{ endif ~}
                         
         echo "[INFO] ---Finished installing k3s server---";
       %{ else ~}
