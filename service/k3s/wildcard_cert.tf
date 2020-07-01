@@ -31,13 +31,13 @@ resource "null_resource" "wildcard_cert_apply" {
     private_key = file("${self.triggers.ssh_key_path}")
   }
   
-  # Upload external-dns
+  # Upload wildcard_cert
   provisioner "file" {
     content     = local.wildcard_cert
     destination = "/tmp/wildcard_cert.yaml"
   }
   
-  # Install external-dns
+  # Install wildcard_cert
   provisioner "remote-exec" {
     inline = [<<EOT
       until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
@@ -46,7 +46,7 @@ resource "null_resource" "wildcard_cert_apply" {
     ]
   }
   
-  # Remove external-dns
+  # Remove wildcard_cert
   provisioner "remote-exec" {
     inline = [<<EOT
       kubectl --request-timeout 10s delete -f /tmp/wildcard_cert.yaml;
