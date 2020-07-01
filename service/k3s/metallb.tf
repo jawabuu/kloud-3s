@@ -68,7 +68,7 @@ resource "null_resource" "metallb_apply" {
   
   # Upload metallb_config.yaml
   provisioner file {
-    source      = local.metallb_config
+    content     = local.metallb_config
     destination = "/tmp/metallb_config.yaml"
   }
   
