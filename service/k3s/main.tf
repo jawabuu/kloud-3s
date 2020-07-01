@@ -153,11 +153,6 @@ locals {
     # https://github.com/kubernetes/kubernetes/issues/75457
     "--kubelet-arg 'node-labels=role.node.kubernetes.io/worker=worker'",
     "--kubelet-arg 'node-status-update-frequency=4s'",
-    "--kube-controller-manager-arg 'node-monitor-period=2s'",
-    "--kube-controller-manager-arg 'node-monitor-grace-period=16s'",
-    "--kube-controller-manager-arg 'pod-eviction-timeout=24s'",
-    "--kube-apiserver-arg 'default-not-ready-toleration-seconds=20'",
-    "--kube-apiserver-arg 'default-unreachable-toleration-seconds=20'",
   ]
   
   agent_install_flags = join(" ", concat(local.agent_default_flags))
