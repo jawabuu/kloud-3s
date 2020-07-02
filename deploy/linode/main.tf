@@ -90,6 +90,7 @@ module "k3s" {
   trform_domain     = module.dns.trform_domain
   create_certs      = var.create_certs
   longhorn_replicas = var.longhorn_replicas
+  install_app       = var.install_app
 }
 
 output "private_key" {

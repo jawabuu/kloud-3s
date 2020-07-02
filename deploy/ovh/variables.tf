@@ -78,6 +78,18 @@ variable "longhorn_replicas" {
   description = "Number of longhorn replicas"
 }
 
+variable "install_app" {
+  description = "Additional apps to Install"
+  type        = map
+  default     = {
+    kubernetes_dashboard = true
+    kube_prometheus      = false
+    k8dash               = false
+    elastic_cloud        = false
+    longhorn             = false
+  }
+}
+
 /* ovh */
 variable "tenant_name" {
   type        = string
