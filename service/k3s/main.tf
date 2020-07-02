@@ -101,13 +101,7 @@ variable "cni_to_overlay_interface_map" {
 variable "install_app" {
   description = "Additional apps to Install"
   type        = map
-  default     = {
-    kubernetes_dashboard = true
-    kube_prometheus      = false
-    k8dash               = false
-    elastic_cloud        = false
-    longhorn             = false
-  }
+  default     = {}
 }
 
 resource "random_string" "token1" {
