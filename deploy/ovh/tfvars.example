@@ -14,6 +14,15 @@ user_name   = <required>
 password    = <required>
 auth_url    = "https://auth.cloud.ovh.net/v3"
 
+# HA Cluster
+#ha_cluster = "true"
+# External DNS Management and WildCard Letsencrypt Certs
+#trform_domain = "false"
+# LetsEncrypt Cert Issuance 
+#create_certs = "true"
+# Additional Apps
+#install_app = { kubernetes_dashboard = true, longhorn = true}
+
 # Openstack Credentials
 # Create Public Cloud Project > Users & Roles > Add User > Set Password > Download OpenStack RC File
 # Use the following map;
