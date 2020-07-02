@@ -12,7 +12,7 @@ locals {
 
 resource "null_resource" "longhorn_apply" {
   # Skip if use_longhorn is false.
-  count    = var.node_count > 0 && var.install_app.longhorn == true ? 1 : 0
+  count    = var.node_count > 0 && lookup(var.install_app, "longhorn", false) == true ? 1 : 0
   triggers = {
     k3s_id           = join(" ", null_resource.k3s.*.id)
     longhorn         = md5(local.longhorn)
