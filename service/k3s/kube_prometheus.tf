@@ -32,11 +32,12 @@ resource "null_resource" "kube_prometheus_apply" {
     ]
   }
   
-  # Remove k8dash
+  # Remove kube_prometheus
   provisioner "remote-exec" {
     inline = [<<EOT
       kubectl --request-timeout 10s delete -f /tmp/kube_prometheus;
       kubectl --request-timeout 10s delete -f /tmp/kube_prometheus/setup;
+      kubectl --request-timeout 10s get po -A;
     EOT
     ]
     
