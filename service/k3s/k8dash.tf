@@ -38,9 +38,8 @@ resource "null_resource" "k8dash_apply" {
   
 }
 
-
 data "external" "k8dash-token" {
-  count   = var.node_count > 0  ? 1 : 0
+  count   = null_resource.k8dash_apply.*.id == []  ? 0 : 1
   program = [
   "ssh", 
   "-i", "${abspath(var.ssh_key_path)}", 
