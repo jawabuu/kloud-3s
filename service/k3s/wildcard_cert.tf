@@ -42,6 +42,9 @@ resource "null_resource" "wildcard_cert_apply" {
     inline = [<<EOT
       until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
       until kubectl apply -f /tmp/wildcard_cert.yaml; do nc -zvv localhost 6443; sleep 5; done;
+      until kubectl get tlsstore default -o jsonpath='{.spec.defaultCertificate.secretName}' | grep -v 'self-signed-cert'; \
+      do kubectl patch tlsstore default --type='json' -p='[{"op": "replace", "path": "/spec/defaultCertificate/secretName", "value": "live-dns01-cert" }]'; \
+      sleep 3; done; echo '[INFO] Wildcard Cert patched';
     EOT
     ]
   }
