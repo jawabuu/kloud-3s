@@ -39,7 +39,9 @@ resource "null_resource" "longhorn_apply" {
       until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
       echo "[INFO] ---Installing Longhorn---";
       until kubectl apply --validate=false -f /tmp/longhorn.yaml; do nc -zvv localhost 6443; sleep 5; done;
-      kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}';
+      until kubectl get storageclass local-path -o jsonpath='{.metadata.annotations.storageclass\.kubernetes\.io/is-default-class}' | grep -v 'true'; \
+      do kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'; \
+      sleep 3; done;
       kubectl patch storageclass longhorn -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}';
       echo "[INFO] ---Finished installing Longhorn---";
     EOT
