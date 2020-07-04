@@ -4,7 +4,6 @@ resource "null_resource" "elastic_cloud_apply" {
     k3s_id           = join(" ", null_resource.k3s.*.id)
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip
-    always_run       = "${timestamp()}"
   }  
   
   # Use master(s)
