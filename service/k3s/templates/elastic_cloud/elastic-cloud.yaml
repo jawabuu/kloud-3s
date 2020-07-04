@@ -2079,7 +2079,7 @@ spec:
             value: docker.elastic.co/eck/eck-operator:1.1.0
         resources:
           limits:
-            cpu: 1
+            cpu: 100m
             memory: 150Mi
           requests:
             cpu: 100m
