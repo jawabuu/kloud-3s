@@ -146,6 +146,8 @@ locals {
     local.cni == "default" ? "--flannel-iface ${local.kubernetes_interface}" : "",
     # https://github.com/kubernetes/kubernetes/issues/75457
     "--kubelet-arg 'node-labels=role.node.kubernetes.io/worker=worker'",
+    "--kubelet-arg 'node-labels=topology.kubernetes.io/zone=k3s'",
+    "--kubelet-arg 'node-labels=topology.kubernetes.io/region=k3s'",
     "--kubelet-arg 'node-status-update-frequency=4s'",
   ]
   
@@ -163,6 +165,8 @@ locals {
     "--disable traefik",
     "--token ${local.cluster_token}",
     "--kubelet-arg 'node-status-update-frequency=4s'",
+    "--kubelet-arg 'node-labels=topology.kubernetes.io/zone=k3s'",
+    "--kubelet-arg 'node-labels=topology.kubernetes.io/region=k3s'",
     "--kube-controller-manager-arg 'node-monitor-period=2s'",
     "--kube-controller-manager-arg 'node-monitor-grace-period=16s'",
     "--kube-controller-manager-arg 'pod-eviction-timeout=24s'",
