@@ -30,6 +30,16 @@ spec:
           resources:
             requests:
               memory: 300Mi
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 3Gi
+        # storageClassName: default
         # affinity:
           # nodeAffinity:
             # requiredDuringSchedulingIgnoredDuringExecution:
