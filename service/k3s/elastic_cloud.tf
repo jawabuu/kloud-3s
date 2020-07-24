@@ -4,6 +4,7 @@ resource "null_resource" "elastic_cloud_apply" {
     k3s_id           = join(" ", null_resource.k3s.*.id)
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip
+    apm_es_kibana    = filemd5("${path.module}/templates/elastic_cloud/apm_es_kibana.yaml")
   }  
   
   # Use master(s)
