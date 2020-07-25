@@ -63,6 +63,7 @@ module "firewall" {
   overlay_interface    = module.k3s.overlay_interface
   overlay_cidr         = module.k3s.overlay_cidr
   ssh_key_path         = module.ssh.private_key
+  additional_rules     = var.additional_rules
 }
 
 module "k3s" {
