@@ -177,6 +177,9 @@ spec:
   - port: 443
     name: websecure
     targetPort: websecure
+  - port: 8800
+    name: tcp
+    targetPort: tcp
   selector:
     app: traefik
   externalTrafficPolicy: Local
@@ -236,6 +239,7 @@ spec:
             - --entrypoints.web.Address=:8000
             - --entrypoints.websecure.Address=:4443
             - --entrypoints.udp.address=:9090/udp
+            - --entrypoints.tcp.address=:8800
             - --providers.kubernetescrd
             - --providers.kubernetesingress
             - --providers.kubernetesIngress.ingressClass=traefik-cert-manager
@@ -263,6 +267,8 @@ spec:
               hostPort: 443
             - name: admin
               containerPort: 8080
+            - name: tcp
+              containerPort: 8800
           securityContext:
             capabilities:
               drop:
