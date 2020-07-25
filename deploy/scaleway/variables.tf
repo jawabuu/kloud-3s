@@ -96,6 +96,12 @@ variable "install_app" {
   }
 }
 
+variable "additional_rules" {
+  type        = list(string)
+  default     = []
+  description = "add custom firewall rules during provisioning e.g. ["allow 1194/udp", "allow ftp"]"
+}
+
 /* scaleway */
 variable "scaleway_organization_id" {
   default = ""
