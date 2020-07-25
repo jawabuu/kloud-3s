@@ -269,6 +269,8 @@ spec:
               containerPort: 8080
             - name: tcp
               containerPort: 8800
+            - name: udp
+              containerPort: 9090
           securityContext:
             capabilities:
               drop:
