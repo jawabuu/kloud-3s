@@ -1,0 +1,91 @@
+# This sample sets up a an Elasticsearch cluster along with a Kibana instance
+# and an APM server, configured to be able to communicate with each other
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: es
+spec:
+  version: 7.6.0
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: true
+  nodeSets:
+  - name: default
+    count: 1
+    config:
+      node.master: true
+      node.data: true
+      node.ingest: true
+      # This setting could have performance implications for production clusters.
+      # See: https://www.elastic.co/guide/en/cloud-on-k8s/master/k8s-virtual-memory.html
+      node.store.allow_mmap: false
+    podTemplate:
+      spec:
+        containers:
+        - name: elasticsearch
+          env:
+          - name: ES_JAVA_OPTS
+            value: -Xms300m -Xmx300m
+          resources:
+            requests:
+              memory: 300Mi
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 3Gi
+        # storageClassName: default
+        # affinity:
+          # nodeAffinity:
+            # requiredDuringSchedulingIgnoredDuringExecution:
+              # nodeSelectorTerms:
+              # - matchExpressions:
+                # - key: node-role.kubernetes.io/master
+                  # operator: DoesNotExist
+---
+apiVersion: apm.k8s.elastic.co/v1
+kind: ApmServer
+metadata:
+  name: es
+spec:
+  version: 7.6.0
+  count: 1
+  elasticsearchRef:
+    name: "es"
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: true
+  podTemplate:
+    spec:
+      containers:
+      - name: apm-server
+        resources:
+          requests:
+            memory: 256Mi
+---
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: es
+spec:
+  version: 7.6.0
+  count: 1
+  elasticsearchRef:
+    name: "es"
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: true
+  podTemplate:
+    spec:
+      containers:
+      - name: kibana
+        resources:
+          requests:
+            memory: 300Mi

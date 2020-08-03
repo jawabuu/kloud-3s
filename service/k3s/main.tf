@@ -76,6 +76,12 @@ variable "drain_timeout" {
   default = "60"
 }
 
+variable "ha_cluster" {
+  default     = false
+  type        = bool
+  description = "Enable High Availability, Minimum number of nodes must be 3"
+}
+
 variable "loadbalancer" {
   default = "metallb"
   description = "How LoadBalancer IPs are assigned. Options are metallb(default), traefik, ccm & akrobateo"
@@ -90,6 +96,12 @@ variable "cni_to_overlay_interface_map" {
     cilium    = "cilium_host"
     calico    = "vxlan.calico"
   }
+}
+
+variable "install_app" {
+  description = "Additional apps to Install"
+  type        = map
+  default     = {}
 }
 
 resource "random_string" "token1" {
@@ -112,6 +124,7 @@ locals {
   valid_cni     = ["weave","calico","cilium","flannel","default"]
   validate_cni  = index(local.valid_cni,local.cni)
   loadbalancer  = var.loadbalancer
+  
   # Set overlay interface from map, but optionally allow override
   overlay_interface    = var.overlay_interface == "" ? lookup(var.cni_to_overlay_interface_map, local.cni, "cni0") : var.overlay_interface
   overlay_cidr         = var.overlay_cidr
@@ -122,12 +135,20 @@ locals {
   master_public_ip     = length(var.connections) > 0 ? var.connections[0] : ""
   master_private_ip    = length(var.private_ips) > 0 ? var.private_ips[0] : ""
   ssh_key_path         = var.ssh_key_path
+  # Add validation for high availability here i.e. node_count > 3
+  ha_cluster           = var.ha_cluster
+  registration_domain  = "k3s.${local.domain}"
   
   agent_default_flags = [
     "-v 5",
-    "--server https://${local.master_ip}:6443",
+    "--server https://${local.registration_domain}:6443",
     "--token ${local.cluster_token}",
     local.cni == "default" ? "--flannel-iface ${local.kubernetes_interface}" : "",
+    # https://github.com/kubernetes/kubernetes/issues/75457
+    "--kubelet-arg 'node-labels=role.node.kubernetes.io/worker=worker'",
+    "--kubelet-arg 'node-labels=topology.kubernetes.io/zone=k3s'",
+    "--kubelet-arg 'node-labels=topology.kubernetes.io/region=k3s'",
+    "--kubelet-arg 'node-status-update-frequency=4s'",
   ]
   
   agent_install_flags = join(" ", concat(local.agent_default_flags))
@@ -142,25 +163,72 @@ locals {
     local.loadbalancer == "traefik" ? "" : "--disable servicelb",
     # Disable Traefik
     "--disable traefik",
+    "--token ${local.cluster_token}",
+    "--kubelet-arg 'node-status-update-frequency=4s'",
+    "--kubelet-arg 'node-labels=topology.kubernetes.io/zone=k3s'",
+    "--kubelet-arg 'node-labels=topology.kubernetes.io/region=k3s'",
+    "--kube-controller-manager-arg 'node-monitor-period=2s'",
+    "--kube-controller-manager-arg 'node-monitor-grace-period=16s'",
+    "--kube-controller-manager-arg 'pod-eviction-timeout=24s'",
+    "--kube-apiserver-arg 'default-not-ready-toleration-seconds=20'",
+    "--kube-apiserver-arg 'default-unreachable-toleration-seconds=20'",
+    # Flags left below to serve as examples for args that may need editing.
+    #"--cluster-cidr ${var.cluster_cidr_pods}",
+    #"--service-cidr ${var.cluster_cidr_services}",    
+    #"--kube-apiserver-arg 'requestheader-allowed-names=system:auth-proxy,kubernetes-proxy'",
+    
+  ]
+  
+  server_leader_flags = [
     "--node-ip ${local.master_ip}",
     "--tls-san ${local.master_ip}",
     "--tls-san ${local.master_public_ip}",
     "--tls-san ${local.master_private_ip}",
     "--cluster-cidr ${local.overlay_cidr}",
-    "--token ${local.cluster_token}",
-    "--kubelet-arg 'network-plugin=cni'",
-    "--node-external-ip ${local.master_public_ip}",
-    # Flags left below to serve as examples for args that may need editing.    
-    #"--node-external-ip ${local.master_private_ip}",
-    #"--cluster-domain ${var.cluster_name}",  
-    #"--cluster-cidr ${var.cluster_cidr_pods}",
-    #"--service-cidr ${var.cluster_cidr_services}",    
-    #"--kube-apiserver-arg 'requestheader-allowed-names=system:auth-proxy,kubernetes-proxy'",  
+    "--node-label 'kloud-3s.io/deploy-traefik=true'",
+    local.ha_cluster == true ? "--cluster-init" : "",
     
   ]
   
-  server_install_flags = join(" ", concat(local.server_default_flags))
+  server_follower_flags = [
+    "--server https://${local.registration_domain}:6443",  
+  ]
   
+  server_install_flags = join(" ", concat(local.server_default_flags, local.server_leader_flags))
+  follower_install_flags = join(" ", concat(local.server_default_flags, local.server_follower_flags))
+  
+}
+
+resource "null_resource" "set_dns_rr" {
+  # Use for fixed registration address
+  count    = var.node_count
+  triggers = {
+    registration_domain  = local.registration_domain
+    vpn_ips              = local.ha_cluster == true ? join(" ", slice(var.vpn_ips,0,3)) : local.master_ip
+    node_public_ip       = element(var.connections, count.index)
+    ssh_key_path         = var.ssh_key_path
+    domain               = local.domain
+  }
+  
+  connection {
+    host  = self.triggers.node_public_ip
+    user  = "root"
+    agent = false
+    private_key = file("${self.triggers.ssh_key_path}")
+  }
+  
+  provisioner "remote-exec" {
+      inline = [
+        "${join("\n", formatlist("echo '%s %s' >> /etc/hosts", split(" ", self.triggers.vpn_ips), self.triggers.registration_domain))}",
+        ]
+  }
+  
+  provisioner "remote-exec" {
+      when   = destroy
+      inline = [
+        "grep -F -v '${self.triggers.registration_domain}' /etc/hosts > /etc/hosts.tmp && mv /etc/hosts.tmp /etc/hosts",
+        ]
+  }
 }
 
 resource "null_resource" "k3s" {
@@ -170,12 +238,17 @@ resource "null_resource" "k3s" {
     master_public_ip      = local.master_public_ip
     node_public_ip        = element(var.connections, count.index)
     node_name             = format(var.hostname_format, count.index + 1)
+    node_ip               = element(var.vpn_ips, count.index)
+    node_private_ip       = element(var.private_ips, count.index)
     k3s_version           = local.k3s_version
     overlay_cidr          = local.overlay_cidr
     overlay_interface     = local.overlay_interface
     private_interface     = local.private_interface
     kubernetes_interface  = local.kubernetes_interface
     server_install_flags  = local.server_install_flags
+    agent_install_flags   = local.agent_install_flags
+    follower_install_flags= local.follower_install_flags
+    registration_domain   = null_resource.set_dns_rr[count.index].triggers.registration_domain
     # Below is used to debug triggers
     # always_run            = "${timestamp()}"
   }
@@ -218,18 +291,18 @@ resource "null_resource" "k3s" {
     destination = "/tmp/flannel.yaml"
   }
   
+  # Upload weave.yaml for CNI
+  provisioner "file" {
+    content     = data.template_file.weave-configuration.rendered
+    destination = "/tmp/weave.yaml"
+  }
+  
   # Upload basic certificate issuer
   provisioner "file" {
     content     = data.template_file.basic-cert-issuer.rendered
     destination = "/tmp/basic-cert-issuer.yaml"
   }
-  
-  # Upload basic traefik test
-  provisioner "file" {
-    content     = data.template_file.basic-traefik-test.rendered
-    destination = "/tmp/basic-traefik-test.yaml"
-  }
-      
+    
   # Install K3S server
   provisioner "remote-exec" {
     inline = [<<EOT
@@ -258,14 +331,18 @@ resource "null_resource" "k3s" {
         %{ endif ~}
         
         echo "[INFO] ---Installing k3s server---";
-        
-        INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer ${local.server_install_flags} \
-        --node-name ${self.triggers.node_name};
+                
+        INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer server ${local.server_install_flags} \
+        --node-name ${self.triggers.node_name} --node-external-ip ${self.triggers.node_public_ip};
         until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
         echo "[SUCCESS] API server is ready";
-        until $(curl -fk -so nul https://${local.master_ip}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
+        until $(curl -fk -so nul https://${local.registration_domain}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
         
         echo "[SUCCESS] Master is ready";
+        
+        # Patch coredns to tolerate external cloud provider taint
+        kubectl -n kube-system patch deployment coredns --type json -p '[{"op":"add","path":"/spec/template/spec/tolerations/-","value":{"key":"node.cloudprovider.kubernetes.io/uninitialized","value":"true","effect":"NoSchedule"}}]';
+        
         echo "[INFO] ---Installing CNI ${local.cni}---";
         
         %{ if local.cni == "cilium" ~}
@@ -282,7 +359,8 @@ resource "null_resource" "k3s" {
         %{ endif ~}
         
         %{ if local.cni == "weave" ~}
-        kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.NO_MASQ_LOCAL=1&env.IPALLOC_RANGE=${local.overlay_cidr}&env.WEAVE_MTU=1500";
+        # kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.NO_MASQ_LOCAL=1&env.IPALLOC_RANGE=${local.overlay_cidr}&env.WEAVE_MTU=1500";
+        kubectl apply -f /tmp/weave.yaml;
         kubectl rollout status ds weave-net -n kube-system;
         %{ endif ~}
         
@@ -291,8 +369,8 @@ resource "null_resource" "k3s" {
         kubectl rollout status ds kube-flannel-ds-amd64 -n kube-system;
         %{ endif ~}
         
-        echo "[INFO] ---Finished installing CNI ${local.cni}---";
-        
+        echo "[INFO] ---Finished installing CNI ${local.cni}---";        
+                
         # Install cert-manager
         kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.15.1/cert-manager.yaml;
         # Wait for cert-manager-webhook to be ready
@@ -300,15 +378,13 @@ resource "null_resource" "k3s" {
         # Install basic cert issuer
         kubectl apply -f /tmp/basic-cert-issuer.yaml;
         # Install traefik
-        kubectl apply -f /tmp/manifests/traefik-k3s.yaml;
-        # Install basic traefik test
-        kubectl apply -f /tmp/basic-traefik-test.yaml;
-        
+        kubectl apply -f /tmp/manifests/traefik-ds-k3s.yaml;
+                        
         echo "[INFO] ---Finished installing k3s server---";
       %{ else ~}
         echo "[INFO] ---Uninstalling k3s---";
         # Clear CNI routes
-        k3s-agent-uninstall.sh && ip route | grep -e 'calico' -e 'weave' -e 'cilium' -e 'bird' | \
+        (k3s-agent-uninstall.sh || k3s-uninstall.sh) && ip route | grep -e 'calico' -e 'weave' -e 'cilium' -e 'bird' | \
         while read -r line; do ip route del $line; done; \
         # Clear CNI interfaces
         ls /sys/class/net | grep -e 'cili' -e 'cali' -e 'weave' -e 'veth' -e 'vxlan' -e 'datapath' | \
@@ -318,10 +394,10 @@ resource "null_resource" "k3s" {
         # Rename weave interface as it cannot be deleted
         ifconfig datapath down; \
         ip link set datapath name dt$(date +'%y%m%d%H%M%S'); \
-        echo "[INFO] ---Uninstalled k3s-server---" || \
+        echo "[INFO] ---Uninstalled k3s---" || \
         echo "[INFO] ---k3s not found. Skipping...---";
         
-        echo "[INFO] ---Installing k3s agent---";        
+               
         # CNI specific commands to run for nodes.
         # It is desirable to wait for networking to complete before proceeding with agent installation
         
@@ -336,12 +412,26 @@ resource "null_resource" "k3s" {
         sudo mount bpffs -t bpf /sys/fs/bpf
         %{ endif ~}
                 
-        until $(curl -fk -so nul https://${local.master_ip}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
+        until $(curl -fk -so nul https://${local.registration_domain}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
         
-        INSTALL_K3S_VERSION=${local.k3s_version} K3S_URL=https://${local.master_ip}:6443 K3S_TOKEN=${local.cluster_token} \
-        sh /tmp/k3s-installer ${local.agent_install_flags} --node-ip ${element(var.vpn_ips, count.index)} \
-        --node-name ${self.triggers.node_name};
+        %{ if local.ha_cluster == true && count.index < 3 ~}
+        
+        echo "[INFO] ---Installing k3s server-follower---";
+        INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer server ${local.follower_install_flags} \
+        --node-name ${self.triggers.node_name} --node-ip ${self.triggers.node_ip} --node-external-ip ${self.triggers.node_public_ip} \
+        --tls-san ${self.triggers.node_ip} --tls-san ${self.triggers.node_public_ip} --tls-san ${self.triggers.node_private_ip};
+        echo "[INFO] ---Finished installing k3s server-follower---";
+        
+        %{ else ~}
+        
+        echo "[INFO] ---Installing k3s agent---"; 
+        INSTALL_K3S_VERSION=${local.k3s_version} \
+        sh /tmp/k3s-installer agent ${local.agent_install_flags} --node-ip ${self.triggers.node_ip} \
+        --node-name ${self.triggers.node_name} --node-external-ip ${self.triggers.node_public_ip};
         echo "[INFO] ---Finished installing k3s agent---";
+        
+        %{ endif ~}
+        
       %{ endif ~}
     EOT
     ]
@@ -384,7 +474,8 @@ resource null_resource k3s_cleanup {
   # Clean up on deleting node
   provisioner remote-exec { 
     
-    when = destroy
+    when        = destroy
+    on_failure  = continue
     inline = [
       "echo 'Cleaning up ${self.triggers.node_name}...'",
       "kubectl drain ${self.triggers.node_name} --force --delete-local-data --ignore-daemonsets --timeout 180s",
@@ -413,16 +504,17 @@ data "template_file" "flannel-configuration" {
   }
 }
 
-data "template_file" "basic-cert-issuer" {
-  template = file("${path.module}/templates/basic-cert-issuer.yaml")
+data "template_file" "weave-configuration" {
+  template = file("${path.module}/templates/weave.yaml")
 
   vars = {
-    domain        =  local.domain
+    interface     =  local.kubernetes_interface
+    weave_cidr    =  local.overlay_cidr
   }
 }
 
-data "template_file" "basic-traefik-test" {
-  template = file("${path.module}/templates/basic-traefik-test.yaml")
+data "template_file" "basic-cert-issuer" {
+  template = file("${path.module}/templates/basic-cert-issuer.yaml")
 
   vars = {
     domain        =  local.domain

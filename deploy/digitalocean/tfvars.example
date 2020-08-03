@@ -6,3 +6,11 @@ domain = "<required>"
 k3s_version = "v1.17.5+k3s1"
 node_count = 2
 digitalocean_token = "<required>"
+# HA Cluster
+#ha_cluster = "true"
+# External DNS Management and WildCard Letsencrypt Certs
+#trform_domain = "false"
+# LetsEncrypt Cert Issuance 
+#create_certs = "true"
+# Additional Apps
+#install_app = { kubernetes_dashboard = true, longhorn = true}

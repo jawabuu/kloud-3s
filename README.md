@@ -2,7 +2,7 @@
 
 kloud-3s is a set of [terraform](https://www.terraform.io/) modules that deploys a secure, functional ( kubernetes) [k3s](https://github.com/rancher/k3s) cluster on a number of cloud providers.  
 The following are currently tested;
-* [Hetzner Cloud](https://www.hetzner.com/cloud)
+* [Hetzner Cloud](https://hetzner.cloud/?ref=AW4fux8AhdV8)
 * [Vultr](https://www.vultr.com/?ref=8601755)
 * [DigitalOcean](https://www.digitalocean.com/?refcode=661c567f71b1)
 * [Linode](https://www.linode.com/?r=b402c474596a2d1656eac49aefe071916cbb2d61)

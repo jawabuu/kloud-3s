@@ -33,12 +33,13 @@ module "provider" {
 module "dns" {
   source     = "../../dns/digitalocean"
 
-  node_count  = var.node_count
-  token       = var.digitalocean_token
-  domain      = var.domain
-  public_ips  = module.provider.public_ips
-  hostnames   = module.provider.hostnames
-  create_zone = var.create_zone
+  node_count    = var.node_count
+  token         = var.digitalocean_token
+  domain        = var.domain
+  public_ips    = module.provider.public_ips
+  hostnames     = module.provider.hostnames
+  create_zone   = var.create_zone
+  trform_domain = var.trform_domain
 }
 
 module "wireguard" {
@@ -63,6 +64,7 @@ module "firewall" {
   overlay_interface    = module.k3s.overlay_interface
   overlay_cidr         = module.k3s.overlay_cidr
   ssh_key_path         = module.ssh.private_key
+  additional_rules     = var.additional_rules
 }
 
 module "k3s" {
@@ -82,6 +84,14 @@ module "k3s" {
   private_ips       = module.provider.private_ips
   private_interface = module.provider.private_network_interface
   domain            = var.domain
+  ha_cluster        = var.ha_cluster
+  ### Optional Settings Below. You may safely omit them. ###
+  # Uncomment below if you have specified the DNS module
+  dns_auth          = module.dns.dns_auth
+  trform_domain     = module.dns.trform_domain
+  create_certs      = var.create_certs
+  longhorn_replicas = var.longhorn_replicas
+  install_app       = var.install_app
 }
 
 output "private_key" {
@@ -105,11 +115,5 @@ output "kubeconfig" {
 }
 
 output "test" {
-  value = "curl -Lkvv test.${var.domain} --resolve test.${var.domain}:80:${try(module.provider.public_ips[0],"localhost")} --resolve test.${var.domain}:443:${try(module.provider.public_ips[0],"localhost")}"
+  value = "curl -Lkvv test.${var.domain}"
 }
-
-/*
-output "servers" {
-  value = module.provider.linode_servers
-}
-*/

@@ -20,6 +20,12 @@ variable "create_zone" {
   type = bool
 }
 
+variable "trform_domain" {
+  type        = bool
+  default     = false
+  description = "Manage the root and wildcard domain using this module."
+}
+
 # Create a new domain/zone
 resource "digitalocean_domain" "hobby-kube" {
   count  = var.create_zone ? 1 : 0
@@ -42,17 +48,18 @@ resource "digitalocean_record" "hosts" {
 }
 
 resource "digitalocean_record" "domain" {
-  count  = var.node_count > 0 ? 1 : 0
+  count  = var.trform_domain && var.node_count > 0 ? 1 : 0
   domain = local.do_domain
   name   = "@"
   value  = local.master_public_ip # Use LoadBalancer or Floating IP
   type   = "A"
-  ttl    = 300
+  ttl    = 150
 }
 
 resource "digitalocean_record" "wildcard" {
   depends_on = [digitalocean_record.domain]
 
+  count  = var.trform_domain && var.node_count > 0 ? 1 : 0
   domain = local.do_domain
   name   = "*.${local.do_domain}."
   value  = "@"
@@ -62,4 +69,17 @@ resource "digitalocean_record" "wildcard" {
 
 output "domains" {
   value = "${digitalocean_record.hosts.*.fqdn}"
+}
+
+output "dns_auth" {
+  sensitive = true
+  value     = {
+    domain   = var.domain
+    provider = "digitalocean"
+    token    = var.token
+  }
+}
+
+output "trform_domain" {
+  value = var.trform_domain
 }

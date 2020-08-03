@@ -168,10 +168,7 @@ kind: Service
 metadata:
   name: traefik
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: example.com
-    external-dns.alpha.kubernetes.io/ttl: "300"
     metallb.universe.tf/allow-shared-ip: traefik
-
 spec:
   ports:
   - port: 80
@@ -192,18 +189,18 @@ metadata:
   namespace: default
   name: traefik-ingress-controller
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: traefik
-  namespace: default
-spec:
-  accessModes:
-    - ReadWriteOnce # mountable only to a single node
-  resources:
-    requests:
-      storage: 100Mi
----
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+  # name: traefik
+  # namespace: default
+# spec:
+  # accessModes:
+    # - ReadWriteOnce # mountable only to a single node
+  # resources:
+    # requests:
+      # storage: 100Mi
+# ---
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -231,18 +228,8 @@ spec:
               - key: node-role.kubernetes.io/master
                 operator: Exists
       tolerations:
-        - key: node.kubernetes.io/not-ready
-          operator: Exists
-          effect: NoExecute
-          tolerationSeconds: 300
-        - key: node.kubernetes.io/unreachable
-          operator: Exists
-          effect: NoExecute
-          tolerationSeconds: 300
-        - key: node.kubernetes.io/disk-pressure
-          operator: Exists
-          effect: NoExecute
-          tolerationSeconds: 300
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
       containers:
         - name: traefik
           image: traefik:v2.2
@@ -280,10 +267,10 @@ spec:
               containerPort: 4443
             - name: admin
               containerPort: 8080
-          volumeMounts:
-            - name: data
-              mountPath: /data
-      volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: traefik
+          # volumeMounts:
+            # - name: data
+              # mountPath: /data
+      # volumes:
+        # - name: data
+          # persistentVolumeClaim:
+            # claimName: traefik

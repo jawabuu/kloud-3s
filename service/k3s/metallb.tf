@@ -33,8 +33,8 @@ resource "null_resource" "metallb_install" {
   provisioner "remote-exec" {
     inline = [<<EOT
       until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
-      kubectl apply -f /tmp/metallb.yaml;
-      kubectl apply -f /tmp/net-tools.yaml;
+      until kubectl apply -f /tmp/metallb.yaml; do nc -zvv localhost 6443; sleep 5; done;
+      until kubectl apply -f /tmp/net-tools.yaml; do nc -zvv localhost 6443; sleep 5; done;
     EOT
     ]
   }
@@ -42,42 +42,18 @@ resource "null_resource" "metallb_install" {
   
 }
 
-resource "local_file" "metallb_config" {
-  filename = "${path.module}/manifests/metallb_config.yaml"
-  content = <<YAML
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  namespace: metallb-system
-  name: config
-data:
-  config: |
-    address-pools:
-    - name: default
-      protocol: layer2
-      avoid-buggy-ips: true
-      addresses:
-      - ${local.master_public_ip}/32
-      auto-assign: true %{ if length(var.connections) > 1 }
-    - name: backup
-      protocol: layer2
-      avoid-buggy-ips: true
-      addresses:%{ for connection in slice(var.connections,1,length(var.connections))}
-      - ${connection}/32 %{ endfor }
-      auto-assign: false %{ endif }
-YAML
-  }
 
-### Notes: Make all IPs available for metallb
-#addresses:%{ for connection in slice(var.connections,1,length(var.connections))}
-#addresses:%{ for connection in var.connections}
-### End Notes
+locals {
+  metallb_config  = templatefile("${path.module}/templates/metallb_config.yaml", {
+    master_public_ip = local.master_public_ip
+  })
+}
 
 resource "null_resource" "metallb_apply" {
   count    = var.node_count > 0 && local.loadbalancer == "metallb" ? 1 : 0
   triggers = {
     metallb          = join(" ", null_resource.metallb_install.*.id)
-    metallb_config   = md5(local_file.metallb_config.content)
+    metallb_config   = md5(local.metallb_config)
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip
   }  
@@ -92,19 +68,25 @@ resource "null_resource" "metallb_apply" {
   
   # Upload metallb_config.yaml
   provisioner file {
-    source      = local_file.metallb_config.filename
+    content     = local.metallb_config
     destination = "/tmp/metallb_config.yaml"
   }
   
   # Start metallb
   provisioner "remote-exec" {
     inline = [<<EOT
-      kubectl apply -f /tmp/metallb_config.yaml;
+      until kubectl apply -f /tmp/metallb_config.yaml; do nc -zvv localhost 6443; sleep 5; done;
       # Required to reload config if IPs change
       # https://github.com/metallb/metallb/issues/462
-      kubectl -n=metallb-system delete po -l=component=controller;
+      # kubectl -n=metallb-system delete po -l=component=controller;
+      # Apply ip-config
+      until kubectl apply -f /tmp/manifests/ip-config.yaml; do nc -zvv localhost 6443; sleep 5; done;
     EOT
     ]
   }
   
+}
+
+output metallb_config {
+  value = local.metallb_config
 }

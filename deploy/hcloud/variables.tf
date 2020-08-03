@@ -50,6 +50,52 @@ variable "overlay_cidr" {
   description = "Cluster cidr"
 }
 
+variable "ha_cluster" {
+  default = false
+  description = "Create highly available cluster. Currently experimental and requires node_count >= 3"
+}
+
+variable "trform_domain" {
+  type        = bool
+  default     = false
+  description = "Manage this domain and it's wildcard domain using terraform."
+}
+
+variable "test-traefik" {
+  type        = bool
+  default     = true
+  description = "Deploy traefik test."
+}
+
+variable "create_certs" {
+  type        = bool
+  default     = false
+  description = "Option to create letsencrypt certs. Only enable if certain that your deployment is reachable."
+}
+
+variable "longhorn_replicas" {
+  default     = 3
+  description = "Number of longhorn replicas"
+}
+
+variable "install_app" {
+  description = "Additional apps to Install"
+  type        = map
+  default     = {
+    kubernetes_dashboard = true
+    kube_prometheus      = false
+    k8dash               = false
+    elastic_cloud        = false
+    longhorn             = false
+  }
+}
+
+variable "additional_rules" {
+  type        = list(string)
+  default     = []
+  description = "add custom firewall rules during provisioning e.g. allow 1194/udp, allow ftp"
+}
+
 /* hcloud */
 variable "hcloud_token" {
   default = ""

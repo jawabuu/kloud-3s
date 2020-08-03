@@ -168,10 +168,7 @@ kind: Service
 metadata:
   name: traefik
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: example.com
-    external-dns.alpha.kubernetes.io/ttl: "300"
     metallb.universe.tf/allow-shared-ip: traefik
-
 spec:
   ports:
   - port: 80
@@ -180,6 +177,9 @@ spec:
   - port: 443
     name: websecure
     targetPort: websecure
+  - port: 8800
+    name: tcp
+    targetPort: tcp
   selector:
     app: traefik
   externalTrafficPolicy: Local
@@ -239,6 +239,7 @@ spec:
             - --entrypoints.web.Address=:8000
             - --entrypoints.websecure.Address=:4443
             - --entrypoints.udp.address=:9090/udp
+            - --entrypoints.tcp.address=:8800
             - --providers.kubernetescrd
             - --providers.kubernetesingress
             - --providers.kubernetesIngress.ingressClass=traefik-cert-manager
@@ -260,12 +261,16 @@ spec:
           ports:
             - name: web
               containerPort: 8000
-              hostPort: 80 
+              hostPort: 80
             - name: websecure
               containerPort: 4443
               hostPort: 443
             - name: admin
               containerPort: 8080
+            - name: tcp
+              containerPort: 8800
+            - name: udp
+              containerPort: 9090
           securityContext:
             capabilities:
               drop:

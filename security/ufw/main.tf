@@ -28,6 +28,11 @@ variable "overlay_cidr" {
   type = string
 }
 
+variable "additional_rules" {
+  type    = list(string)
+  default = []
+}
+
 resource "null_resource" "firewall" {
   count = var.node_count
 
@@ -60,5 +65,6 @@ data "template_file" "ufw" {
     vpn_interface        = var.vpn_interface
     vpn_port             = var.vpn_port
     overlay_cidr         = var.overlay_cidr
+    additional_rules     = join("\nufw ", flatten(["", var.additional_rules]))
   }
 }

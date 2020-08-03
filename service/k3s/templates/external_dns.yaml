@@ -1,0 +1,148 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: external-dns
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: external-dns
+rules:
+- apiGroups: [""]
+  resources: ["services","endpoints","pods"]
+  verbs: ["get","watch","list"]
+- apiGroups: ["extensions"] 
+  resources: ["ingresses"] 
+  verbs: ["get","watch","list"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: external-dns-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: external-dns
+subjects:
+- kind: ServiceAccount
+  name: external-dns
+  namespace: default
+%{ if dns_auth.provider != "" }
+%{ if dns_auth.provider == "digitalocean" ~}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: digitalocean-dns
+stringData:
+  access-token: ${dns_auth.token}
+%{ endif ~}
+%{ if dns_auth.provider == "cloudflare" ~}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloudflare-dns
+stringData:
+  cloudflare-api-key: ${dns_auth.api_token}
+  cloudflare-api-email: ${dns_auth.email}
+%{ endif ~}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-dns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: external-dns
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: external-dns
+    spec:
+      serviceAccountName: external-dns
+      containers:
+      - name: external-dns
+        image: docker.io/bitnami/external-dns:0.7.2-debian-10-r20 #registry.opensource.zalan.do/teapot/external-dns:latest
+        args:
+        - --source=service # ingress is also possible
+        - --source=ingress
+        - --domain-filter=${dns_auth.domain} # (optional) limit to only ${dns_auth.domain} domains;
+        - --policy=sync # sync or upsert-only
+        - --log-level=debug
+        - --interval=1m
+        - --txt-owner-id=${dns_auth.domain}
+        - --txt-prefix=exdns.
+        %{~ if dns_auth.provider == "digitalocean" }
+        - --provider=digitalocean
+        env:
+        - name: DO_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: digitalocean-dns
+              key: access-token
+        %{ endif }
+        %{~ if dns_auth.provider == "cloudflare" }
+        - --provider=cloudflare
+        - --cloudflare-proxied # (optional) enable the proxy feature of Cloudflare (DDOS protection, CDN...)
+        env:
+        - name: CF_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: cloudflare-dns
+              key: cloudflare-api-key
+        - name: CF_API_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: cloudflare-dns
+              key: cloudflare-api-email
+        %{ endif }
+        %{~ if dns_auth.provider == "aws" }
+        - --provider=aws
+        - --aws-zone-type=public # only look at public hosted zones (valid values are public, private or no value for both)
+        %{ endif }
+        %{~ if dns_auth.provider == "google" }
+        - --provider=google
+        - --google-project=${dns_auth.project} # Use this to specify a project different from the one external-dns is running inside
+        %{ endif }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: "${dns_auth.domain}"
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    metallb.universe.tf/allow-shared-ip: "traefik" %{~ if master_ips != false }
+    external-dns.alpha.kubernetes.io/target: "${master_ips}" %{ endif }
+spec:
+  ports:
+  - port: 80
+    name: web
+    targetPort: web
+  - port: 443
+    name: websecure
+    targetPort: websecure
+  selector:
+    app: traefik
+  externalTrafficPolicy: Local
+  type: LoadBalancer
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: external-dns-domains
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: "*.${dns_auth.domain}"
+    external-dns.alpha.kubernetes.io/ttl: "300"
+spec:
+  type: ExternalName
+  externalName: ${dns_auth.domain}
+%{ endif }

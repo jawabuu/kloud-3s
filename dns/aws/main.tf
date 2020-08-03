@@ -16,6 +16,12 @@ variable "public_ips" {
   type = list
 }
 
+variable "trform_domain" {
+  type        = bool
+  default     = false
+  description = "Manage the root and wildcard domain using this module."
+}
+
 # Configure the AWS Provider
 provider "aws" {
   access_key = var.access_key
@@ -38,6 +44,7 @@ resource "aws_route53_record" "hosts" {
 }
 
 resource "aws_route53_record" "domain" {
+  count   = var.trform_domain && var.node_count > 0 ? 1 : 0
   zone_id = data.aws_route53_zone.selected_domain.zone_id
 
   name    = data.aws_route53_zone.selected_domain.name
@@ -48,7 +55,8 @@ resource "aws_route53_record" "domain" {
 
 resource "aws_route53_record" "wildcard" {
   depends_on = ["aws_route53_record.domain"]
-
+  
+  count   = var.trform_domain && var.node_count > 0 ? 1 : 0
   zone_id = data.aws_route53_zone.selected_domain.zone_id
   name    = "*"
   type    = "CNAME"
@@ -58,4 +66,15 @@ resource "aws_route53_record" "wildcard" {
 
 output "domains" {
   value = "${aws_route53_record.hosts.*.name}"
+}
+
+output "dns_auth" {
+  sensitive = true
+  value     = {
+    provider   = "aws"
+    domain     = var.domain
+    access_key = var.access_key
+    secret_key = var.secret_key
+    region     = var.region  
+  }
 }
