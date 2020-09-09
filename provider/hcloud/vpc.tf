@@ -13,6 +13,6 @@ resource hcloud_network_subnet kube-hosts {
 resource "hcloud_server_network" "kube-host-network" {
   count        =  var.hosts
   server_id    =  hcloud_server.host[count.index].id
-  subnet_id    =  hcloud_network.kube-hosts.id
+  subnet_id    =  hcloud_network_subnet.kube-hosts.id
   ip           =  cidrhost(hcloud_network_subnet.kube-hosts.ip_range, count.index + 101)
 }
