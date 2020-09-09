@@ -17,7 +17,7 @@ resource "null_resource" "create_ssh_keys" {
    
   provisioner "local-exec" {
     # Create ssh keys.
-    command     = "mkdir -p ${var.ssh_keys_dir} && echo -e 'y\n' | ssh-keygen -N '' -b 4096 -t rsa -f ${var.ssh_key_path} -C 'hobby@kube'"
+    command     = "mkdir -p ${var.ssh_keys_dir} && echo -e 'y\n' | ssh-keygen -N '' -b 4096 -t rsa -f ${var.ssh_key_path} -C 'hobby@kube' && ls -al"
     interpreter = [ "bash", "-c" ]
   }
 
