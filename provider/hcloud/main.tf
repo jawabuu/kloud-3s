@@ -125,7 +125,7 @@ output "nodes" {
 value = [for index, server in hcloud_server.host: {
     hostname    = server.name
     public_ip   = server.ipv4_address,
-    private_ip  = hcloud_server_network.kube-host-network[index].ip,
+    private_ip  = try(hcloud_server_network.kube-host-network[index].ip, "127.0.0.1")
   }]
   
 }
