@@ -14,6 +14,10 @@ variable "ssh_keys_dir" {
 resource "null_resource" "create_ssh_keys" {
   
   count = fileexists("${var.ssh_key_path}") ? 0 : 1
+  
+  triggers = {
+    ssh = fileexists("${var.ssh_key_path}")
+  }
    
   provisioner "local-exec" {
     # Create ssh keys.
