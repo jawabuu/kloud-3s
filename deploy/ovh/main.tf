@@ -123,6 +123,10 @@ output "test" {
   value = "curl -Lkvv test.${var.domain}"
 }
 
+output default_password {
+  value = module.k3s.default_password
+}
+
 /*
 output "servers" {
   value = module.provider.ovh_servers
