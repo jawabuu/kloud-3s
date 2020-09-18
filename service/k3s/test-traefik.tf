@@ -79,5 +79,5 @@ output traefik_test {
 }
 
 output default_password {
-  value = random_string.default_password
+  value = random_string.default_password.result
 }
