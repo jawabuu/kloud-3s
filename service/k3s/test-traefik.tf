@@ -42,6 +42,8 @@ resource "null_resource" "traefik_test_apply" {
     traefik_test     = md5(local.traefik_test)
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip
+    auth_user        = md5(local.auth_user)
+    auth_password    = md5(local.auth_password)
   }  
   
   # Use master(s)
@@ -63,7 +65,7 @@ resource "null_resource" "traefik_test_apply" {
       until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
       kubectl apply -f /tmp/traefik_test.yaml;
       # Create Traefik Basic Auth Secret
-      kubectl create secret generic traefik --from-literal=users="${local.auth_user}:${sha256(bcrypt(local.auth_user))}" --dry-run -o yaml | kubectl apply -f -;
+      kubectl create secret generic traefik --from-literal=users='${local.auth_user}:${bcrypt(local.auth_password)}' --dry-run -o yaml | kubectl apply -f -;
       kubectl get secret traefik --namespace=default --export -o yaml | kubectl apply -o yaml --namespace=kubernetes-dashboard -f -;
       kubectl get secret traefik --namespace=default --export -o yaml | kubectl apply -o yaml --namespace=kube-system -f -;
     EOT
