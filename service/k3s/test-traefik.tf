@@ -10,13 +10,28 @@ variable "create_certs" {
   description = "Option to create letsencrypt certs. Only enable if certain that your deployment is reachable."
 }
 
+variable "auth_user" {
+  default = "kloud-3s"
+}
+
+variable "auth_password" {
+  default = ""
+}
+
 locals {
   test-traefik  = var.test-traefik
   create_certs  = var.create_certs
+  auth_user     = var.auth_user
+  auth_password = var.auth_password == "" ? random_string.default_password.result : var.auth_password
   traefik_test  = templatefile("${path.module}/templates/traefik_test.yaml", {
     domain       = var.domain
     create_certs = var.create_certs
   })
+}
+
+resource "random_string" "default_password" {
+ length  = 16
+ special = true
 }
 
 resource "null_resource" "traefik_test_apply" {
@@ -47,6 +62,10 @@ resource "null_resource" "traefik_test_apply" {
     inline = [<<EOT
       until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
       kubectl apply -f /tmp/traefik_test.yaml;
+      # Create Traefik Basic Auth Secret
+      kubectl create secret generic traefik --from-literal=users="${local.auth_user}:${sha256(bcrypt(local.auth_user))}" --dry-run -o yaml | kubectl apply -f -;
+      kubectl get secret traefik --namespace=default --export -o yaml | kubectl apply -o yaml --namespace=kubernetes-dashboard -f -;
+      kubectl get secret traefik --namespace=default --export -o yaml | kubectl apply -o yaml --namespace=kube-system -f -;
     EOT
     ]
   }
@@ -55,4 +74,8 @@ resource "null_resource" "traefik_test_apply" {
 
 output traefik_test {
   value = local.traefik_test
+}
+
+output default_password {
+  value = random_string.default_password
 }

@@ -181,13 +181,22 @@ spec:
   basicAuth:
     secret: traefik
     headerField: X-WebAuth-User
-
 ---
 apiVersion: traefik.containo.us/v1alpha1
 kind: Middleware
 metadata:
   name: basic-auth
   namespace: kube-system
+spec:
+  basicAuth:
+    secret: traefik
+    removeHeader: true
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: basic-auth
+  namespace: kubernetes-dashboard
 spec:
   basicAuth:
     secret: traefik
