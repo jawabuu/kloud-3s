@@ -97,6 +97,8 @@ module "k3s" {
   create_certs      = var.create_certs
   longhorn_replicas = var.longhorn_replicas
   install_app       = var.install_app
+  auth_user         = var.auth_user
+  auth_password     = var.auth_password
 }
 
 output "private_key" {

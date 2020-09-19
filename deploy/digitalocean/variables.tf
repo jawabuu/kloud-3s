@@ -96,6 +96,16 @@ variable "additional_rules" {
   description = "add custom firewall rules during provisioning e.g. allow 1194/udp, allow ftp"
 }
 
+variable "auth_user" {
+  default = "kloud-3s"
+  description = "Traefik basic auth username"
+}
+
+variable "auth_password" {
+  default = ""
+  description = "Traefik basic auth password"
+}
+
 /* digitalocean */
 variable "digitalocean_token" {
   default = ""
