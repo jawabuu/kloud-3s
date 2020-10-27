@@ -256,7 +256,7 @@ spec:
             # - --certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
             # - --entrypoints.websecure.http.tls.certResolver=basic
             # - --certificatesresolvers.basic.acme.dnschallenge.provider=digitalocean
-            
+            - --serversTransport.insecureSkipVerify=true
             - --entrypoints.web.http.redirections.entryPoint.scheme=https
             - --entrypoints.web.http.redirections.entryPoint.to=:443
             - --entrypoints.web.http.redirections.entrypoint.priority=100
