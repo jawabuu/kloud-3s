@@ -46,6 +46,9 @@ metadata:
   name: test
   namespace: whoami
 spec:
+  entryPoints:
+    - web
+    - websecure
   routes:
     - match: Host(`test.${domain}`)
       kind: Rule
@@ -60,6 +63,9 @@ metadata:
   name: whoami
   namespace: whoami
 spec:
+  entryPoints:
+    - web
+    - websecure
   routes:
     - match: Host(`whoami.${domain}`)
       kind: Rule
@@ -76,6 +82,9 @@ metadata:
   name: traefik-dashboard
   namespace: default
 spec:
+  entryPoints:
+    - web
+    - websecure
   routes:
     - match: Host(`dash.${domain}`)
       kind: Rule
@@ -92,6 +101,8 @@ metadata:
   name: kube-api
   namespace: default
 spec:
+  entryPoints:
+    - websecure
   routes:
     - match: HostSNI(`kube-api.${domain}`)
       kind: Rule
@@ -107,6 +118,9 @@ metadata:
   name: k8dash
   namespace: kube-system
 spec:
+  entryPoints:
+    - web
+    - websecure
   routes:
     - match: Host(`k8dash.${domain}`)
       kind: Rule
@@ -120,6 +134,9 @@ metadata:
   name: kubernetes-dashboard
   namespace: kubernetes-dashboard
 spec:
+  entryPoints:
+    - web
+    - websecure
   routes:
   - match: Host(`k8dash.${domain}`) && PathPrefix(`/main`)
     kind: Rule
