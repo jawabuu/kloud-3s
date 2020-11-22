@@ -1,0 +1,23 @@
+# DNS Settings
+# Delete the DNS module in main.tf if you do not have these
+create_zone = "true"
+domain = "<required>"
+
+aws_access_key = "<required>"
+aws_secret_key = "<required>"
+aws_region = "eu-west-1"
+aws_region_zone = "eu-west-1c"
+
+
+k3s_version = "v1.17.5+k3s1"
+node_count = 3
+cni = "weave"
+aws_size = "t2.micro"
+# HA Cluster
+#ha_cluster = "false"
+# External DNS Management and WildCard Letsencrypt Certs
+#trform_domain = "false"
+# LetsEncrypt Cert Issuance 
+#create_certs = "true"
+# Additional Apps
+#install_app = { kubernetes_dashboard = true, longhorn = true}
