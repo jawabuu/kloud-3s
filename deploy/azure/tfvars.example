@@ -1,0 +1,23 @@
+# DNS Settings
+# Delete the DNS module in main.tf if you do not have these
+create_zone = "true"
+domain = "<required>"
+
+client_id = "<required>"
+client_secret = "<required>"
+tenant_id = "<required>"
+subscription_id = "<required>"
+
+k3s_version = "v1.17.5+k3s1"
+node_count = 3
+cni = "weave"
+azure_image = "20.04-LTS"
+azure_size = "Standard_B1ms"
+# HA Cluster
+#ha_cluster = "false"
+# External DNS Management and WildCard Letsencrypt Certs
+#trform_domain = "false"
+# LetsEncrypt Cert Issuance 
+#create_certs = "true"
+# Additional Apps
+#install_app = { kubernetes_dashboard = true, longhorn = false, elastic_cloud = false, kube_prometheus = false}
