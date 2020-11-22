@@ -1,0 +1,24 @@
+# DNS Settings
+# Delete the DNS module in main.tf if you do not have these
+create_zone = "true"
+domain = "<required>"
+
+alicloud_access_key = "<required>"
+alicloud_secret_key = "<required>"
+alicloud_region = "eu-central-1"
+alicloud_region_zone = "eu-central-1a"
+
+k3s_version = "v1.17.5+k3s1"
+node_count = 3
+cni = "weave"
+alicloud_size = "1c1g"
+alicloud_image = "ubuntu_20_04_x64_20G_alibase_20200914.vhd"
+#alicloud_size = "1c1g", "1c2g", "2c4g"
+# HA Cluster
+#ha_cluster = "false"
+# External DNS Management and WildCard Letsencrypt Certs
+#trform_domain = "false"
+# LetsEncrypt Cert Issuance 
+#create_certs = "true"
+# Additional Apps
+#install_app = { kubernetes_dashboard = true, longhorn = true}
