@@ -1,0 +1,25 @@
+# DNS Settings
+# Delete the DNS module in main.tf if you do not have these
+create_zone = "true"
+domain = "<required>"
+
+huaweicloud_access_key = "<required>"
+huaweicloud_secret_key = "<required>"
+huaweicloud_account_name = "<required>"
+huaweicloud_region = "af-south-1a"
+huaweicloud_region_zone = "af-south-1a"
+
+k3s_version = "v1.17.5+k3s1"
+node_count = 3
+cni = "weave"
+huaweicloud_size = "1c1g"
+huaweicloud_image = "Ubuntu 20.04 server 64bit"
+#huaweicloud_size = "1c1g", "1c2g", "2c4g"
+# HA Cluster
+#ha_cluster = "false"
+# External DNS Management and WildCard Letsencrypt Certs
+#trform_domain = "false"
+# LetsEncrypt Cert Issuance 
+#create_certs = "true"
+# Additional Apps
+#install_app = { kubernetes_dashboard = true, longhorn = true}
