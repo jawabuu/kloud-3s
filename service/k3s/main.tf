@@ -215,6 +215,7 @@ resource "null_resource" "set_dns_rr" {
     user  = "root"
     agent = false
     private_key = file("${self.triggers.ssh_key_path}")
+    timeout = "30s"
   }
   
   provisioner "remote-exec" {
@@ -225,6 +226,7 @@ resource "null_resource" "set_dns_rr" {
   
   provisioner "remote-exec" {
       when   = destroy
+      on_failure = continue
       inline = [
         "grep -F -v '${self.triggers.registration_domain}' /etc/hosts > /etc/hosts.tmp && mv /etc/hosts.tmp /etc/hosts",
         ]
