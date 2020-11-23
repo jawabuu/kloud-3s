@@ -102,7 +102,7 @@ resource "google_compute_instance" "host" {
   allow_stopping_for_update = true
 
   metadata = {
-    ssh-keys = "root:${file(var.ssh_pubkey_path)}"
+    ssh-keys = "root:${try(file(var.ssh_pubkey_path),"")}"
   }
 
   scheduling {
