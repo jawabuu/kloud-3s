@@ -71,3 +71,7 @@ output "kubeconfig" {
 output "ssh-master" {
   value = "ssh -i ${abspath(local.ssh_key_path)} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${local.master_public_ip}"
 }
+
+output "kubeconfig_path" {
+  value = "${abspath(var.kubeconfig_path)}/${var.cluster_name}-k3s.yaml"
+}
