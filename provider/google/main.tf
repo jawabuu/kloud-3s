@@ -55,6 +55,13 @@ provider "google" {
   credentials = file(var.creds_file)
 }
 
+provider "google-beta" {
+  region      = var.region
+  zone        = var.region_zone
+  project     = var.project
+  credentials = file(var.creds_file)
+}
+
 resource "google_compute_firewall" "default" {
   name    = "kube-firewall"
   network = google_compute_network.kube-hosts.self_link
