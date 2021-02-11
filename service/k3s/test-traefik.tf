@@ -66,8 +66,8 @@ resource "null_resource" "traefik_test_apply" {
       kubectl apply -f /tmp/traefik_test.yaml;
       # Create Traefik Basic Auth Secret
       kubectl create secret generic traefik --from-literal=users='${local.auth_user}:${bcrypt(local.auth_password)}' --dry-run -o yaml | kubectl apply -f -;
-      kubectl get secret traefik --namespace=default --export -o yaml | kubectl apply -o yaml --namespace=kubernetes-dashboard -f -;
-      kubectl get secret traefik --namespace=default --export -o yaml | kubectl apply -o yaml --namespace=kube-system -f -;
+      kubectl get secret traefik --namespace=default -o yaml | sed 's/namespace: default/namespace: kubernetes-dashboard/g' | kubectl apply -o yaml -f -;
+      kubectl get secret traefik --namespace=default -o yaml | sed 's/namespace: default/namespace: kube-system/g' | kubectl apply -o yaml -f -;
     EOT
     ]
   }
