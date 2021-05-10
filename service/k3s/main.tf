@@ -39,6 +39,11 @@ variable "k3s_version" {
   type = string
 }
 
+variable "debug_level" {
+  description = "K3S debug level"
+  default     = 3
+}
+
 variable "overlay_interface" {
   default = ""
 }
@@ -130,6 +135,7 @@ locals {
   cluster_token = "${random_string.token1.result}.${random_string.token2.result}"
   k3s_version   = var.k3s_version == "latest" ? jsondecode(data.http.k3s_version[0].body).tag_name : var.k3s_version
   domain        = var.domain
+  debug_level   = var.debug_level
   cni           = var.cni
   valid_cni     = ["weave", "calico", "cilium", "flannel", "default"]
   validate_cni  = index(local.valid_cni, local.cni)
@@ -151,7 +157,7 @@ locals {
   registration_domain = "k3s.${local.domain}"
 
   agent_default_flags = [
-    "-v 5",
+    "-v ${local.debug_level}",
     "--server https://${local.registration_domain}:6443",
     "--token ${local.cluster_token}",
     local.cni == "default" ? "--flannel-iface ${local.kubernetes_interface}" : "",
@@ -165,7 +171,7 @@ locals {
   agent_install_flags = join(" ", concat(local.agent_default_flags))
 
   server_default_flags = [
-    "-v 5",
+    "-v ${local.debug_level}",
     # Explicitly set default flannel interface
     local.cni == "default" ? "--flannel-iface ${local.kubernetes_interface}" : "--flannel-backend=none",
     # Disable network policy
