@@ -102,6 +102,18 @@ variable "install_app" {
   default     = {}
 }
 
+variable "oidc_config" {
+  type        = list(map(string))
+  description = "OIDC Configuration for protecting private resources. Used by Pomerium IAP & Vault."
+  default     = []
+}
+
+variable "mail_config" {
+  type        = map(string)
+  description = "SMTP Configuration for email services."
+  default     = {}
+}
+
 resource "random_string" "token1" {
   length  = 6
   upper   = false
