@@ -300,12 +300,6 @@ resource "null_resource" "k3s" {
     destination = "/tmp/k3s-installer"
   }
 
-  # Upload manifests 
-  provisioner file {
-    source      = "${path.module}/manifests"
-    destination = "/tmp"
-  }
-
   # Upload calico.yaml for CNI
   provisioner "file" {
     content     = data.template_file.calico-configuration.rendered
@@ -322,12 +316,6 @@ resource "null_resource" "k3s" {
   provisioner "file" {
     content     = data.template_file.weave-configuration.rendered
     destination = "/tmp/weave.yaml"
-  }
-
-  # Upload basic certificate issuer
-  provisioner "file" {
-    content     = data.template_file.basic-cert-issuer.rendered
-    destination = "/tmp/basic-cert-issuer.yaml"
   }
 
   # Install K3S server
@@ -397,15 +385,6 @@ resource "null_resource" "k3s" {
         %{endif~}
         
         echo "[INFO] ---Finished installing CNI ${local.cni}---";        
-                
-        # Install cert-manager
-        kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.15.1/cert-manager.yaml;
-        # Wait for cert-manager-webhook to be ready
-        kubectl rollout status -n cert-manager deployment cert-manager-webhook --timeout 120s;
-        # Install basic cert issuer
-        kubectl apply -f /tmp/basic-cert-issuer.yaml;
-        # Install traefik
-        kubectl apply -f /tmp/manifests/traefik-ds-k3s.yaml;
                         
         echo "[INFO] ---Finished installing k3s server---";
       %{else~}
@@ -444,17 +423,29 @@ resource "null_resource" "k3s" {
         %{if local.ha_cluster == true && count.index < 3~}
         
         echo "[INFO] ---Installing k3s server-follower---";
+
+        until $(curl -fv -so nul https://${local.registration_domain}:6443/ping --cacert /var/lib/rancher/k3s/agent/server-ca.crt); 
+        do echo '[WARN] Waiting for master to be ready';
+
         INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer server ${local.follower_install_flags} \
         --node-name ${self.triggers.node_name} --node-ip ${self.triggers.node_ip} --node-external-ip ${self.triggers.node_public_ip} \
         --tls-san ${self.triggers.node_ip} --tls-san ${self.triggers.node_public_ip} --tls-san ${self.triggers.node_private_ip};
+        
+        done;
         echo "[INFO] ---Finished installing k3s server-follower---";
         
         %{else~}
         
-        echo "[INFO] ---Installing k3s agent---"; 
+        echo "[INFO] ---Installing k3s agent---";
+
+        until $(curl -fv -so nul https://${local.registration_domain}:6443/ping --cacert /var/lib/rancher/k3s/agent/server-ca.crt); 
+        do echo '[WARN] Waiting for master to be ready';
+
         INSTALL_K3S_VERSION=${local.k3s_version} \
         sh /tmp/k3s-installer agent ${local.agent_install_flags} --node-ip ${self.triggers.node_ip} \
         --node-name ${self.triggers.node_name} --node-external-ip ${self.triggers.node_public_ip};
+        
+        done;
         echo "[INFO] ---Finished installing k3s agent---";
         
         %{endif~}
@@ -537,14 +528,6 @@ data "template_file" "weave-configuration" {
   vars = {
     interface  = local.kubernetes_interface
     weave_cidr = local.overlay_cidr
-  }
-}
-
-data "template_file" "basic-cert-issuer" {
-  template = file("${path.module}/templates/basic-cert-issuer.yaml")
-
-  vars = {
-    domain = local.domain
   }
 }
 
