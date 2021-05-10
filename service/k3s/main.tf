@@ -39,14 +39,6 @@ variable "k3s_version" {
   type = string
 }
 
-variable "cluster_cidr_pods" {
-  default = "10.42.0.0/16"
-}
-
-variable "cluster_cidr_services" {
-  default = "10.43.0.0/16"
-}
-
 variable "overlay_interface" {
   default = ""
 }
@@ -57,7 +49,13 @@ variable "kubernetes_interface" {
 }
 
 variable "overlay_cidr" {
-  default = "10.42.0.0/16"
+  default     = "10.42.0.0/16"
+  description = "Cluster pod cidr"
+}
+
+variable "service_cidr" {
+  default     = "10.43.0.0/16"
+  description = "Cluster service cidr"
 }
 
 variable "cni" {
@@ -128,6 +126,7 @@ locals {
   # Set overlay interface from map, but optionally allow override
   overlay_interface    = var.overlay_interface == "" ? lookup(var.cni_to_overlay_interface_map, local.cni, "cni0") : var.overlay_interface
   overlay_cidr         = var.overlay_cidr
+  service_cidr         = var.service_cidr
   private_interface    = var.private_interface
   kubernetes_interface = var.kubernetes_interface == "" ? var.vpn_interface : var.kubernetes_interface
 
@@ -173,8 +172,8 @@ locals {
     "--kube-apiserver-arg 'default-not-ready-toleration-seconds=20'",
     "--kube-apiserver-arg 'default-unreachable-toleration-seconds=20'",
     # Flags left below to serve as examples for args that may need editing.
-    #"--cluster-cidr ${var.cluster_cidr_pods}",
-    #"--service-cidr ${var.cluster_cidr_services}",    
+    # "--kube-controller-manager-arg 'node-cidr-mask-size=22'",
+    # "--kubelet-arg 'max-pods=500'",
     #"--kube-apiserver-arg 'requestheader-allowed-names=system:auth-proxy,kubernetes-proxy'",
 
   ]
@@ -185,6 +184,7 @@ locals {
     "--tls-san ${local.master_public_ip}",
     "--tls-san ${local.master_private_ip}",
     "--cluster-cidr ${local.overlay_cidr}",
+    "--service-cidr ${local.service_cidr}",
     "--node-label 'kloud-3s.io/deploy-traefik=true'",
     local.ha_cluster == true ? "--cluster-init" : "",
 
@@ -243,6 +243,7 @@ resource "null_resource" "k3s" {
     node_ip                = element(var.vpn_ips, count.index)
     node_private_ip        = element(var.private_ips, count.index)
     k3s_version            = local.k3s_version
+    service_cidr           = local.service_cidr
     overlay_cidr           = local.overlay_cidr
     overlay_interface      = local.overlay_interface
     private_interface      = local.private_interface

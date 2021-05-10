@@ -80,6 +80,7 @@ module "k3s" {
   k3s_version       = var.k3s_version
   cni               = var.cni
   overlay_cidr      = var.overlay_cidr
+  service_cidr      = var.service_cidr
   kubeconfig_path   = var.kubeconfig_path
   private_ips       = module.provider.private_ips
   private_interface = module.provider.private_network_interface

@@ -47,7 +47,12 @@ variable "cni" {
 
 variable "overlay_cidr" {
   default     = "10.42.0.0/16"
-  description = "Cluster cidr"
+  description = "Cluster pod cidr"
+}
+
+variable "service_cidr" {
+  default     = "10.43.0.0/16"
+  description = "Cluster service cidr"
 }
 
 variable "ha_cluster" {
