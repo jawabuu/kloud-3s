@@ -36,7 +36,7 @@ module "swap" {
 
 ## Comment out if you do not have a domain ###
 module "dns" {
-  source     = "../../dns/digitalocean"
+  source = "../../dns/digitalocean"
 
   node_count    = var.node_count
   token         = var.digitalocean_token
@@ -61,15 +61,15 @@ module "wireguard" {
 module "firewall" {
   source = "../../security/ufw"
 
-  node_count           = var.node_count
-  connections          = module.provider.public_ips
-  private_interface    = module.provider.private_network_interface
-  vpn_interface        = module.wireguard.vpn_interface
-  vpn_port             = module.wireguard.vpn_port
-  overlay_interface    = module.k3s.overlay_interface
-  overlay_cidr         = module.k3s.overlay_cidr
-  ssh_key_path         = module.ssh.private_key
-  additional_rules     = var.additional_rules
+  node_count        = var.node_count
+  connections       = module.provider.public_ips
+  private_interface = module.provider.private_network_interface
+  vpn_interface     = module.wireguard.vpn_interface
+  vpn_port          = module.wireguard.vpn_port
+  overlay_interface = module.k3s.overlay_interface
+  overlay_cidr      = module.k3s.overlay_cidr
+  ssh_key_path      = module.ssh.private_key
+  additional_rules  = var.additional_rules
 }
 
 module "k3s" {
@@ -79,7 +79,7 @@ module "k3s" {
   connections       = module.provider.public_ips
   cluster_name      = var.domain
   vpn_interface     = module.wireguard.vpn_interface #module.provider.private_network_interface
-  vpn_ips           = module.wireguard.vpn_ips #module.provider.private_ips
+  vpn_ips           = module.wireguard.vpn_ips       #module.provider.private_ips
   hostname_format   = var.hostname_format
   ssh_key_path      = module.ssh.private_key
   k3s_version       = var.k3s_version
@@ -110,7 +110,7 @@ output "public_key" {
 }
 
 output "ssh-master" {
-  value = "ssh -i ${abspath(module.ssh.private_key)} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${try(module.provider.public_ips[0],"localhost")}"
+  value = "ssh -i ${abspath(module.ssh.private_key)} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${try(module.provider.public_ips[0], "localhost")}"
 }
 
 output "instances" {

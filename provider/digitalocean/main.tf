@@ -46,9 +46,9 @@ provider "digitalocean" {
 }
 
 resource "digitalocean_ssh_key" "tf-kube" {
-    count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
-    name       = "tf-kube"
-    public_key = file("${var.ssh_pubkey_path}")
+  count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
+  name       = "tf-kube"
+  public_key = file("${var.ssh_pubkey_path}")
 }
 
 resource "digitalocean_droplet" "host" {
@@ -64,11 +64,11 @@ resource "digitalocean_droplet" "host" {
   count = var.hosts
 
   connection {
-    user = "root"
-    type = "ssh"
-    timeout = "2m"
-    host = self.ipv4_address
-    agent = false
+    user        = "root"
+    type        = "ssh"
+    timeout     = "2m"
+    host        = self.ipv4_address
+    agent       = false
     private_key = file("${var.ssh_key_path}")
   }
 
@@ -76,7 +76,7 @@ resource "digitalocean_droplet" "host" {
     inline = [
       "until [ -f /var/lib/cloud/instance/boot-finished ]; do sleep 1; done",
       "apt-get update",
-      "apt-get install -yq jq net-tools ufw ${join(" ", var.apt_packages)}",
+      "apt-get install -yq jq net-tools ufw wireguard-tools wireguard ${join(" ", var.apt_packages)}",
     ]
   }
 }
@@ -125,10 +125,10 @@ output "digitalocean_droplets" {
 
 output "nodes" {
 
-value = [for index, server in digitalocean_droplet.host: {
-    hostname    = server.name
-    public_ip   = server.ipv4_address,
-    private_ip  = server.ipv4_address_private,
+  value = [for index, server in digitalocean_droplet.host : {
+    hostname   = server.name
+    public_ip  = server.ipv4_address,
+    private_ip = server.ipv4_address_private,
   }]
-  
+
 }

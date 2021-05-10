@@ -48,9 +48,9 @@ resource "null_resource" "kubernetes" {
   count = var.node_count
 
   connection {
-    host  = element(var.connections, count.index)
-    user  = "root"
-    agent = false
+    host        = element(var.connections, count.index)
+    user        = "root"
+    agent       = false
     private_key = file("${var.ssh_key_path}")
   }
 

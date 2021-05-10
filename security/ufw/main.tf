@@ -41,18 +41,18 @@ resource "null_resource" "firewall" {
   }
 
   connection {
-    host  = element(var.connections, count.index)
-    user  = "root"
-    agent = false
+    host        = element(var.connections, count.index)
+    user        = "root"
+    agent       = false
     private_key = file("${var.ssh_key_path}")
-    
+
   }
 
   provisioner "remote-exec" {
     inline = [
       "${data.template_file.ufw.rendered}"
     ]
-      
+
   }
 }
 
@@ -60,11 +60,11 @@ data "template_file" "ufw" {
   template = "${file("${path.module}/scripts/ufw.sh")}"
 
   vars = {
-    private_interface    = var.private_interface
-    overlay_interface    = var.overlay_interface
-    vpn_interface        = var.vpn_interface
-    vpn_port             = var.vpn_port
-    overlay_cidr         = var.overlay_cidr
-    additional_rules     = join("\nufw ", flatten(["", var.additional_rules]))
+    private_interface = var.private_interface
+    overlay_interface = var.overlay_interface
+    vpn_interface     = var.vpn_interface
+    vpn_port          = var.vpn_port
+    overlay_cidr      = var.overlay_cidr
+    additional_rules  = join("\nufw ", flatten(["", var.additional_rules]))
   }
 }

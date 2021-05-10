@@ -21,8 +21,8 @@ variable "vpn_ips" {
 }
 
 locals {
-  etcd_hostnames   = slice(var.hostnames, 0, var.node_count)
-  etcd_vpn_ips     = slice(var.vpn_ips, 0, var.node_count)
+  etcd_hostnames = slice(var.hostnames, 0, var.node_count)
+  etcd_vpn_ips   = slice(var.vpn_ips, 0, var.node_count)
 }
 
 variable "etcd_version" {
@@ -37,9 +37,9 @@ resource "null_resource" "etcd" {
   }
 
   connection {
-    host  = element(var.connections, count.index)
-    user  = "root"
-    agent = false
+    host        = element(var.connections, count.index)
+    user        = "root"
+    agent       = false
     private_key = file("${var.ssh_key_path}")
   }
 

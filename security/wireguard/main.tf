@@ -35,14 +35,14 @@ variable "vpn_iprange" {
 resource "null_resource" "wireguard" {
   count = var.node_count
 
-  triggers =  {
-    node_public_ip    = element(var.connections, count.index)
+  triggers = {
+    node_public_ip = element(var.connections, count.index)
   }
 
   connection {
-    host  = element(var.connections, count.index)
-    user  = "root"
-    agent = false
+    host        = element(var.connections, count.index)
+    user        = "root"
+    agent       = false
     private_key = file("${var.ssh_key_path}")
   }
 
@@ -50,24 +50,6 @@ resource "null_resource" "wireguard" {
     inline = [
       "echo net.ipv4.ip_forward=1 >> /etc/sysctl.conf",
       "sysctl -p",
-    ]
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "apt-get install -yq software-properties-common build-essential",
-      "add-apt-repository -y ppa:wireguard/wireguard",
-      "apt-get update",
-    ]
-  }
-
-  provisioner "remote-exec" {
-    script = "${path.module}/scripts/install-kernel-headers.sh"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "DEBIAN_FRONTEND=noninteractive apt-get install -yq wireguard-dkms wireguard-tools",
     ]
   }
 
@@ -107,19 +89,19 @@ resource "null_resource" "wireguard" {
 
 
 resource "null_resource" "wireguard-reload" {
-  
+
   count = var.node_count
-  
+
   # Recreate wireguard configs if there's any change in the number of nodes
-  triggers =  {
-    wireguard        = join(" ", null_resource.wireguard.*.id)    
-    overlay_cidr     = var.overlay_cidr
+  triggers = {
+    wireguard    = join(" ", null_resource.wireguard.*.id)
+    overlay_cidr = var.overlay_cidr
   }
-  
+
   connection {
-    host  = element(var.connections, count.index)
-    user  = "root"
-    agent = false
+    host        = element(var.connections, count.index)
+    user        = "root"
+    agent       = false
     private_key = file("${var.ssh_key_path}")
   }
 
@@ -148,14 +130,14 @@ resource "null_resource" "wireguard-reload" {
       # Reload instead of restart to maintain active connections. Does not work.
       #"wg-quick strip wg0 | wg setconf wg0 /dev/stdin",
       #"wg-quick strip wg0 | wg addconf wg0 /dev/stdin",
-      #"wg-quick strip wg0 | wg syncconf wg0 /dev/stdin",
+      # "wg-quick strip wg0 | wg syncconf wg0 /dev/stdin",
       #"echo '------WIREGUARD 3-----'",
       #"wg",
     ]
   }
 
 }
-  
+
 data "template_file" "interface-conf" {
   count    = var.node_count
   template = file("${path.module}/templates/interface.conf")
@@ -194,6 +176,10 @@ data "external" "keys" {
   count = var.node_count
 
   program = ["sh", "${path.module}/scripts/gen_keys.sh"]
+  query = {
+    ip_address  = element(var.connections, count.index)
+    private_key = abspath(var.ssh_key_path)
+  }
 }
 
 data "template_file" "vpn_ips" {
@@ -206,7 +192,7 @@ data "template_file" "vpn_ips" {
 }
 
 output "vpn_ips" {
-  depends_on = [null_resource.wireguard]
+  depends_on = [null_resource.wireguard, null_resource.wireguard-reload]
   value      = "${data.template_file.vpn_ips.*.rendered}"
 }
 

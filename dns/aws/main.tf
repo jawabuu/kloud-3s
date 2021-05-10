@@ -55,7 +55,7 @@ resource "aws_route53_record" "domain" {
 
 resource "aws_route53_record" "wildcard" {
   depends_on = ["aws_route53_record.domain"]
-  
+
   count   = var.trform_domain && var.node_count > 0 ? 1 : 0
   zone_id = data.aws_route53_zone.selected_domain.zone_id
   name    = "*"
@@ -70,11 +70,11 @@ output "domains" {
 
 output "dns_auth" {
   sensitive = true
-  value     = {
+  value = {
     provider   = "aws"
     domain     = var.domain
     access_key = var.access_key
     secret_key = var.secret_key
-    region     = var.region  
+    region     = var.region
   }
 }

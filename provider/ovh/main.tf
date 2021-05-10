@@ -112,26 +112,26 @@ resource "openstack_compute_keypair_v2" "tf-kube" {
 }
 
 resource "openstack_compute_instance_v2" "host" {
-  name               = format(var.hostname_format, count.index + 1)
-  image_name         = var.image
-  flavor_name        = var.size
-  key_pair           = openstack_compute_keypair_v2.tf-kube[0].name
-  
+  name        = format(var.hostname_format, count.index + 1)
+  image_name  = var.image
+  flavor_name = var.size
+  key_pair    = openstack_compute_keypair_v2.tf-kube[0].name
+
   # Important: orders of network declaration matters because
   # public network is attached on ens4, so keep it at the end of the list
-    
+
   network {
     access_network = false
     port           = openstack_networking_port_v2.kube-host-network[count.index].id
   }
-    
+
   network {
     access_network = true
     port           = openstack_networking_port_v2.public[count.index].id
   }
-  
+
   count = var.hosts
-  
+
   # Set up private interface
   user_data = <<EOF
 #cloud-config
@@ -165,11 +165,11 @@ runcmd:
 EOF
 
   connection {
-    user = "ubuntu"
-    type = "ssh"
-    timeout = "2m"
-    host = self.network[1].fixed_ip_v4
-    agent = false
+    user        = "ubuntu"
+    type        = "ssh"
+    timeout     = "2m"
+    host        = self.network[1].fixed_ip_v4
+    agent       = false
     private_key = file("${var.ssh_key_path}")
   }
 
@@ -177,10 +177,10 @@ EOF
     inline = [
       "until [ -f /var/lib/cloud/instance/boot-finished ]; do sleep 1; done",
       "sudo apt-get update",
-      "sudo apt-get install -yq jq net-tools ufw ${join(" ", var.apt_packages)}",
+      "sudo apt-get install -yq jq net-tools ufw wireguard-tools wireguard ${join(" ", var.apt_packages)}",
     ]
   }
-  
+
 }
 /*
 data "external" "network_interfaces" {
@@ -202,13 +202,13 @@ output "hostnames" {
 }
 
 output "public_ips" {
-  value = [for index, host in openstack_compute_instance_v2.host: 
+  value = [for index, host in openstack_compute_instance_v2.host :
     host.network[1].fixed_ip_v4
   ]
 }
 
 output "private_ips" {
-  value = [for index, host in openstack_compute_instance_v2.host: 
+  value = [for index, host in openstack_compute_instance_v2.host :
     host.network[0].fixed_ip_v4
   ]
 }
@@ -231,11 +231,11 @@ output "ovh_servers" {
 
 output "nodes" {
 
-value = [for index, server in openstack_compute_instance_v2.host: {
-    hostname    = server.name
-    public_ip   = server.network[1].fixed_ip_v4,
-    private_ip  = server.network[0].fixed_ip_v4,
+  value = [for index, server in openstack_compute_instance_v2.host : {
+    hostname   = server.name
+    public_ip  = server.network[1].fixed_ip_v4,
+    private_ip = server.network[0].fixed_ip_v4,
   }]
-  
+
 }
 

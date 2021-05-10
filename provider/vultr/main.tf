@@ -49,49 +49,49 @@ variable "ssh_pubkey_path" {
 
 data "vultr_region" "region" {
   filter {
-    name = "name"
-    values = [ var.region ]
+    name   = "name"
+    values = [var.region]
   }
 }
 
 data "vultr_plan" "plan" {
   filter {
-    name = "name"
-    values = [ var.plan ]
+    name   = "name"
+    values = [var.plan]
   }
 }
 
 data "vultr_os" "os" {
   filter {
-    name = "name"
-    values = [ var.os ]
+    name   = "name"
+    values = [var.os]
   }
 }
 
 
 resource "vultr_ssh_key" "tf-kube" {
-    count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
-    name       = "tf-kube"
-    ssh_key    = file("${var.ssh_pubkey_path}")
+  count   = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
+  name    = "tf-kube"
+  ssh_key = file("${var.ssh_pubkey_path}")
 }
 
 resource "vultr_server" "host" {
-  hostname    = format(var.hostname_format, count.index + 1)
-  region_id   = data.vultr_region.region.id
-  os_id       = data.vultr_os.os.id
-  plan_id     = data.vultr_plan.plan.id
-  ssh_key_ids = vultr_ssh_key.tf-kube.*.id
-  network_ids = [ vultr_network.kube-vpc.id ]
+  hostname               = format(var.hostname_format, count.index + 1)
+  region_id              = data.vultr_region.region.id
+  os_id                  = data.vultr_os.os.id
+  plan_id                = data.vultr_plan.plan.id
+  ssh_key_ids            = vultr_ssh_key.tf-kube.*.id
+  network_ids            = [vultr_network.kube-vpc.id]
   enable_private_network = true
 
   count = var.hosts
 
   connection {
-    user = "root"
-    type = "ssh"
-    timeout = "2m"
-    host = self.main_ip
-    agent = false
+    user        = "root"
+    type        = "ssh"
+    timeout     = "2m"
+    host        = self.main_ip
+    agent       = false
     private_key = file("${var.ssh_key_path}")
   }
 
@@ -99,10 +99,10 @@ resource "vultr_server" "host" {
     inline = [
       "while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done",
       "apt-get update",
-      "apt-get install -yq net-tools jq ufw ${join(" ", var.apt_packages)}",
+      "apt-get install -yq net-tools jq ufw wireguard-tools wireguard ${join(" ", var.apt_packages)}",
     ]
   }
-  
+
   # Set up private interface
   provisioner "remote-exec" {
     inline = [<<EOT
@@ -127,7 +127,7 @@ ip -o addr show scope global | awk '{split($4, a, "/"); print $2" : "a[1]}';
     EOT
     ]
   }
-  
+
 }
 /*
 data "external" "network_interfaces" {
@@ -174,10 +174,10 @@ output "vultr_servers" {
 
 output "nodes" {
 
-value = [for index, server in vultr_server.host: {
-    hostname    = server.hostname
-    public_ip   = server.main_ip,
-    private_ip  = server.internal_ip,
+  value = [for index, server in vultr_server.host : {
+    hostname   = server.hostname
+    public_ip  = server.main_ip,
+    private_ip = server.internal_ip,
   }]
-  
+
 }

@@ -1,19 +1,19 @@
 resource "null_resource" "k8dash_apply" {
-  count    = var.node_count > 0 && lookup(var.install_app, "k8dash", false) == true ? 1 : 0
+  count = var.node_count > 0 && lookup(var.install_app, "k8dash", false) == true ? 1 : 0
   triggers = {
     k3s_id           = join(" ", null_resource.k3s.*.id)
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip
-  }  
-  
+  }
+
   # Use master(s)
   connection {
-    host  = self.triggers.master_public_ip
-    user  = "root"
-    agent = false
+    host        = self.triggers.master_public_ip
+    user        = "root"
+    agent       = false
     private_key = file("${self.triggers.ssh_key_path}")
   }
-  
+
   # Install k8dash
   provisioner "remote-exec" {
     inline = [<<EOT
@@ -23,7 +23,7 @@ resource "null_resource" "k8dash_apply" {
     EOT
     ]
   }
-  
+
   # Remove k8dash
   provisioner "remote-exec" {
     inline = [<<EOT
@@ -31,23 +31,23 @@ resource "null_resource" "k8dash_apply" {
       kubectl --request-timeout 10s delete -f https://raw.githubusercontent.com/herbrandson/k8dash/master/kubernetes-k8dash-serviceaccount.yaml;
     EOT
     ]
-    
-    when        = destroy
-    on_failure  = continue
+
+    when       = destroy
+    on_failure = continue
   }
-  
+
 }
 
 data "external" "k8dash-token" {
-  count   = null_resource.k8dash_apply.*.id == []  ? 0 : 1
+  count = null_resource.k8dash_apply.*.id == [] ? 0 : 1
   program = [
-  "ssh", 
-  "-i", "${abspath(var.ssh_key_path)}", 
-  "-o", "IdentitiesOnly=yes",
-  "-o", "StrictHostKeyChecking=no", 
-  "-o", "UserKnownHostsFile=/dev/null", 
-  "root@${local.master_public_ip}",
-  "TOKEN=$(kubectl get secret $(kubectl get secret | grep k8dash-sa | awk '{print $1}') -o jsonpath='{.data.token}' | base64 --decode); jq -n --arg token $TOKEN '{\"token\":$token}';"
+    "ssh",
+    "-i", "${abspath(var.ssh_key_path)}",
+    "-o", "IdentitiesOnly=yes",
+    "-o", "StrictHostKeyChecking=no",
+    "-o", "UserKnownHostsFile=/dev/null",
+    "root@${local.master_public_ip}",
+    "TOKEN=$(kubectl get secret $(kubectl get secret | grep k8dash-sa | awk '{print $1}') -o jsonpath='{.data.token}' | base64 --decode); jq -n --arg token $TOKEN '{\"token\":$token}';"
   ]
 }
 

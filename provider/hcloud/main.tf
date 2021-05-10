@@ -46,9 +46,9 @@ variable "ssh_pubkey_path" {
 }
 
 resource "hcloud_ssh_key" "tf-kube" {
-    count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
-    name       = "tf-kube"
-    public_key = file("${var.ssh_pubkey_path}")
+  count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
+  name       = "tf-kube"
+  public_key = file("${var.ssh_pubkey_path}")
 }
 
 resource "hcloud_server" "host" {
@@ -61,11 +61,11 @@ resource "hcloud_server" "host" {
   count = var.hosts
 
   connection {
-    user = "root"
-    type = "ssh"
-    timeout = "2m"
-    host = self.ipv4_address
-    agent = false
+    user        = "root"
+    type        = "ssh"
+    timeout     = "2m"
+    host        = self.ipv4_address
+    agent       = false
     private_key = file("${var.ssh_key_path}")
   }
 
@@ -73,7 +73,7 @@ resource "hcloud_server" "host" {
     inline = [
       "while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done",
       "apt-get update",
-      "apt-get install -yq jq net-tools ufw ${join(" ", var.apt_packages)}",
+      "apt-get install -yq jq net-tools ufw wireguard-tools wireguard ${join(" ", var.apt_packages)}",
     ]
   }
 }
@@ -122,10 +122,10 @@ output "hcloud_servers" {
 
 output "nodes" {
 
-value = [for index, server in hcloud_server.host: {
-    hostname    = server.name
-    public_ip   = server.ipv4_address,
-    private_ip  = try(hcloud_server_network.kube-host-network[index].ip, "127.0.0.1")
+  value = [for index, server in hcloud_server.host : {
+    hostname   = server.name
+    public_ip  = server.ipv4_address,
+    private_ip = try(hcloud_server_network.kube-host-network[index].ip, "127.0.0.1")
   }]
-  
+
 }

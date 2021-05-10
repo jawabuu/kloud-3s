@@ -17,7 +17,7 @@ variable "cluster_name" {
 }
 
 variable "vpn_ips" {
-  type = list
+  type    = list
   default = []
 }
 
@@ -26,7 +26,7 @@ variable "vpn_interface" {
 }
 
 variable "private_ips" {
-  type = list
+  type    = list
   default = []
 }
 
@@ -83,7 +83,7 @@ variable "ha_cluster" {
 }
 
 variable "loadbalancer" {
-  default = "metallb"
+  default     = "metallb"
   description = "How LoadBalancer IPs are assigned. Options are metallb(default), traefik, ccm & akrobateo"
 }
 
@@ -91,10 +91,10 @@ variable "cni_to_overlay_interface_map" {
   description = "The interface created by the CNI e.g. calico=vxlan.calico, cilium=cilium_vxlan, weave-net=weave, flannel=cni0/flannel.1"
   type        = map
   default = {
-    flannel   = "cni0"
-    weave     = "weave"
-    cilium    = "cilium_host"
-    calico    = "vxlan.calico"
+    flannel = "cni0"
+    weave   = "weave"
+    cilium  = "cilium_host"
+    calico  = "vxlan.calico"
   }
 }
 
@@ -117,28 +117,28 @@ resource "random_string" "token2" {
 }
 
 locals {
-  cluster_token = "${random_string.token1.result}.${random_string.token2.result}"  
+  cluster_token = "${random_string.token1.result}.${random_string.token2.result}"
   k3s_version   = var.k3s_version == "latest" ? jsondecode(data.http.k3s_version[0].body).tag_name : var.k3s_version
   domain        = var.domain
   cni           = var.cni
-  valid_cni     = ["weave","calico","cilium","flannel","default"]
-  validate_cni  = index(local.valid_cni,local.cni)
+  valid_cni     = ["weave", "calico", "cilium", "flannel", "default"]
+  validate_cni  = index(local.valid_cni, local.cni)
   loadbalancer  = var.loadbalancer
-  
+
   # Set overlay interface from map, but optionally allow override
   overlay_interface    = var.overlay_interface == "" ? lookup(var.cni_to_overlay_interface_map, local.cni, "cni0") : var.overlay_interface
   overlay_cidr         = var.overlay_cidr
   private_interface    = var.private_interface
   kubernetes_interface = var.kubernetes_interface == "" ? var.vpn_interface : var.kubernetes_interface
-  
-  master_ip            = length(var.vpn_ips) > 0 ? var.vpn_ips[0] : ""
-  master_public_ip     = length(var.connections) > 0 ? var.connections[0] : ""
-  master_private_ip    = length(var.private_ips) > 0 ? var.private_ips[0] : ""
-  ssh_key_path         = var.ssh_key_path
+
+  master_ip         = length(var.vpn_ips) > 0 ? var.vpn_ips[0] : ""
+  master_public_ip  = length(var.connections) > 0 ? var.connections[0] : ""
+  master_private_ip = length(var.private_ips) > 0 ? var.private_ips[0] : ""
+  ssh_key_path      = var.ssh_key_path
   # Add validation for high availability here i.e. node_count > 3
-  ha_cluster           = var.ha_cluster
-  registration_domain  = "k3s.${local.domain}"
-  
+  ha_cluster          = var.ha_cluster
+  registration_domain = "k3s.${local.domain}"
+
   agent_default_flags = [
     "-v 5",
     "--server https://${local.registration_domain}:6443",
@@ -150,9 +150,9 @@ locals {
     "--kubelet-arg 'node-labels=topology.kubernetes.io/region=k3s'",
     "--kubelet-arg 'node-status-update-frequency=4s'",
   ]
-  
+
   agent_install_flags = join(" ", concat(local.agent_default_flags))
-  
+
   server_default_flags = [
     "-v 5",
     # Explicitly set default flannel interface
@@ -176,9 +176,9 @@ locals {
     #"--cluster-cidr ${var.cluster_cidr_pods}",
     #"--service-cidr ${var.cluster_cidr_services}",    
     #"--kube-apiserver-arg 'requestheader-allowed-names=system:auth-proxy,kubernetes-proxy'",
-    
+
   ]
-  
+
   server_leader_flags = [
     "--node-ip ${local.master_ip}",
     "--tls-san ${local.master_ip}",
@@ -187,78 +187,78 @@ locals {
     "--cluster-cidr ${local.overlay_cidr}",
     "--node-label 'kloud-3s.io/deploy-traefik=true'",
     local.ha_cluster == true ? "--cluster-init" : "",
-    
+
   ]
-  
+
   server_follower_flags = [
-    "--server https://${local.registration_domain}:6443",  
+    "--server https://${local.registration_domain}:6443",
   ]
-  
-  server_install_flags = join(" ", concat(local.server_default_flags, local.server_leader_flags))
+
+  server_install_flags   = join(" ", concat(local.server_default_flags, local.server_leader_flags))
   follower_install_flags = join(" ", concat(local.server_default_flags, local.server_follower_flags))
-  
+
 }
 
 resource "null_resource" "set_dns_rr" {
   # Use for fixed registration address
-  count    = var.node_count
+  count = var.node_count
   triggers = {
-    registration_domain  = local.registration_domain
-    vpn_ips              = local.ha_cluster == true ? join(" ", slice(var.vpn_ips,0,3)) : local.master_ip
-    node_public_ip       = element(var.connections, count.index)
-    ssh_key_path         = var.ssh_key_path
-    domain               = local.domain
+    registration_domain = local.registration_domain
+    vpn_ips             = local.ha_cluster == true ? join(" ", slice(var.vpn_ips, 0, 3)) : local.master_ip
+    node_public_ip      = element(var.connections, count.index)
+    ssh_key_path        = var.ssh_key_path
+    domain              = local.domain
   }
-  
+
   connection {
-    host  = self.triggers.node_public_ip
-    user  = "root"
-    agent = false
+    host        = self.triggers.node_public_ip
+    user        = "root"
+    agent       = false
     private_key = file("${self.triggers.ssh_key_path}")
-    timeout = "30s"
+    timeout     = "30s"
   }
-  
+
   provisioner "remote-exec" {
-      inline = [
-        "${join("\n", formatlist("echo '%s %s' >> /etc/hosts", split(" ", self.triggers.vpn_ips), self.triggers.registration_domain))}",
-        ]
+    inline = [
+      "${join("\n", formatlist("echo '%s %s' >> /etc/hosts", split(" ", self.triggers.vpn_ips), self.triggers.registration_domain))}",
+    ]
   }
-  
+
   provisioner "remote-exec" {
-      when   = destroy
-      on_failure = continue
-      inline = [
-        "grep -F -v '${self.triggers.registration_domain}' /etc/hosts > /etc/hosts.tmp && mv /etc/hosts.tmp /etc/hosts",
-        ]
+    when       = destroy
+    on_failure = continue
+    inline = [
+      "grep -F -v '${self.triggers.registration_domain}' /etc/hosts > /etc/hosts.tmp && mv /etc/hosts.tmp /etc/hosts",
+    ]
   }
 }
 
 resource "null_resource" "k3s" {
   count = var.node_count
-  
+
   triggers = {
-    master_public_ip      = local.master_public_ip
-    node_public_ip        = element(var.connections, count.index)
-    node_name             = format(var.hostname_format, count.index + 1)
-    node_ip               = element(var.vpn_ips, count.index)
-    node_private_ip       = element(var.private_ips, count.index)
-    k3s_version           = local.k3s_version
-    overlay_cidr          = local.overlay_cidr
-    overlay_interface     = local.overlay_interface
-    private_interface     = local.private_interface
-    kubernetes_interface  = local.kubernetes_interface
-    server_install_flags  = local.server_install_flags
-    agent_install_flags   = local.agent_install_flags
-    follower_install_flags= local.follower_install_flags
-    registration_domain   = null_resource.set_dns_rr[count.index].triggers.registration_domain
+    master_public_ip       = local.master_public_ip
+    node_public_ip         = element(var.connections, count.index)
+    node_name              = format(var.hostname_format, count.index + 1)
+    node_ip                = element(var.vpn_ips, count.index)
+    node_private_ip        = element(var.private_ips, count.index)
+    k3s_version            = local.k3s_version
+    overlay_cidr           = local.overlay_cidr
+    overlay_interface      = local.overlay_interface
+    private_interface      = local.private_interface
+    kubernetes_interface   = local.kubernetes_interface
+    server_install_flags   = local.server_install_flags
+    agent_install_flags    = local.agent_install_flags
+    follower_install_flags = local.follower_install_flags
+    registration_domain    = null_resource.set_dns_rr[count.index].triggers.registration_domain
     # Below is used to debug triggers
     # always_run            = "${timestamp()}"
   }
 
   connection {
-    host  = element(var.connections, count.index)
-    user  = "root"
-    agent = false
+    host        = element(var.connections, count.index)
+    user        = "root"
+    agent       = false
     private_key = file("${var.ssh_key_path}")
   }
 
@@ -268,47 +268,47 @@ resource "null_resource" "k3s" {
       "modprobe br_netfilter && echo br_netfilter >> /etc/modules",
     ]
   }
-    
+
   # Upload k3s file
   provisioner file {
     content     = data.http.k3s_installer.body
     destination = "/tmp/k3s-installer"
   }
-  
+
   # Upload manifests 
   provisioner file {
     source      = "${path.module}/manifests"
     destination = "/tmp"
   }
-  
+
   # Upload calico.yaml for CNI
   provisioner "file" {
     content     = data.template_file.calico-configuration.rendered
     destination = "/tmp/calico.yaml"
   }
-  
+
   # Upload flannel.yaml for CNI
   provisioner "file" {
     content     = data.template_file.flannel-configuration.rendered
     destination = "/tmp/flannel.yaml"
   }
-  
+
   # Upload weave.yaml for CNI
   provisioner "file" {
     content     = data.template_file.weave-configuration.rendered
     destination = "/tmp/weave.yaml"
   }
-  
+
   # Upload basic certificate issuer
   provisioner "file" {
     content     = data.template_file.basic-cert-issuer.rendered
     destination = "/tmp/basic-cert-issuer.yaml"
   }
-    
+
   # Install K3S server
   provisioner "remote-exec" {
     inline = [<<EOT
-      %{ if count.index == 0 ~}
+      %{if count.index == 0~}
       
         echo "[INFO] ---Uninstalling k3s-server---";
         # Clear CNI routes
@@ -326,11 +326,11 @@ resource "null_resource" "k3s" {
         echo "[INFO] ---k3s not found. Skipping...---";
         
         # Download CNI plugins to /opt/cni/bin/ because most CNI's will look in that path
-        %{ if local.cni != "default" ~}
+        %{if local.cni != "default"~}
         [ -d "/opt/cni/bin" ] || \
         (wget https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz && \
         tar zxvf cni-plugins-linux-amd64-v0.8.6.tgz && mkdir -p /opt/cni/bin && mv * /opt/cni/bin/);
-        %{ endif ~}
+        %{endif~}
         
         echo "[INFO] ---Installing k3s server---";
                 
@@ -347,29 +347,29 @@ resource "null_resource" "k3s" {
         
         echo "[INFO] ---Installing CNI ${local.cni}---";
         
-        %{ if local.cni == "cilium" ~}
+        %{if local.cni == "cilium"~}
         sudo mount bpffs -t bpf /sys/fs/bpf
         kubectl apply -f /tmp/manifests/cilium.yaml;
         echo "[INFO] ---Master waiting for cilium---";
         kubectl rollout status ds cilium -n kube-system;
-        %{ endif ~}
+        %{endif~}
         
-        %{ if local.cni == "calico" ~}
+        %{if local.cni == "calico"~}
         until kubectl apply -f /tmp/calico.yaml;do nc -zvv localhost 6443; sleep 5; done;
         echo "[INFO] ---Master waiting for calico---";
         kubectl rollout status ds calico-node -n kube-system;
-        %{ endif ~}
+        %{endif~}
         
-        %{ if local.cni == "weave" ~}
+        %{if local.cni == "weave"~}
         # kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.NO_MASQ_LOCAL=1&env.IPALLOC_RANGE=${local.overlay_cidr}&env.WEAVE_MTU=1500";
         kubectl apply -f /tmp/weave.yaml;
         kubectl rollout status ds weave-net -n kube-system;
-        %{ endif ~}
+        %{endif~}
         
-        %{ if local.cni == "flannel" ~}
+        %{if local.cni == "flannel"~}
         kubectl apply -f /tmp/flannel.yaml;
         kubectl rollout status ds kube-flannel-ds-amd64 -n kube-system;
-        %{ endif ~}
+        %{endif~}
         
         echo "[INFO] ---Finished installing CNI ${local.cni}---";        
                 
@@ -383,7 +383,7 @@ resource "null_resource" "k3s" {
         kubectl apply -f /tmp/manifests/traefik-ds-k3s.yaml;
                         
         echo "[INFO] ---Finished installing k3s server---";
-      %{ else ~}
+      %{else~}
         echo "[INFO] ---Uninstalling k3s---";
         # Clear CNI routes
         (k3s-agent-uninstall.sh || k3s-uninstall.sh) && ip route | grep -e 'calico' -e 'weave' -e 'cilium' -e 'bird' | \
@@ -404,19 +404,19 @@ resource "null_resource" "k3s" {
         # It is desirable to wait for networking to complete before proceeding with agent installation
         
         # Download CNI plugins to /opt/cni/bin/ because most CNI's will look in that path
-        %{ if local.cni != "default" ~}
+        %{if local.cni != "default"~}
         [ -d "/opt/cni/bin" ] || \
         (wget https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz && \
         tar zxvf cni-plugins-linux-amd64-v0.8.6.tgz && mkdir -p /opt/cni/bin && mv * /opt/cni/bin/);
-        %{ endif ~}
+        %{endif~}
         
-        %{ if local.cni == "cilium" ~}
+        %{if local.cni == "cilium"~}
         sudo mount bpffs -t bpf /sys/fs/bpf
-        %{ endif ~}
+        %{endif~}
                 
         until $(curl -fk -so nul https://${local.registration_domain}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
         
-        %{ if local.ha_cluster == true && count.index < 3 ~}
+        %{if local.ha_cluster == true && count.index < 3~}
         
         echo "[INFO] ---Installing k3s server-follower---";
         INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer server ${local.follower_install_flags} \
@@ -424,7 +424,7 @@ resource "null_resource" "k3s" {
         --tls-san ${self.triggers.node_ip} --tls-san ${self.triggers.node_public_ip} --tls-san ${self.triggers.node_private_ip};
         echo "[INFO] ---Finished installing k3s server-follower---";
         
-        %{ else ~}
+        %{else~}
         
         echo "[INFO] ---Installing k3s agent---"; 
         INSTALL_K3S_VERSION=${local.k3s_version} \
@@ -432,13 +432,13 @@ resource "null_resource" "k3s" {
         --node-name ${self.triggers.node_name} --node-external-ip ${self.triggers.node_public_ip};
         echo "[INFO] ---Finished installing k3s agent---";
         
-        %{ endif ~}
+        %{endif~}
         
-      %{ endif ~}
+      %{endif~}
     EOT
     ]
   }
-  
+
 }
 
 # Get rid of cyclic errors by storing all required variables to be used in destroy provisioner
@@ -463,21 +463,21 @@ resource null_resource k3s_cleanup {
     master_public_ip = null_resource.k3s_cache[count.index].triggers.master_public_ip
     node_name        = null_resource.k3s_cache[count.index].triggers.node_name
   }
-  
-  
+
+
   # Use master(s)
   connection {
-    host  = self.triggers.master_public_ip
-    user  = "root"
-    agent = false
+    host        = self.triggers.master_public_ip
+    user        = "root"
+    agent       = false
     private_key = file("${self.triggers.ssh_key_path}")
   }
-  
+
   # Clean up on deleting node
-  provisioner remote-exec { 
-    
-    when        = destroy
-    on_failure  = continue
+  provisioner remote-exec {
+
+    when       = destroy
+    on_failure = continue
     inline = [
       "echo 'Cleaning up ${self.triggers.node_name}...'",
       "kubectl drain ${self.triggers.node_name} --force --delete-local-data --ignore-daemonsets --timeout 180s",
@@ -485,15 +485,15 @@ resource null_resource k3s_cleanup {
       "sed -i \"/${self.triggers.node_name}/d\" /var/lib/rancher/k3s/server/cred/node-passwd",
     ]
   }
-  
+
 }
 
 data "template_file" "calico-configuration" {
   template = file("${path.module}/templates/calico.yaml")
 
   vars = {
-    interface     =  local.kubernetes_interface
-    calico_cidr   =  local.overlay_cidr
+    interface   = local.kubernetes_interface
+    calico_cidr = local.overlay_cidr
   }
 }
 
@@ -501,8 +501,8 @@ data "template_file" "flannel-configuration" {
   template = file("${path.module}/templates/flannel.yaml")
 
   vars = {
-    interface     =  local.kubernetes_interface
-    flannel_cidr  =  local.overlay_cidr
+    interface    = local.kubernetes_interface
+    flannel_cidr = local.overlay_cidr
   }
 }
 
@@ -510,8 +510,8 @@ data "template_file" "weave-configuration" {
   template = file("${path.module}/templates/weave.yaml")
 
   vars = {
-    interface     =  local.kubernetes_interface
-    weave_cidr    =  local.overlay_cidr
+    interface  = local.kubernetes_interface
+    weave_cidr = local.overlay_cidr
   }
 }
 
@@ -519,7 +519,7 @@ data "template_file" "basic-cert-issuer" {
   template = file("${path.module}/templates/basic-cert-issuer.yaml")
 
   vars = {
-    domain        =  local.domain
+    domain = local.domain
   }
 }
 

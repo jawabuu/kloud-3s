@@ -38,9 +38,9 @@ variable "ssh_pubkey_path" {
 }
 
 resource "scaleway_account_ssh_key" "tf-kube" {
-    count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
-    name       = "tf-kube"
-    public_key = file("${var.ssh_pubkey_path}")
+  count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
+  name       = "tf-kube"
+  public_key = file("${var.ssh_pubkey_path}")
 }
 
 provider "scaleway" {
@@ -52,19 +52,19 @@ provider "scaleway" {
 }
 
 resource "scaleway_instance_server" "host" {
-  name                = format(var.hostname_format, count.index + 1)
-  type                = var.type
-  image               = var.image
-  enable_dynamic_ip   = true
+  name              = format(var.hostname_format, count.index + 1)
+  type              = var.type
+  image             = var.image
+  enable_dynamic_ip = true
 
   count = var.hosts
 
   connection {
-    user = "root"
-    type = "ssh"
-    timeout = "2m"
-    host = self.public_ip
-    agent = false
+    user        = "root"
+    type        = "ssh"
+    timeout     = "2m"
+    host        = self.public_ip
+    agent       = false
     private_key = file("${var.ssh_key_path}")
   }
 
@@ -72,7 +72,7 @@ resource "scaleway_instance_server" "host" {
   provisioner "remote-exec" {
     inline = [
       "apt-get update",
-      "apt-get install -yq apt-transport-https net-tools jq ufw netcat-traditional ${join(" ", var.apt_packages)}",
+      "apt-get install -yq apt-transport-https net-tools jq ufw netcat-traditional wireguard-tools wireguard ${join(" ", var.apt_packages)}",
       # fix a problem with later wireguard installation
       "DEBIAN_FRONTEND=noninteractive apt-get install -yq -o Dpkg::Options::=--force-confnew sudo",
     ]
@@ -129,10 +129,10 @@ output "scaleway_servers" {
 
 output "nodes" {
 
-value = [for index, server in scaleway_instance_server.host: {
-    hostname    = server.name
-    public_ip   = server.public_ip,
-    private_ip  = server.private_ip,
+  value = [for index, server in scaleway_instance_server.host : {
+    hostname   = server.name
+    public_ip  = server.public_ip,
+    private_ip = server.private_ip,
   }]
 
 }

@@ -1,26 +1,26 @@
 resource "null_resource" "elastic_cloud_apply" {
-  count    = var.node_count > 0 && lookup(var.install_app, "elastic_cloud", false) == true ? 1 : 0
+  count = var.node_count > 0 && lookup(var.install_app, "elastic_cloud", false) == true ? 1 : 0
   triggers = {
     k3s_id           = join(" ", null_resource.k3s.*.id)
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip
     apm_es_kibana    = filemd5("${path.module}/templates/elastic_cloud/apm_es_kibana.yaml")
-  }  
-  
+  }
+
   # Use master(s)
   connection {
-    host  = self.triggers.master_public_ip
-    user  = "root"
-    agent = false
+    host        = self.triggers.master_public_ip
+    user        = "root"
+    agent       = false
     private_key = file("${self.triggers.ssh_key_path}")
   }
-  
+
   # Upload elastic_cloud manifests 
   provisioner file {
     source      = "${path.module}/templates/elastic_cloud"
     destination = "/tmp"
   }
-  
+
   # Install elastic_cloud
   provisioner "remote-exec" {
     inline = [<<EOT
@@ -32,7 +32,7 @@ resource "null_resource" "elastic_cloud_apply" {
     EOT
     ]
   }
-  
+
   # Remove k8dash
   provisioner "remote-exec" {
     inline = [<<EOT
@@ -40,9 +40,9 @@ resource "null_resource" "elastic_cloud_apply" {
       kubectl --request-timeout 10s get po -A;
     EOT
     ]
-    
-    when        = destroy
-    on_failure  = continue
+
+    when       = destroy
+    on_failure = continue
   }
-  
+
 }

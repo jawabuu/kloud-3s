@@ -41,17 +41,17 @@ variable "create_zone" {
 }
 
 variable "cni" {
-  default = "cilium"
+  default     = "cilium"
   description = "Choice of CNI to install e.g. flannel, weave, cilium, calico"
 }
 
 variable "overlay_cidr" {
-  default = "10.42.0.0/16"
+  default     = "10.42.0.0/16"
   description = "Cluster cidr"
 }
 
 variable "ha_cluster" {
-  default = false
+  default     = false
   description = "Create highly available cluster. Currently experimental and requires node_count >= 3"
 }
 

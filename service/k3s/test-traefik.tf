@@ -23,20 +23,20 @@ locals {
   create_certs  = var.create_certs
   auth_user     = var.auth_user
   auth_password = var.auth_password == "" ? random_string.default_password.result : var.auth_password
-  traefik_test  = templatefile("${path.module}/templates/traefik_test.yaml", {
+  traefik_test = templatefile("${path.module}/templates/traefik_test.yaml", {
     domain       = var.domain
     create_certs = var.create_certs
   })
 }
 
 resource "random_string" "default_password" {
- length  = 16
- special = true
+  length  = 16
+  special = true
 }
 
 resource "null_resource" "traefik_test_apply" {
   # Skip if test-traefik is false.
-  count    = var.node_count > 0 && local.test-traefik == true ? 1 : 0
+  count = var.node_count > 0 && local.test-traefik == true ? 1 : 0
   triggers = {
     k3s_id           = join(" ", null_resource.k3s.*.id)
     traefik_test     = md5(local.traefik_test)
@@ -44,16 +44,16 @@ resource "null_resource" "traefik_test_apply" {
     master_public_ip = local.master_public_ip
     auth_user        = md5(local.auth_user)
     auth_password    = md5(local.auth_password)
-  }  
-  
+  }
+
   # Use master(s)
   connection {
-    host  = self.triggers.master_public_ip
-    user  = "root"
-    agent = false
+    host        = self.triggers.master_public_ip
+    user        = "root"
+    agent       = false
     private_key = file("${self.triggers.ssh_key_path}")
   }
-  
+
   # Upload external-dns
   provisioner "file" {
     content     = local.traefik_test
@@ -71,7 +71,7 @@ resource "null_resource" "traefik_test_apply" {
     EOT
     ]
   }
-  
+
 }
 
 output traefik_test {

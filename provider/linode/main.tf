@@ -42,10 +42,10 @@ variable "ssh_pubkey_path" {
 }
 
 resource "linode_sshkey" "tf-kube" {
-    count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
-    label      = "tf-kube"
-    #ssh_key    = file("${var.ssh_pubkey_path}")
-    ssh_key    = chomp(file(var.ssh_pubkey_path))
+  count = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
+  label = "tf-kube"
+  #ssh_key    = file("${var.ssh_pubkey_path}")
+  ssh_key = chomp(file(var.ssh_pubkey_path))
 }
 
 resource "linode_instance" "host" {
@@ -56,15 +56,15 @@ resource "linode_instance" "host" {
   authorized_keys = linode_sshkey.tf-kube.*.ssh_key
   private_ip      = true
   swap_size       = 2048
-  
+
   count = var.hosts
 
   connection {
-    user = "root"
-    type = "ssh"
-    timeout = "2m"
-    host = self.ip_address
-    agent = false
+    user        = "root"
+    type        = "ssh"
+    timeout     = "2m"
+    host        = self.ip_address
+    agent       = false
     private_key = file("${var.ssh_key_path}")
   }
 
@@ -73,7 +73,7 @@ resource "linode_instance" "host" {
       "while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done",
       "hostnamectl set-hostname ${self.label}",
       "apt-get update",
-      "apt-get install -yq jq net-tools ufw ${join(" ", var.apt_packages)}",
+      "apt-get install -yq jq net-tools ufw wireguard-tools wireguard ${join(" ", var.apt_packages)}",
     ]
   }
 }
@@ -122,10 +122,10 @@ output "linode_servers" {
 
 output "nodes" {
 
-value = [for index, server in linode_instance.host: {
-    hostname    = server.label
-    public_ip   = server.ip_address,
-    private_ip  = server.private_ip_address,
+  value = [for index, server in linode_instance.host : {
+    hostname   = server.label
+    public_ip  = server.ip_address,
+    private_ip = server.private_ip_address,
   }]
-  
+
 }

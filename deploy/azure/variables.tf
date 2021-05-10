@@ -41,17 +41,17 @@ variable "create_zone" {
 }
 
 variable "cni" {
-  default = "cilium"
+  default     = "cilium"
   description = "Choice of CNI to install e.g. flannel, weave, cilium, calico"
 }
 
 variable "overlay_cidr" {
-  default = "10.42.0.0/16"
+  default     = "10.42.0.0/16"
   description = "Cluster cidr"
 }
 
 variable "ha_cluster" {
-  default = false
+  default     = false
   description = "Create highly available cluster. Currently experimental and requires node_count >= 3"
 }
 
@@ -81,7 +81,7 @@ variable "longhorn_replicas" {
 variable "install_app" {
   description = "Additional apps to Install"
   type        = map
-  default     = {
+  default = {
     kubernetes_dashboard = true
     kube_prometheus      = false
     k8dash               = false
@@ -97,39 +97,39 @@ variable "additional_rules" {
 }
 
 variable "auth_user" {
-  default = "kloud-3s"
+  default     = "kloud-3s"
   description = "Traefik basic auth username"
 }
 
 variable "auth_password" {
-  default = ""
+  default     = ""
   description = "Traefik basic auth password"
 }
 
 /* azure */
 
 variable "client_id" {
-  type = string
+  type    = string
   default = ""
 }
 
 variable "client_secret" {
-  type = string
+  type    = string
   default = ""
 }
 
 variable "tenant_id" {
-  type = string
+  type    = string
   default = ""
 }
 
 variable "subscription_id" {
-  type = string
+  type    = string
   default = ""
 }
 
 variable "azure_region" {
-  type = string
+  type    = string
   default = "West Europe"
 }
 

@@ -109,7 +109,7 @@ resource "google_compute_instance" "host" {
   allow_stopping_for_update = true
 
   metadata = {
-    ssh-keys = "root:${try(file(var.ssh_pubkey_path),"")}"
+    ssh-keys = "root:${try(file(var.ssh_pubkey_path), "")}"
   }
 
   scheduling {
@@ -130,7 +130,7 @@ resource "google_compute_instance" "host" {
     inline = [
       "until [ -f /var/lib/cloud/instance/boot-finished ]; do sleep 1; done",
       "apt-get update",
-      "apt-get install -yq jq net-tools ufw ${join(" ", var.apt_packages)}",
+      "apt-get install -yq jq net-tools ufw wireguard-tools wireguard ${join(" ", var.apt_packages)}",
     ]
   }
 

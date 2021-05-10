@@ -4,7 +4,7 @@ variable "longhorn_replicas" {
 }
 
 locals {
-  longhorn      = templatefile("${path.module}/templates/longhorn.yaml", {
+  longhorn = templatefile("${path.module}/templates/longhorn.yaml", {
     longhorn_replicas = var.node_count < 3 ? var.node_count : var.longhorn_replicas
     domain            = var.domain
   })
@@ -12,22 +12,22 @@ locals {
 
 resource "null_resource" "longhorn_apply" {
   # Skip if use_longhorn is false.
-  count    = var.node_count > 0 && lookup(var.install_app, "longhorn", false) == true ? 1 : 0
+  count = var.node_count > 0 && lookup(var.install_app, "longhorn", false) == true ? 1 : 0
   triggers = {
     k3s_id           = join(" ", null_resource.k3s.*.id)
     longhorn         = md5(local.longhorn)
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip
-  }  
-  
+  }
+
   # Use master(s)
   connection {
-    host  = self.triggers.master_public_ip
-    user  = "root"
-    agent = false
+    host        = self.triggers.master_public_ip
+    user        = "root"
+    agent       = false
     private_key = file("${self.triggers.ssh_key_path}")
   }
-  
+
   # Upload longhorn
   provisioner "file" {
     content     = local.longhorn
@@ -47,7 +47,7 @@ resource "null_resource" "longhorn_apply" {
     EOT
     ]
   }
-  
+
   # Remove longhorn
   provisioner "remote-exec" {
     inline = [<<EOT
@@ -55,11 +55,11 @@ resource "null_resource" "longhorn_apply" {
       kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}';
     EOT
     ]
-    
-    when        = destroy
-    on_failure  = continue
+
+    when       = destroy
+    on_failure = continue
   }
-  
+
 }
 
 output longhorn {

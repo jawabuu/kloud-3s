@@ -29,7 +29,7 @@ module "swap" {
 
 
 module "dns" {
-  source      = "./dns/digitalocean"
+  source = "./dns/digitalocean"
 
   node_count  = var.node_count
   token       = var.digitalocean_token
@@ -53,14 +53,14 @@ module "wireguard" {
 module "firewall" {
   source = "./security/ufw"
 
-  node_count           = var.node_count
-  connections          = module.provider.public_ips
-  private_interface    = module.provider.private_network_interface
-  vpn_interface        = module.wireguard.vpn_interface
-  vpn_port             = module.wireguard.vpn_port
-  overlay_interface    = module.k3s.overlay_interface
-  overlay_cidr         = module.k3s.overlay_cidr
-  ssh_key_path         = module.ssh.private_key
+  node_count        = var.node_count
+  connections       = module.provider.public_ips
+  private_interface = module.provider.private_network_interface
+  vpn_interface     = module.wireguard.vpn_interface
+  vpn_port          = module.wireguard.vpn_port
+  overlay_interface = module.k3s.overlay_interface
+  overlay_cidr      = module.k3s.overlay_cidr
+  ssh_key_path      = module.ssh.private_key
 }
 
 module "k3s" {
@@ -70,7 +70,7 @@ module "k3s" {
   connections       = module.provider.public_ips
   cluster_name      = var.domain
   vpn_interface     = module.wireguard.vpn_interface #module.provider.private_network_interface
-  vpn_ips           = module.wireguard.vpn_ips #module.provider.private_ips
+  vpn_ips           = module.wireguard.vpn_ips       #module.provider.private_ips
   hostname_format   = var.hostname_format
   k3s_version       = var.k3s_version
   cni               = var.cni

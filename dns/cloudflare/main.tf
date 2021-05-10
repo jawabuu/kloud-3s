@@ -74,11 +74,11 @@ output "domains" {
 
 output "dns_auth" {
   sensitive = true
-  value     = {
+  value = {
     provider  = "cloudflare"
     domain    = var.domain
     email     = var.email
     api_token = var.api_token
-    
+
   }
 }

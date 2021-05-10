@@ -7,12 +7,12 @@ variable "kubeconfig_path" {
 }
 
 resource "null_resource" "key_wait" {
-  count    = var.node_count > 0 ? 1 : 0
+  count = var.node_count > 0 ? 1 : 0
   triggers = {
-    k3s        = null_resource.k3s[0].id
+    k3s = null_resource.k3s[0].id
   }
   provisioner "local-exec" {
-    interpreter = [ "bash", "-c" ]
+    interpreter = ["bash", "-c"]
     command     = <<EOT
     ssh -i ${local.ssh_key_path} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
     root@${local.master_public_ip} \
@@ -23,17 +23,17 @@ EOT
 
 resource null_resource kubeconfig {
 
-  count    = var.node_count > 0 ? 1 : 0
+  count = var.node_count > 0 ? 1 : 0
   triggers = {
     ip              = local.master_public_ip
     kubeconfig_path = var.kubeconfig_path
     key             = join(" ", null_resource.key_wait.*.id)
     cluster_name    = var.cluster_name
-  }  
-  
+  }
+
   provisioner "local-exec" {
     on_failure  = continue
-    interpreter = [ "bash", "-c" ]
+    interpreter = ["bash", "-c"]
     command     = <<EOT
     scp -i ${local.ssh_key_path} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
     root@${local.master_public_ip}:/etc/rancher/k3s/k3s.yaml ${var.kubeconfig_path}/${var.cluster_name}-k3s.yaml;
@@ -60,8 +60,8 @@ resource null_resource kubeconfig {
     kubectl config use ${var.cluster_name};
     kubectl get nodes;
 EOT 
-  }  
-  
+  }
+
 }
 
 output "kubeconfig" {

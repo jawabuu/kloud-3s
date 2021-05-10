@@ -28,17 +28,17 @@ variable "trform_domain" {
 
 # Create a new domain/zone
 resource "digitalocean_domain" "hobby-kube" {
-  count  = var.create_zone ? 1 : 0
-  name   = var.domain
+  count = var.create_zone ? 1 : 0
+  name  = var.domain
 }
 
-locals{
+locals {
   do_domain        = var.create_zone ? digitalocean_domain.hobby-kube[0].name : var.domain
   master_public_ip = length(var.public_ips) > 0 ? var.public_ips[0] : ""
 }
 
 resource "digitalocean_record" "hosts" {
-  count  = var.node_count
+  count = var.node_count
 
   domain = local.do_domain
   name   = element(var.hostnames, count.index)
@@ -73,7 +73,7 @@ output "domains" {
 
 output "dns_auth" {
   sensitive = true
-  value     = {
+  value = {
     domain   = var.domain
     provider = "digitalocean"
     token    = var.token
