@@ -119,6 +119,11 @@ variable "mail_config" {
   default     = {}
 }
 
+variable "floating_ip" {
+  description = "Floating IP"
+  default     = {}
+}
+
 resource "random_string" "token1" {
   length  = 6
   upper   = false
@@ -140,6 +145,7 @@ locals {
   valid_cni     = ["weave", "calico", "cilium", "flannel", "default"]
   validate_cni  = index(local.valid_cni, local.cni)
   loadbalancer  = var.loadbalancer
+  floating_ip   = try(var.floating_ip.ip_address, "")
 
   # Set overlay interface from map, but optionally allow override
   overlay_interface    = var.overlay_interface == "" ? lookup(var.cni_to_overlay_interface_map, local.cni, "cni0") : var.overlay_interface
@@ -205,7 +211,7 @@ locals {
     "--service-cidr ${local.service_cidr}",
     "--node-label 'kloud-3s.io/deploy-traefik=true'",
     local.ha_cluster == true ? "--cluster-init" : "",
-
+    local.floating_ip == "" ? "--tls-san 127.0.0.2" : "--tls-san ${local.floating_ip}",
   ]
 
   server_follower_flags = [
