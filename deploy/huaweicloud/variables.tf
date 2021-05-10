@@ -111,6 +111,11 @@ variable "auth_password" {
   description = "Traefik basic auth password"
 }
 
+variable "loadbalancer" {
+  default     = "metallb"
+  description = "How LoadBalancer IPs are assigned. Options are metallb(default), traefik, ccm, kube-vip & akrobateo"
+}
+
 variable "registry_user" {
   default     = "kloud-3s"
   description = "Trow Registry username"
