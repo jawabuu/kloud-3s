@@ -111,6 +111,34 @@ variable "auth_password" {
   description = "Traefik basic auth password"
 }
 
+variable "registry_user" {
+  default     = "kloud-3s"
+  description = "Trow Registry username"
+}
+
+variable "registry_password" {
+  default     = ""
+  description = "Trow Registry password"
+}
+
+variable "apt_packages" {
+  type        = list
+  default     = []
+  description = "Additional packages to install"
+}
+
+variable "oidc_config" {
+  type        = list(map(string))
+  description = "OIDC Configuration for protecting private resources. Used by Pomerium IAP & Vault."
+  default     = []
+}
+
+variable "mail_config" {
+  type        = map(string)
+  description = "SMTP Configuration for email services."
+  default     = {}
+}
+
 /* linode */
 variable "linode_token" {
   default = ""
