@@ -28,6 +28,8 @@ variable "vpc_cidr" {
   default = "10.115.0.0/24"
 }
 
+resource "time_static" "id" {}
+
 provider "hcloud" {
   token = var.token
 }
@@ -47,7 +49,7 @@ variable "ssh_pubkey_path" {
 
 resource "hcloud_ssh_key" "tf-kube" {
   count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
-  name       = "tf-kube"
+  name       = "tf-kube-${time_static.id.unix}"
   public_key = file("${var.ssh_pubkey_path}")
 }
 
@@ -113,11 +115,15 @@ output "public_network_interface" {
 }
 
 output "private_network_interface" {
-  value = "ens10"
+  value = length(regexall("cpx", var.type)) > 0 ? "enp7s0" : "ens10"
 }
 
 output "hcloud_servers" {
   value = "${hcloud_server.host}"
+}
+
+output "region" {
+  value = var.location
 }
 
 output "nodes" {

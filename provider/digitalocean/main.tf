@@ -41,13 +41,15 @@ variable "vpc_cidr" {
   default = "10.115.0.0/24"
 }
 
+resource "time_static" "id" {}
+
 provider "digitalocean" {
   token = var.token
 }
 
 resource "digitalocean_ssh_key" "tf-kube" {
   count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
-  name       = "tf-kube"
+  name       = "tf-kube-${time_static.id.unix}"
   public_key = file("${var.ssh_pubkey_path}")
 }
 
@@ -121,6 +123,10 @@ output "private_network_interface" {
 
 output "digitalocean_droplets" {
   value = "${digitalocean_droplet.host}"
+}
+
+output "region" {
+  value = var.region
 }
 
 output "nodes" {

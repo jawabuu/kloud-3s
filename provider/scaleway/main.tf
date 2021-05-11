@@ -39,7 +39,7 @@ variable "ssh_pubkey_path" {
 
 resource "scaleway_account_ssh_key" "tf-kube" {
   count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
-  name       = "tf-kube"
+  name       = "tf-kube-${time_static.id.unix}"
   public_key = file("${var.ssh_pubkey_path}")
 }
 
@@ -125,6 +125,10 @@ output "private_network_interface" {
 
 output "scaleway_servers" {
   value = "${scaleway_instance_server.host}"
+}
+
+output "region" {
+  value = var.region
 }
 
 output "nodes" {

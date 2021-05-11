@@ -1,5 +1,5 @@
 resource "alicloud_vpc" "kube-hosts" {
-  name       = "kube-hosts"
+  name       = "kube-hosts-${time_static.id.unix}"
   cidr_block = var.vpc_cidr
 }
 

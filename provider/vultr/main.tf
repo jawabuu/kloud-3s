@@ -28,6 +28,8 @@ variable "vpc_cidr" {
   default = "10.115.0.0/24"
 }
 
+resource "time_static" "id" {}
+
 provider "vultr" {
   api_key     = var.api_key
   rate_limit  = 700
@@ -71,7 +73,7 @@ data "vultr_os" "os" {
 
 resource "vultr_ssh_key" "tf-kube" {
   count   = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
-  name    = "tf-kube"
+  name    = "tf-kube-${time_static.id.unix}"
   ssh_key = file("${var.ssh_pubkey_path}")
 }
 
@@ -170,6 +172,10 @@ output "private_network_interface" {
 
 output "vultr_servers" {
   value = "${vultr_server.host}"
+}
+
+output "region" {
+  value = var.region
 }
 
 output "nodes" {

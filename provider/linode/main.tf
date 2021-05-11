@@ -43,7 +43,7 @@ variable "ssh_pubkey_path" {
 
 resource "linode_sshkey" "tf-kube" {
   count = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
-  label = "tf-kube"
+  label = "tf-kube-${time_static.id.unix}"
   #ssh_key    = file("${var.ssh_pubkey_path}")
   ssh_key = chomp(file(var.ssh_pubkey_path))
 }
@@ -118,6 +118,10 @@ output "private_network_interface" {
 
 output "linode_servers" {
   value = "${linode_instance.host}"
+}
+
+output "region" {
+  value = var.region
 }
 
 output "nodes" {

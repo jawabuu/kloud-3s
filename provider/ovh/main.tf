@@ -81,6 +81,8 @@ variable "vpc_cidr" {
   default = "10.115.0.0/24"
 }
 
+resource "time_static" "id" {}
+
 # Left to test ovh provider
 /*
 provider "ovh" {
@@ -107,7 +109,7 @@ provider "openstack" {
 
 resource "openstack_compute_keypair_v2" "tf-kube" {
   count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
-  name       = "tf-kube"
+  name       = "tf-kube-${time_static.id.unix}"
   public_key = file("${var.ssh_pubkey_path}")
 }
 
@@ -227,6 +229,10 @@ output "private_network_interface" {
 
 output "ovh_servers" {
   value = "${openstack_compute_instance_v2.host}"
+}
+
+output "region" {
+  value = var.region
 }
 
 output "nodes" {

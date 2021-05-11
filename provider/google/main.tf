@@ -48,6 +48,8 @@ variable "vpc_cidr" {
   default = "10.115.0.0/24"
 }
 
+resource "time_static" "id" {}
+
 provider "google" {
   region      = var.region
   zone        = var.region_zone
@@ -98,7 +100,7 @@ resource "google_compute_instance" "host" {
   }
 
   network_interface {
-    network    = "kube-hosts"
+    network    = "kube-hosts-${time_static.id.unix}"
     subnetwork = google_compute_subnetwork.kube-vpc.self_link
     network_ip = cidrhost(google_compute_subnetwork.kube-vpc.ip_cidr_range, count.index + 101)
 
@@ -174,6 +176,10 @@ output "private_network_interface" {
 
 output "google_compute_instances" {
   value = "${google_compute_instance.host}"
+}
+
+output "region" {
+  value = var.region
 }
 
 output "nodes" {

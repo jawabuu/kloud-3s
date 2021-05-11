@@ -10,12 +10,12 @@ resource "openstack_networking_port_v2" "public" {
 }
 
 resource "openstack_networking_network_v2" "kube-vpc" {
-  name           = "kube-vpc"
+  name           = "kube-vpc-${time_static.id.unix}"
   admin_state_up = "true"
 }
 
 resource "openstack_networking_subnet_v2" "kube-hosts" {
-  name       = "kube-hosts"
+  name       = "kube-hosts-${time_static.id.unix}"
   network_id = openstack_networking_network_v2.kube-vpc.id
   cidr       = var.vpc_cidr
   ip_version = 4

@@ -54,6 +54,8 @@ variable "vpc_cidr" {
   default = "10.115.0.0/24"
 }
 
+resource "time_static" "id" {}
+
 provider "alicloud" {
   region     = var.region
   access_key = var.alicloud_access_key
@@ -76,7 +78,7 @@ resource "alicloud_security_group_rule" "allow_all_ingress" {
 }
 
 resource "alicloud_key_pair" "ssh-key" {
-  key_name   = "ssh-key"
+  key_name   = "ssh-key-${time_static.id.unix}"
   public_key = file(var.ssh_pubkey_path)
 }
 
@@ -115,7 +117,7 @@ resource "alicloud_instance" "host" {
   host_name     = format(var.hostname_format, count.index + 1)
   vswitch_id    = alicloud_vswitch.kube-vpc.id
   private_ip    = cidrhost(alicloud_vswitch.kube-vpc.cidr_block, count.index + 101)
-  key_name      = "ssh-key"
+  key_name      = "ssh-key-${time_static.id.unix}"
 
   security_groups            = [alicloud_security_group.allow_all.id]
   internet_max_bandwidth_out = 100
@@ -177,6 +179,10 @@ output "private_network_interface" {
 
 output "alicloud_instances" {
   value = "${alicloud_instance.host}"
+}
+
+output "region" {
+  value = var.region
 }
 
 output "nodes" {

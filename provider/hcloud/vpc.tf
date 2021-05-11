@@ -1,6 +1,6 @@
 resource "hcloud_network" "kube-vpc" {
-  name     = "kube-vpc"
-  ip_range = "10.115.0.0/20"
+  name     = "kube-vpc-${time_static.id.unix}"
+  ip_range = var.vpc_cidr
 }
 
 resource hcloud_network_subnet kube-hosts {

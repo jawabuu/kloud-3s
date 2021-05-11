@@ -59,6 +59,8 @@ variable "vpc_cidr" {
   default = "10.115.0.0/24"
 }
 
+resource "time_static" "id" {}
+
 provider "huaweicloud" {
   region      = var.region
   access_key  = var.huaweicloud_access_key
@@ -78,7 +80,7 @@ resource "huaweicloud_networking_secgroup_rule" "allow_all_ingress" {
 }
 
 resource "huaweicloud_compute_keypair" "ssh-key" {
-  name       = "ssh-key"
+  name       = "ssh-key-${time_static.id.unix}"
   public_key = file(var.ssh_pubkey_path)
 }
 
@@ -133,7 +135,7 @@ resource "huaweicloud_compute_instance" "host" {
   flavor_id         = data.huaweicloud_compute_flavors.instance.ids[0]
   name              = format(var.hostname_format, count.index + 1)
   availability_zone = var.region_zone
-  key_pair          = "ssh-key"
+  key_pair          = "ssh-key-${time_static.id.unix}"
 
   security_groups = [huaweicloud_networking_secgroup.allow_all.name]
 
@@ -199,6 +201,10 @@ output "private_network_interface" {
 
 output "huaweicloud_compute_instances" {
   value = "${huaweicloud_compute_instance.host}"
+}
+
+output "region" {
+  value = var.region
 }
 
 output "nodes" {

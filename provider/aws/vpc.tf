@@ -2,7 +2,7 @@ resource "aws_vpc" "kube-hosts" {
   cidr_block = var.vpc_cidr
 
   tags = {
-    Name = "kube-hosts"
+    Name = "kube-hosts-${time_static.id.unix}"
   }
 }
 
@@ -15,7 +15,7 @@ resource "aws_subnet" "kube-vpc" {
   depends_on              = [aws_internet_gateway.gw]
 
   tags = {
-    Name = "kube-vpc"
+    Name = "kube-vpc-${time_static.id.unix}"
   }
 }
 

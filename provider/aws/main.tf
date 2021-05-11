@@ -54,6 +54,8 @@ variable "vpc_cidr" {
   default = "10.115.0.0/24"
 }
 
+resource "time_static" "id" {}
+
 provider "aws" {
   region     = var.region
   access_key = var.aws_access_key
@@ -93,7 +95,7 @@ resource "aws_network_interface" "default" {
 
 
 resource "aws_key_pair" "ssh-key" {
-  key_name   = "ssh-key"
+  key_name   = "ssh-key-${time_static.id.unix}"
   public_key = file(var.ssh_pubkey_path)
 }
 
@@ -135,7 +137,7 @@ resource "aws_instance" "host" {
   count         = var.hosts
   ami           = data.aws_ami.ubuntu.id
   instance_type = var.size
-  key_name      = "ssh-key"
+  key_name      = "ssh-key-${time_static.id.unix}"
 
   tags = {
     name = format(var.hostname_format, count.index + 1)
@@ -218,6 +220,10 @@ output "private_network_interface" {
 
 output "aws_instances" {
   value = "${aws_instance.host}"
+}
+
+output "region" {
+  value = var.region
 }
 
 output "nodes" {

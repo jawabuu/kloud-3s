@@ -60,6 +60,8 @@ variable "vpc_cidr" {
   default = "10.115.0.0/24"
 }
 
+resource "time_static" "id" {}
+
 provider "azurerm" {
   version = "=2.4.0"
 
@@ -227,6 +229,10 @@ output "private_network_interface" {
 
 output "azurerm_linux_virtual_machines" {
   value = "${azurerm_linux_virtual_machine.host}"
+}
+
+output "region" {
+  value = var.region
 }
 
 output "nodes" {
