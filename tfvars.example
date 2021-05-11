@@ -7,3 +7,50 @@ k3s_version = "v1.17.5+k3s1"
 node_count = 2
 digitalocean_token = "<required>"
 cni = "cilium"
+
+install_app = {
+  kubernetes_dashboard = true,
+  longhorn             = true,
+  ip-floater           = true,
+  vault                = true,
+  trow                 = true,
+  superset             = false,
+  sentry               = false,
+  kube_prometheus      = false,
+  elastic_cloud        = false
+}
+
+apt_packages = ["open-iscsi"]
+
+registry_user     = "user"
+registry_password = "pass"
+loadbalancer      = "metallb"
+
+# OIDC config
+oidc_config = [
+  {
+    name  = "authenticate.idp.provider"
+    value = "gitlab"
+  },
+  {
+    name  = "authenticate.idp.clientID"
+    value = "..."
+  },
+  {
+    name  = "authenticate.idp.clientSecret"
+    value = "..."
+  },
+  {
+    name  = "authenticate.idp.serviceAccount"
+    value = ".."
+  }
+]
+
+# Mail config
+mail_config = {
+  smtp_username = "user@gmail.com",
+  smtp_password = "pass",
+  smtp_host     = "smtp.gmail.com",
+  smtp_port     = 587,
+  slack_token   = "xoxb-....",
+}

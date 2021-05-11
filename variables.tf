@@ -12,6 +12,12 @@ variable "domain" {
   default = "kloud3s.io"
 }
 
+variable "trform_domain" {
+  type        = bool
+  default     = false
+  description = "Manage this domain and it's wildcard domain using terraform."
+}
+
 variable "hostname_format" {
   default = "kube%d"
 }
@@ -55,9 +61,95 @@ variable "service_cidr" {
   description = "Cluster service cidr"
 }
 
+variable "vpc_cidr" {
+  default     = "10.115.0.0/24"
+  description = "CIDR for nodes provider vpc if available"
+}
+
+variable "vpn_iprange" {
+  default     = "10.0.1.0/24"
+  description = "CIDR for nodes wireguard vpn"
+}
+
 variable "ha_cluster" {
   default     = false
   description = "Create highly available cluster. Currently experimental and requires node_count >= 3"
+}
+
+variable "create_certs" {
+  type        = bool
+  default     = false
+  description = "Option to create letsencrypt certs. Only enable if certain that your deployment is reachable."
+}
+
+variable "longhorn_replicas" {
+  default     = 3
+  description = "Number of longhorn replicas"
+
+}
+
+variable "install_app" {
+  description = "Additional apps to Install"
+  type        = map
+  default = {
+    kubernetes_dashboard = true,
+    longhorn             = true,
+    vault                = false,
+    trow                 = false,
+    superset             = false,
+    sentry               = false,
+    kube_prometheus      = false,
+    elastic_cloud        = false,
+  }
+}
+
+variable "additional_rules" {
+  type        = list(string)
+  default     = []
+  description = "add custom firewall rules during provisioning e.g. allow 1194/udp, allow ftp"
+}
+
+variable "auth_user" {
+  default     = "kloud-3s"
+  description = "Traefik basic auth username"
+}
+
+variable "auth_password" {
+  default     = ""
+  description = "Traefik basic auth password"
+}
+
+variable "loadbalancer" {
+  default     = "metallb"
+  description = "How LoadBalancer IPs are assigned. Options are metallb(default), traefik, ccm, kube-vip & akrobateo"
+}
+
+variable "registry_user" {
+  default     = "kloud-3s"
+  description = "Trow Registry username"
+}
+
+variable "registry_password" {
+  default     = ""
+  description = "Trow Registry password"
+}
+
+variable "apt_packages" {
+  type        = list
+  default     = []
+  description = "Additional packages to install"
+}
+
+variable "oidc_config" {
+  type        = list(map(string))
+  description = "OIDC Configuration for protecting private resources. Used by Pomerium IAP & Vault."
+  default     = []
+}
+
+variable "mail_config" {
+  type        = map(string)
+  description = "SMTP Configuration for email services."
+  default     = {}
 }
 
 /* linode */
