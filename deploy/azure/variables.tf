@@ -55,6 +55,16 @@ variable "service_cidr" {
   description = "Cluster service cidr"
 }
 
+variable "vpc_cidr" {
+  default     = "10.115.0.0/24"
+  description = "CIDR for nodes provider vpc if available"
+}
+
+variable "vpn_iprange" {
+  default     = "10.0.1.0/24"
+  description = "CIDR for nodes wireguard vpn"
+}
+
 variable "ha_cluster" {
   default     = false
   description = "Create highly available cluster. Currently experimental and requires node_count >= 3"

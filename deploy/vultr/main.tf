@@ -15,6 +15,7 @@ module "provider" {
   os              = var.vultr_os
   hosts           = var.node_count
   hostname_format = var.hostname_format
+  vpc_cidr        = var.vpc_cidr
   ssh_key_path    = module.ssh.private_key #var.ssh_key_path Override to use predefined key
   ssh_pubkey_path = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
 }
@@ -48,6 +49,7 @@ module "wireguard" {
   private_ips  = module.provider.private_ips
   hostnames    = module.provider.hostnames
   overlay_cidr = module.k3s.overlay_cidr
+  vpn_iprange  = var.vpn_iprange
   ssh_key_path = module.ssh.private_key
 }
 
@@ -83,7 +85,7 @@ module "k3s" {
   private_ips       = module.provider.private_ips
   private_interface = module.provider.private_network_interface
   domain            = var.domain
-  ha_cluster        = var.ha_cluster
+  region            = module.provider.region
   ### Optional Settings Below. You may safely omit them. ###
   # Uncomment below if you have specified the DNS module
   dns_auth          = module.dns.dns_auth
@@ -93,6 +95,11 @@ module "k3s" {
   install_app       = var.install_app
   auth_user         = var.auth_user
   auth_password     = var.auth_password
+  oidc_config       = var.oidc_config
+  mail_config       = var.mail_config
+  loadbalancer      = var.loadbalancer
+  registry_user     = var.registry_user
+  registry_password = var.registry_password
 }
 
 output "private_key" {
