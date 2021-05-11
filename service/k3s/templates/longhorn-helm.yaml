@@ -1,0 +1,48 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: longhorn-system
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: longhorn
+  namespace: kube-system
+spec:
+  chart: longhorn
+  repo: https://charts.longhorn.io
+  targetNamespace: longhorn-system
+  bootstrap: true
+  version: 1.1.1
+  valuesContent: |-
+    defaultSettings:
+      defaultReplicaCount: ${longhorn_replicas}
+      storageMinimalAvailablePercentage: 19
+      guaranteedEngineManagerCPU: 10
+      guaranteedReplicaManagerCPU: 10
+      createDefaultDiskLabeledNodes: true
+      defaultDataLocality: best-effort
+      replicaSoftAntiAffinity: true
+      replicaZoneSoftAntiAffinity: true
+      volumeAttachmentRecoveryPolicy: immediate
+      allowVolumeCreationWithDegradedAvailability: false
+    persistence:
+      defaultClassReplicaCount: ${longhorn_replicas}
+      defaultClass: true
+    ingress:
+      ## Set to true to enable ingress record generation
+      enabled: true
+      host: longhorn.${domain}
+      ## Set this to true in order to enable TLS on the ingress record
+      ## A side effect of this will be that the backend service will be connected at port 443
+      tls: true
+      ## If TLS is set to true, you must declare what secret will store the key/certificate for TLS
+      tlsSecret: longhorn-tls
+      annotations:
+        kubernetes.io/ingress.class: traefik-cert-manager
+        kubernetes.io/tls-acme: "true"
+        traefik.ingress.kubernetes.io/router.tls: "true"
+        traefik.ingress.kubernetes.io/router.entrypoints: web, websecure
+        traefik.ingress.kubernetes.io/router.middlewares: kube-system-basic-auth@kubernetescrd
+        ingress.kubernetes.io/ssl-proxy-headers: "X-Forwarded-Proto: https"

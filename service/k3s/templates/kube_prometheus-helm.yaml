@@ -1,0 +1,37 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: kube-prometheus-stack
+  namespace: kube-system
+spec:
+  chart: kube-prometheus-stack
+  repo: https://prometheus-community.github.io/helm-charts
+  valuesContent: |-
+    alertmanagerSpec:
+      resources:
+        requests:
+          memory: 100Mi
+      storage:
+        volumeClaimTemplate:
+          spec:
+            resources:
+              requests:
+                storage: 3Gi
+    serviceMonitor:
+      resources:
+        limits:
+          cpu: 100m
+          memory: 224Mi
+        requests:
+          cpu: 50m
+          memory: 100Mi
+    prometheusSpec:
+      resources:
+        requests:
+          memory: 100Mi
+      storage:
+        volumeClaimTemplate:
+          spec:
+            resources:
+              requests:
+                storage: 3Gi

@@ -1,0 +1,31 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: external-dns
+  namespace: kube-system
+spec:
+  chart: external-dns
+  repo: https://charts.bitnami.com/bitnami
+  valuesContent: |-
+    txtOwnerId: ${dns_auth.domain}
+    domainFilters:
+      - ${dns_auth.domain}
+    policy: sync
+    interval: 2m
+    logLevel: debug
+    txtPrefix: exdns.
+    replicas: 1
+    extraEnv:
+      - name: EXTERNAL_DNS_TXT_WILDCARD_REPLACEMENT
+        value: wild
+%{ if dns_auth.provider == "digitalocean" ~}
+    provider: digitalocean
+    digitalocean:
+      apiToken: ${dns_auth.token}
+%{ endif ~}
+%{ if dns_auth.provider == "cloudflare" ~}
+    provider: cloudflare
+    cloudflare:
+      apiToken: ${dns_auth.api_token}
+      email: ${dns_auth.email}
+%{ endif ~}

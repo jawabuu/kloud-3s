@@ -1,0 +1,265 @@
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  chart: traefik
+  repo: https://helm.traefik.io/traefik
+  targetNamespace: kube-system
+  valuesContent: |-
+    version: 9.19.0
+    image:
+      name: traefik
+      tag: 2.4.8
+    persistence:
+      enabled: false
+    deployment:
+      kind: DaemonSet
+    service:
+      annotations:
+        external-dns.alpha.kubernetes.io/hostname: ${domain}
+        external-dns.alpha.kubernetes.io/ttl: "60"
+        metallb.universe.tf/allow-shared-ip: traefik %{~ if master_ips != false }
+        external-dns.alpha.kubernetes.io/target: "${master_ips}" %{ endif }
+      spec:
+        externalTrafficPolicy: Local
+    ingressRoute:
+      dashboard:
+        enabled: true
+        annotations:
+          kubernetes.io/ingress.class: traefik-cert-manager
+          traefik.ingress.kubernetes.io/router.entrypoints: web, websecure
+          kubernetes.io/tls-acme: "true"
+          traefik.ingress.kubernetes.io/router.tls: "true"
+    affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: Exists
+    priorityClassName: "system-cluster-critical"
+    resources:
+      requests:
+        cpu: "70m"
+        memory: "100Mi"
+    additionalArguments:
+      - --api.insecure
+      - --api.dashboard
+      - --ping=true
+      - --accesslog
+      - --log.level=INFO
+      - --entrypoints.udp.address=:9090/udp
+      - --providers.kubernetescrd
+      - --providers.kubernetesingress
+      - --providers.kubernetesIngress.ingressClass=traefik-cert-manager
+      - --metrics.prometheus
+      - --entrypoints.websecure.http.tls=true
+      - --serversTransport.insecureSkipVerify=true
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entrypoints.web.http.redirections.entryPoint.to=:443
+      - --entrypoints.web.http.redirections.entrypoint.priority=100
+    ports:
+      tcp:
+        port: 8800
+        expose: true
+        exposedPort: 8800
+        protocol: TCP
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: external-dns-domains
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: "*.${domain}"
+    external-dns.alpha.kubernetes.io/ttl: "300"
+spec:
+  type: ExternalName
+  externalName: ${domain}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: traefik
+  namespace: kube-system
+stringData:
+  users: ${auth_user}:${bcrypt(auth_password)}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-dashboard
+  namespace: kube-system
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9000
+    name: traefik
+    targetPort: traefik
+  selector:
+    app.kubernetes.io/name: traefik
+    app.kubernetes.io/instance: traefik
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: traefik-dashboard
+  namespace: kube-system
+  annotations:
+    kubernetes.io/ingress.class: traefik-cert-manager
+    kubernetes.io/tls-acme: "true"
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.entrypoints: web, websecure
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-basic-auth@kubernetescrd
+    ingress.kubernetes.io/ssl-proxy-headers: "X-Forwarded-Proto: https"
+spec:
+  tls:
+    - hosts:
+      - dash.${domain}
+      secretName: kube-system
+  rules:
+    - host: dash.${domain}
+      http:
+        paths:
+          - backend:
+              serviceName: traefik-dashboard
+              servicePort: 9000
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: whoami
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: whoami
+  namespace: whoami
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: whoami
+  template:
+    metadata:
+      labels:
+        app: whoami
+    spec:
+      containers:
+        - name: whoami
+          image: containous/whoami
+          imagePullPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whoami
+  namespace: whoami
+  labels:
+    app: whoami
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      name: whoami
+  selector:
+    app: whoami
+---
+# Serve global default cert i.e. self-signed-cert
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: test
+  namespace: whoami
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`test.${domain}`)
+      kind: Rule
+      services:
+        - name: whoami
+          port: 80
+---
+# Serve letsencrypt test certificate i.e. test-http01-cert
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: whoami
+  namespace: whoami
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`whoami.${domain}`)
+      kind: Rule
+      services:
+        - name: whoami
+          port: 80
+  tls:
+    secretName: test-http01-cert
+---
+# Use PassThrough TLS
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: kube-api
+  namespace: default
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: HostSNI(`kube-api.${domain}`)
+      kind: Rule
+      services:
+        - name: kubernetes
+          port: 443
+  tls:
+    passthrough: true
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: TLSStore
+metadata:
+  name: default
+  namespace: kube-system
+spec:
+  defaultCertificate:
+    secretName: self-signed-cert
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: basic-auth
+  namespace: kube-system
+spec:
+  basicAuth:
+    secret: traefik
+    headerField: X-WebAuth-User
+    removeHeader: true
+%{ if create_certs == false }
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: TLSStore
+metadata:
+  name: default
+  namespace: kube-system
+spec:
+  defaultCertificate:
+    secretName: test-dns01-cert
+%{ endif }
+%{ if create_certs == true }
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: TLSStore
+metadata:
+  name: default
+  namespace: kube-system
+spec:
+  defaultCertificate:
+    secretName: live-dns01-cert
+%{ endif }

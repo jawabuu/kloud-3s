@@ -1,0 +1,194 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sentry
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: sentry
+  namespace: kube-system
+spec:
+  chart: sentry
+  repo: https://sentry-kubernetes.github.io/charts
+  targetNamespace: sentry
+  version: 6.2.1
+  timeout: 1800s
+  valuesContent: |-
+    ingress:
+      enabled: true
+      hosts:
+        - sentry.${domain}
+      tls: 
+        - secretName: sentry-tls
+          hosts:
+            - sentry.${domain}
+      annotations:
+        kubernetes.io/ingress.class: traefik-cert-manager
+        kubernetes.io/tls-acme: "true"
+        traefik.ingress.kubernetes.io/router.entrypoints: web, websecure
+        ingress.kubernetes.io/ssl-proxy-headers: "X-Forwarded-Proto: https"
+    user:
+      email: admin@${domain}
+      password: temp_sentry4u
+    images:
+      sentry:
+        repository: ttl.sh/sentry-oidc
+        tag: 20.8.0
+    relay:
+      replicas: 1
+      mode: managed
+    postgresql:
+      postgresqlPassword: sentry
+      persistence:
+        enabled: true
+        size: 2Gi
+    sentry:
+      web:
+        strategyType: Recreate
+      worker:
+        replicas: 1
+    hooks:
+      enabled: true
+      dbInit:
+        env: []
+        resources:
+          limits:
+            memory: 2048Mi
+          requests:
+            cpu: 300m
+            memory: 768Mi
+      snubaInit:
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 768Mi
+    mail:
+      backend: smtp
+      from: "sentry@${domain}"
+      host: ${try(mail_config.smtp_host, "smtp.gmail.com")}
+      port: ${try(mail_config.smtp_port, 465)}
+      useTls: ${try(mail_config.smtp_tls, true)}
+      username: ${try(mail_config.smtp_username, "")}
+      password: ${try(mail_config.smtp_password, "")}
+    nginx:
+      enabled: false
+    filestore:
+      # Set to one of filesystem, gcs or s3 as supported by Sentry.
+      backend: filesystem
+      filesystem:
+        path: /var/lib/sentry/files
+        persistence:
+          enabled: false
+          accessMode: ReadWriteOnce
+          size: 5Gi
+    system:
+      url: "https://sentry.${domain}"      
+      adminEmail: "admin@${domain}"
+    config:
+      sentryConfPy: |-
+        import os
+        OIDC_CLIENT_ID = "${client_id}"
+        OIDC_CLIENT_SECRET = "${client_secret}"
+        OIDC_SCOPE = "openid email profile read_user"
+        OIDC_DOMAIN = "https://gitlab.com"
+        OIDC_ISSUER = "Gitlab"
+        OIDC_DOMAIN_ALLOWLIST = ["${domain}"]
+    clickhouse:
+      enabled: true
+      tabix: 
+        enabled: true
+      clickhouse:
+        imageVersion: "19.17"
+        replicas: 1
+        configmap:
+          remote_servers:
+            internal_replication: false
+        persistentVolumeClaim:
+          enabled: true
+          dataPersistentVolume:
+            enabled: true
+            accessModes:
+            - "ReadWriteOnce"
+            storage: "2Gi"
+    rabbitmq:
+      ## If disabled, Redis will be used instead as the broker.
+      enabled: false
+    redis:
+      enabled: true
+      usePassword: false
+      master:
+        persistence:
+          size: 2Gi
+      slave:
+        persistence:
+          enabled: false
+          size: 2Gi
+    kafka:
+      enabled: true
+      replicaCount: 1
+      persistence:
+        size: 4Gi
+      zookeeper:
+        persistence:
+          size: 4Gi
+---
+apiVersion: "batch/v1"
+kind: "Job"
+metadata:
+  name: "build-sentry"
+  namespace: "sentry"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      initContainers:
+      - name: dockerfile
+        image: alpine:3.7
+        command: ["/bin/sh","-c"]
+        args: ["mkdir -p /workspace/sentry && cp /test/Dockerfile /workspace/sentry/Dockerfile-test && cat /test/Dockerfile"]
+        volumeMounts:
+        - name: build-context
+          mountPath: /workspace
+        - name: sentry-dockerfile
+          mountPath: /test
+      containers:
+      - name: kaniko
+        image: gcr.io/kaniko-project/executor:latest
+        args: ["--dockerfile=Dockerfile",
+               "--context=/test/",
+               "--use-new-run",
+               "--verbosity=debug",
+               "--destination=ttl.sh/sentry-oidc:20.8.0"]
+        volumeMounts:
+        - name: sentry-dockerfile
+          mountPath: /test/Dockerfile
+          subPath: Dockerfile
+        - name: build-context
+          mountPath: /workspace
+      restartPolicy: Never
+      volumes:
+      - name: build-context
+        emptyDir: {}
+      - name: sentry-dockerfile
+        configMap:
+          name: sentry-dockerfile
+          items:
+          - key: dockerfile
+            path: Dockerfile
+---
+kind: ConfigMap
+metadata:
+  name: sentry-dockerfile
+  namespace: sentry
+apiVersion: v1
+data:
+  dockerfile: |
+    # FROM hypersphere/sentry-oidc-gcs:20.8.0
+    FROM getsentry/sentry:20.8.0
+    RUN python -m pip install https://github.com/jawabuu/sentry-auth-oidc/archive/a3c4586446d2f80e4a7d8e7474845c720b85cb78.tar.gz
+---

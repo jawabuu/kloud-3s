@@ -1,0 +1,176 @@
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: pomerium
+  namespace: kube-system
+spec:
+  chart: pomerium
+  repo: https://helm.pomerium.io
+  targetNamespace: kube-system
+  bootstrap: true
+  set:
+%{ for oidc in oidc_config ~}
+    ${oidc.name}: ${oidc.value}
+%{ endfor ~}
+  valuesContent: |-
+    image:
+      tag: git-129df47f #"v0.11.1"
+    operator:
+      enabled: true
+    ingress:
+      hosts:
+        - k8sdash.${domain}
+        - who.${domain}
+        - k8s-api.${domain}
+      annotations:
+        kubernetes.io/ingress.class: traefik-cert-manager
+        kubernetes.io/tls-acme: "true"
+        traefik.ingress.kubernetes.io/router.tls: "true"
+        traefik.ingress.kubernetes.io/router.entrypoints: web, websecure
+        ingress.kubernetes.io/ssl-proxy-headers: "X-Forwarded-Proto: https"
+      secretName: pomerium-tls
+    forwardAuth:
+      enabled: true
+      internal: true
+    authenticate:
+      idp:
+        scopes:
+          - openid
+          - profile
+          - email
+          - read_user
+    config:
+      rootDomain: ${domain}
+      sharedSecret: ${shared_secret}
+      cookieSecret: ${cookie_secret}
+      generateTLS: true
+      forceGenerateTLS: true
+      insecure: true
+      extraOpts:
+        pomerium_debug: true
+        jwt_claims_headers:
+          - email
+          - groups
+          - group
+          - user
+          - nickname
+          - name
+          - picture
+          - email_verified
+          - phone
+      policy:
+        # this route is directly proxied by pomerium & injects the authorization header
+        # Proxy Mode Policy, Ingress Route need not be defined
+        - from: https://grafana.${domain}
+          to: http://grafana.monitoring:3000
+          allowed_domains:
+            - ${domain}
+          # preserve_host_header: true
+          pass_identity_headers: true
+          # set_request_headers:
+            # X-WEBAUTH-USER: "admin"
+          tls_skip_verify: true # dashboard uses self-signed certificates in its default configuration
+        - from: https://superset.${domain}
+          to: http://superset.default:9000
+          allowed_domains:
+            - ${domain}
+          set_request_headers:
+            X-Forwarded-Proto: "https"
+          preserve_host_header: true
+          pass_identity_headers: true
+          tls_skip_verify: true
+        - from: https://k8sdash.${domain}
+          to: https://kubernetes-dashboard.kubernetes-dashboard:443
+          allowed_users:
+            - admin@${domain}
+          allowed_domains:
+            - ${domain}
+          preserve_host_header: true
+          pass_identity_headers: true
+          tls_skip_verify: true
+        - from: https://tabix.${domain}
+          to: http://sentry-clickhouse-tabix.default:80
+          allowed_domains:
+            - ${domain}
+          preserve_host_header: true
+          pass_identity_headers: true
+          tls_skip_verify: true
+        - from: https://who.${domain}
+          to: http://whoami.whoami:80
+          allowed_domains:
+            - ${domain}
+          allowed_groups:
+            - staff
+            - superuser
+          preserve_host_header: true
+          pass_identity_headers: true
+          tls_skip_verify: true
+        # Auth Forward Mode Policy
+        - from: https://whoami.${domain}
+          to: http://whoami.whoami
+          allowed_users:
+            - admin@${domain}
+          allowed_domains:
+            - ${domain}
+          preserve_host_header: true
+          pass_identity_headers: true
+          tls_skip_verify: true
+        - from: https://k8s-api.${domain}
+          to: https://kubernetes.default.svc
+          tls_custom_ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          allow_spdy: true
+          allowed_groups:
+            - admin
+          kubernetes_service_account_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+          set_request_headers:
+            Impersonate-Group: "admin"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cluster-admin-crb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: admin
+  # - apiGroup: rbac.authorization.k8s.io
+  #   kind: Group
+  #   name: system:authenticated
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pomerium-impersonation
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - users
+      - groups
+      - serviceaccounts
+    verbs:
+      - impersonate
+  - apiGroups:
+      - "authorization.k8s.io"
+    resources:
+      - selfsubjectaccessreviews
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pomerium-impersonation
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pomerium-impersonation
+subjects:
+  - kind: ServiceAccount
+    name: pomerium-authorize
+    namespace: kube-system

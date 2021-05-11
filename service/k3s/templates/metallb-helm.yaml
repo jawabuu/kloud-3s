@@ -1,0 +1,176 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: metallb-system
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: metallb
+  namespace: kube-system
+spec:
+  chart: metallb
+  repo: https://charts.bitnami.com/bitnami
+  targetNamespace: metallb-system
+  valuesContent: |-
+    configInline:
+      address-pools:
+      - name: default
+        protocol: layer2
+        addresses:
+        - ${master_public_ip}/32
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "net"
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      type: net
+  template:
+    metadata:
+      labels:
+        type: "net"
+    spec:
+      containers:
+      - image: giantswarm/tiny-tools
+        imagePullPolicy: Always
+        name: net
+        args: ["sh", "-c", "sleep 100000"]
+        resources:
+          requests:
+            cpu: "10m"
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ip-config
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ip-config
+  namespace: ip-config
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ip-config
+  namespace: ip-config
+rules:
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    - services
+    - replicasets
+    - nodes
+    - endpoints
+    verbs:
+    - list
+    - get
+    - watch
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps
+    verbs:
+    - '*'
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    verbs:
+    - delete
+  - apiGroups:
+    - coordination.k8s.io
+    resources:
+    - leases
+    verbs:
+    - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ip-config
+subjects:
+- kind: ServiceAccount
+  name: ip-config
+  namespace: ip-config
+roleRef:
+  kind: ClusterRole
+  name: ip-config
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-ip-updater
+  namespace: ip-config
+  labels:
+    app: external-ip-updater
+spec:
+  selector:
+    matchLabels:
+      app: external-ip-updater
+  template:
+    metadata:
+      labels:
+        app: external-ip-updater
+    spec:
+      serviceAccountName: ip-config
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      containers:
+      - name: external-ip-updater
+        image: linkyard/kubectl #bskim45/helm-kubectl-jq
+        env:
+        - name: CURRENT_NODE
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        command: ['sh', '-c' ]
+        args:
+        - | #!/bin/sh
+            # If a node goes down, kubernetes service still loadbalances to it's api server hence the generous use of `until kubectl..`
+            # https://github.com/kubernetes/kubernetes/issues/18174
+            export CONFIGMAP="-n metallb-system configmap/metallb-config"
+            export SERVICE="-n kube-system service/traefik"
+
+            while true
+            do
+                until LEADER_NODE_DATA=`kubectl -n kube-system get leases.v1.coordination.k8s.io kube-controller-manager -o "jsonpath={.spec.holderIdentity}"` ; do sleep 1; done
+                LEADER_NODE=`echo $LEADER_NODE_DATA | sed "s/_[^_]*$//"`
+                until LEADER_IP=`kubectl get nodes $LEADER_NODE -o jsonpath={.status.addresses[?\(@.type==\"ExternalIP\"\)].address}` ; do sleep 1; done
+                until SERVICE_IP=`kubectl get $SERVICE -o go-template --template='{{ (index .status.loadBalancer.ingress 0).ip }}'` ; do sleep 1; done
+                echo "TIME        : `date +'%Y-%m-%d %H:%M:%S'`"
+                echo "LEADER_DATA : $${LEADER_NODE_DATA}"
+                echo "LEADER_NODE : $${LEADER_NODE}"
+                echo "LEADER_IP   : $${LEADER_IP}"
+                echo "SERVICE_IP  : $${SERVICE_IP}"
+                echo "CURRENT_NODE: $${CURRENT_NODE}"
+                
+                if test "$LEADER_IP" = "$SERVICE_IP" ; then
+                  echo "Skipping IP Configuration : No IP Changes Detected."
+                else
+                  if [ $LEADER_IP ] && [ $SERVICE_IP ] && [ $UPDATE_IP ] ; then
+                    until kubectl get $CONFIGMAP -o yaml | sed -re "s/([0-9]{1,3}\.){3}[0-9]{1,3}/$LEADER_IP/" | kubectl apply -f -; do sleep 1; done
+                    until kubectl -n=metallb-system delete po -l=app.kubernetes.io/component=controller; do sleep 1; done
+                  else
+                    echo "Skipping IP Configuration : Required IP's Missing."
+                  fi
+                fi
+                echo
+                sleep 10
+            done

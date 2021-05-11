@@ -1,0 +1,56 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kubernetes-dashboard
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: kubernetes-dashboard
+  namespace: kube-system
+spec:
+  chart: kubernetes-dashboard
+  repo: https://kubernetes.github.io/dashboard/
+  targetNamespace: kubernetes-dashboard
+  valuesContent: |-
+    image:
+      repository: kubernetesui/dashboard
+      tag: v2.2.0
+      pullPolicy: IfNotPresent
+    replicaCount: 1
+    extraArgs:
+      - --enable-skip-login
+      - --enable-insecure-login
+      - --namespace=kubernetes-dashboard
+      - --disable-settings-authorizer
+      #- --insecure-port=9090
+      #- --insecure-bind-address=0.0.0.0
+    protocolHttp: false
+    resources:
+      requests:
+        cpu: 75m
+        memory: 150Mi
+      limits:
+        cpu: 150m
+        memory: 150Mi
+    service:
+      clusterServiceLabel:
+        enabled: false
+    ingress:
+      enabled: true
+      hosts:
+        - k8dash.${domain}
+      tls: 
+        - secretName: kubernetes-dashboard-tls
+          hosts:
+            - k8dash.${domain}
+      annotations:
+        kubernetes.io/ingress.class: traefik-cert-manager
+        kubernetes.io/tls-acme: "true"
+        traefik.ingress.kubernetes.io/router.tls: "true"
+        traefik.ingress.kubernetes.io/router.entrypoints: web, websecure
+        traefik.ingress.kubernetes.io/router.middlewares: kube-system-basic-auth@kubernetescrd
+        ingress.kubernetes.io/ssl-proxy-headers: "X-Forwarded-Proto: https"
+    rbac:
+      clusterReadOnlyRole: true

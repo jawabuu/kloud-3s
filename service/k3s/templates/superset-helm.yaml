@@ -1,0 +1,693 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: superset
+---
+apiVersion: "batch/v1"
+kind: "Job"
+metadata:
+  name: "build-superset"
+  namespace: "superset"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      initContainers:
+      - name: dockerfile
+        image: alpine:3.7
+        command: ["/bin/sh","-c"]
+        args: ["mkdir -p /workspace/superset && cp /test/Dockerfile /workspace/superset/Dockerfile-test && cat /test/Dockerfile"]
+        volumeMounts:
+        - name: build-context
+          mountPath: /workspace
+        - name: superset-dockerfile
+          mountPath: /test
+      containers:
+      - name: kaniko
+        image: gcr.io/kaniko-project/executor:latest
+        args: ["--dockerfile=Dockerfile",
+               "--context=/test/",
+               "--use-new-run",
+               "--verbosity=debug",
+               "--destination=ttl.sh/superset:1.1.0c"]
+        volumeMounts:
+        - name: superset-dockerfile
+          mountPath: /test/Dockerfile
+          subPath: Dockerfile
+        - name: build-context
+          mountPath: /workspace
+      restartPolicy: Never
+      volumes:
+      - name: build-context
+        emptyDir: {}
+      - name: superset-dockerfile
+        configMap:
+          name: superset-dockerfile
+          items:
+          - key: dockerfile
+            path: Dockerfile
+---
+kind: ConfigMap
+metadata:
+  name: superset-dockerfile
+  namespace: superset
+apiVersion: v1
+data:
+  dockerfile: |
+    FROM apache/superset:1.1.0
+    USER root
+    ### Begin Dockerfile Changes ###
+    # Install chrome webdriver
+    # See https://github.com/apache/superset/blob/4fa3b6c7185629b87c27fc2c0e5435d458f7b73d/docs/src/pages/docs/installation/email_reports.mdx
+    RUN apt update -y && \
+    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+    apt install -y --no-install-recommends libnss3 libdbus-glib-1-2 libgtk-3-0 libx11-xcb1 ./google-chrome-stable_current_amd64.deb && \
+    wget https://chromedriver.storage.googleapis.com/90.0.4430.24/chromedriver_linux64.zip && \
+    unzip chromedriver_linux64.zip && \
+    chmod +x chromedriver && \
+    mv chromedriver /usr/bin && \
+    apt autoremove -yqq --purge && \
+    apt clean && \
+    rm -f google-chrome-stable_current_amd64.deb chromedriver_linux64.zip
+
+    # Install GeckoDriver WebDriver
+    RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.28.0/geckodriver-v0.28.0-linux64.tar.gz -O /tmp/geckodriver.tar.gz && \
+        tar xvfz /tmp/geckodriver.tar.gz -C /tmp && \
+        mv /tmp/geckodriver /usr/local/bin/geckodriver && \
+        rm /tmp/geckodriver.tar.gz
+
+    # Install Firefox
+    RUN wget https://download-installer.cdn.mozilla.net/pub/firefox/releases/88.0/linux-x86_64/en-US/firefox-88.0.tar.bz2 -O /opt/firefox.tar.bz2 && \
+        tar xvf /opt/firefox.tar.bz2 -C /opt && \
+        ln -s /opt/firefox/firefox /usr/local/bin/firefox
+
+    RUN wget https://raw.githubusercontent.com/apache/superset/2b2823539f922d4ec898ef77223bd61366816547/superset/models/dashboard.py \
+    -O /usr/local/lib/python3.8/site-packages/superset/models/dashboard.py || true
+    RUN pip install Authlib==0.15.3 Flask-AppBuilder==3.2.2
+    RUN chown -R superset:superset /app
+    ### End Dockerfile Changes ###
+    USER superset
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: superset
+  namespace: kube-system
+spec:
+  chart: superset
+  repo: https://apache.github.io/superset
+  targetNamespace: superset
+  bootstrap: true
+  valuesContent: |-
+    replicaCount: 1
+
+    # User ID directive. This user must have enough permissions to run the bootstrap script
+    # Runn containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure
+    runAsUser: 1000
+
+    # Install additional packages and do any other bootstrap configuration in this script
+    # For production clusters it's recommended to build own image with this step done in CI
+    bootstrapScript: |
+      #!/bin/bash
+      id
+
+    ## The name of the secret which we will use to generate a superset_config.py file
+    ## Note: this secret must have the key superset_config.py in it and can include other files as well
+    ##
+    configFromSecret: '{{ template "superset.fullname" . }}-config'
+
+    ## The name of the secret which we will use to populate env vars in deployed pods
+    ## This can be useful for secret keys, etc.
+    ##
+    envFromSecret: '{{ template "superset.fullname" . }}-env'
+
+    ## Extra environment variables that will be passed into pods
+    ##
+    extraEnv:
+      SMTP_STARTTLS: "True"
+      LOG_LEVEL: "INFO"
+      FLASK_DEBUG: "True"
+      BROWSER_LOGFILE: /dev/null
+
+    ## Extra environment variables to pass as secrets
+    ##
+    extraSecretEnv:
+      # MAPBOX_API_KEY: ...
+      GITLAB_CLIENT_ID: ${client_id}
+      GITLAB_CLIENT_SECRET: ${client_secret}
+      SLACK_API_TOKEN: ${try(mail_config.slack_token, "")}
+      GLOBAL_ASYNC_QUERIES_JWT_SECRET: very-secret-global-queries-async-jwt-token
+      SMTP_PASSWORD: ${try(mail_config.smtp_password, "")}
+      SMTP_HOST: ${try(mail_config.smtp_host, "smtp.gmail.com")}
+      SMTP_USER: ${try(mail_config.smtp_username, "")}
+      SMTP_MAIL_FROM: insights@${domain}
+      SMTP_PORT: ${try(mail_config.smtp_port, 587)}
+
+    additionalRequirements:
+      - Authlib
+
+    extraConfigs:
+      datasources-init.yaml: |
+          databases:
+          - allow_csv_upload: false
+            allow_ctas: false
+            allow_cvas: false
+            database_name: db-prod
+            extra: "{\r\n    \"metadata_params\": {},\r\n    \"engine_params\": {},\r\n    \"\
+              metadata_cache_timeout\": {},\r\n    \"schemas_allowed_for_csv_upload\": []\r\n\
+              }"
+            sqlalchemy_uri: mysql://user:pass@vtgate.default.svc:3306/prod%40rdonly?ssl=True
+            tables: []
+
+
+    extraSecrets: {}
+
+
+    # A dictionary of overrides to append at the end of superset_config.py - the name does not matter
+    # WARNING: the order is not guaranteed
+    configOverrides:
+      enable_oauth: |
+        # This will make sure the redirect_uri is properly computed, even with SSL offloading
+        ENABLE_PROXY_FIX = True
+
+        from flask_appbuilder.security.manager import (AUTH_OAUTH, AUTH_DB)
+        AUTH_TYPE = AUTH_OAUTH
+        
+        OAUTH_PROVIDERS = [
+            {
+                "name": "gitlab",
+                "icon": "fa-gitlab",
+                "token_key": "access_token",
+                "whitelist": ['@${domain}'],
+                "remote_app": {
+                    "client_id": os.environ.get("GITLAB_CLIENT_ID"),
+                    "client_secret": os.environ.get("GITLAB_CLIENT_SECRET"),
+                    "api_base_url": "https://gitlab.com",
+                    "client_kwargs": {"scope": "email openid profile"},
+                    "request_token_url": None,
+                    "access_token_url": "https://gitlab.com/oauth/token",
+                    "authorize_url": "https://gitlab.com/oauth/authorize",
+                },
+            }
+        ]
+        # Map Authlib roles to superset roles
+        AUTH_ROLE_ADMIN = 'Admin'
+        AUTH_ROLE_PUBLIC = 'Public'
+
+        # Will allow user self registration, allowing to create Flask users from Authorized User
+        AUTH_USER_REGISTRATION = True
+
+        # The default user self registration role
+        AUTH_USER_REGISTRATION_ROLE = "Public"
+        
+        # a mapping from the values of `userinfo["role_keys"]` to a list of FAB roles
+        AUTH_ROLES_MAPPING = {
+            "admin": ["Admin"],
+            "repo": ["Gamma"],
+        }
+        
+        # AUTH_USER_REGISTRATION_ROLE_JMESPATH="ends_with(email, '@yourcompany.com') && 'Admin' || 'Gamma'"
+
+        # if we should replace ALL the user's roles each login, or only on registration
+        AUTH_ROLES_SYNC_AT_LOGIN = True
+
+        # force users to re-auth after 30min of inactivity (to keep roles in sync)
+        PERMANENT_SESSION_LIFETIME = 1800
+        
+        from superset.security import SupersetSecurityManager
+        import logging
+        class CustomSsoSecurityManager(SupersetSecurityManager):
+
+            def oauth_user_info(self, provider, response=None):
+                logging.debug("Oauth2 provider: {0}.".format(provider))
+                if provider == 'gitlab':
+                    # As example, this line requests a GET to base_url + '/' + oauth/userinfo with Bearer  Authentication,
+                    # and expects that authorization server checks the token, and responds with user details
+                    res = self.appbuilder.sm.oauth_remotes[provider].get('oauth/userinfo')
+                    if res.status_code != 200:
+                        logging.debug('Failed to obtain user info: %s', res.__dict__)
+                        return
+                    me = res.json()
+                    logging.debug('Obtained user info: %s', me)
+                    name = me.get('name', '')
+                    first_name = ''
+                    last_name = ''
+                    if ' ' in name:
+                        s = name.split(' ')
+                        first_name = s[0]
+                        last_name = s[2]
+                    groups = me.get('groups', [])
+                    data = {'username' : me.get('nickname', ''),
+                          'email': me.get('email', ''),
+                          'first_name': first_name,
+                          'last_name': last_name,
+                          'role_keys': groups}
+                    logging.debug("user_data: {0}".format(data))
+                    return data
+                return {}
+
+
+        CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
+      custom_override: |
+
+        from sqlalchemy.util import unquote
+        def DB_CONNECTION_MUTATOR(uri, params, username, security_manager, source):
+            uri.database = unquote(uri.database)
+            return uri, params
+        
+        # Flask-WTF flag for CSRF
+        WTF_CSRF_ENABLED = True
+        # Add endpoints that need to be exempt from CSRF protection
+        WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log", "superset.charts.api.data"]
+        
+        LOG_LEVEL = "DEBUG"
+        LOG_FORMAT = "%(asctime)s:%(levelname)s:%(name)s:%(message)s"
+        ROW_LIMIT = 5000
+      smtp: |
+      
+        import ast
+        EMAIL_NOTIFICATIONS = True
+        SMTP_HOST = os.getenv("SMTP_HOST","localhost")
+        SMTP_STARTTLS = ast.literal_eval(os.getenv("SMTP_STARTTLS", "True"))
+        SMTP_SSL = ast.literal_eval(os.getenv("SMTP_SSL", "False"))
+        SMTP_USER = os.getenv("SMTP_USER","superset")
+        SMTP_PORT = os.getenv("SMTP_PORT",25)
+        SMTP_PASSWORD = os.getenv("SMTP_PASSWORD","superset")
+        SMTP_MAIL_FROM = os.getenv("SMTP_MAIL_FROM","superset@superset.com")
+      feature_flags: |
+
+        FEATURE_FLAGS = {
+          "KV_STORE": True,
+          "SHARE_QUERIES_VIA_KV_STORE": True,
+          "ENABLE_TEMPLATE_PROCESSING": True,
+          "ENABLE_REACT_CRUD_VIEWS": True,
+          "ROW_LEVEL_SECURITY": True,
+          "ALERT_REPORTS": True,
+          "DASHBOARD_NATIVE_FILTERS": True,
+          "THUMBNAILS": True,
+        }
+      reports: |
+
+        ENABLE_SCHEDULED_EMAIL_REPORTS = True
+        ENABLE_ALERTS = True
+        EMAIL_REPORTS_USER = "admin"
+        EMAIL_REPORTS_CRON_RESOLUTION = 15
+        EMAIL_PAGE_RENDER_WAIT = 120
+        SLACK_API_TOKEN = os.getenv("SLACK_API_TOKEN",None)
+        EMAIL_REPORTS_WEBDRIVER = "chrome"
+        WEBDRIVER_TYPE = EMAIL_REPORTS_WEBDRIVER
+        # WEBDRIVER_WINDOW = {"dashboard": (1600, 2000), "slice": (3000, 1200)}
+        WEBDRIVER_BASEURL = "http://{{ template "superset.fullname" . }}:{{ .Values.service.port }}/"
+        WEBDRIVER_BASEURL_USER_FRIENDLY = "https://superset.${domain}"
+        WEBDRIVER_OPTION_ARGS = [
+            # "--force-device-scale-factor=2.0",
+            "--high-dpi-support=2.0",
+            "--headless",
+            "--disable-gpu",
+            "--disable-dev-shm-usage",
+            # This is required because our process runs as root (in order to install pip packages)
+            # "--no-sandbox",
+            # "--disable-setuid-sandbox",
+            # "--disable-extensions",
+        ]
+        # Used for thumbnails and other api: Time in seconds before selenium
+        # times out after trying to locate an element on the page and wait
+        # for that element to load for an alert screenshot.
+        SCREENSHOT_LOCATE_WAIT = 100
+        SCREENSHOT_LOAD_WAIT = 600
+      cache_conf: |
+        from cachelib import RedisCache
+        RESULTS_BACKEND = RedisCache(
+            host=f"{env('REDIS_HOST')}",
+            port=6379,
+            key_prefix='superset_results'
+        )
+
+        CACHE_DEFAULT_TIMEOUT = 3600
+
+        CACHE_CONFIG = {
+          "CACHE_TYPE": "redis",
+          "CACHE_DEFAULT_TIMEOUT": 1800,
+          "CACHE_KEY_PREFIX": "superset_cache",
+          "CACHE_REDIS_URL": f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0",
+        }
+
+        DATA_CACHE_CONFIG = {
+          **CACHE_CONFIG,
+          "CACHE_DEFAULT_TIMEOUT": 1800,
+          "CACHE_KEY_PREFIX": "superset_data_cache",
+        }
+        THUMBNAIL_SELENIUM_USER = "admin"
+        THUMBNAIL_CACHE_CONFIG = {
+          **CACHE_CONFIG,
+          "CACHE_DEFAULT_TIMEOUT": 10000,
+          "CACHE_KEY_PREFIX": "superset_thumbnails_",
+        }
+
+        GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
+          "port": 6379,
+          "host": f"{env('REDIS_HOST')}",
+          "password": "",
+          "db": 0,
+        }
+        GLOBAL_ASYNC_QUERIES_JWT_SECRET = os.getenv("GLOBAL_ASYNC_QUERIES_JWT_SECRET", None)    
+      celery_conf: |
+
+        from celery.schedules import crontab
+        
+        class CeleryConfig(object):
+            BROKER_URL = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+            CELERY_RESULT_BACKEND = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+            CELERYD_LOG_LEVEL = "DEBUG"
+            CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+            CELERY_IMPORTS = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
+            CELERY_ANNOTATIONS = {
+                'sql_lab.get_sql_results': {
+                    'rate_limit': '100/s',
+                },
+                'email_reports.send': {
+                    'rate_limit': '1/s',
+                    'time_limit': 600,
+                    'soft_time_limit': 600,
+                    'ignore_result': True,
+                },
+            }
+        
+            CELERYBEAT_SCHEDULE = {
+                'email_reports.schedule_hourly': {
+                    'task': 'email_reports.schedule_hourly',
+                    'schedule': crontab(minute='*/59'),
+                },
+                'alerts.schedule_check': {
+                  'task': 'alerts.schedule_check',
+                  'schedule': crontab(minute='*/4')
+                },
+                'reports.scheduler': {
+                  'task': 'reports.scheduler',
+                  'schedule': crontab(minute='*/5'),
+                },
+                'reports.prune_log': {
+                    'task': 'reports.prune_log',
+                    'schedule': crontab(minute=0, hour=0),
+                },
+            }
+        CELERY_CONFIG = CeleryConfig
+
+    configMountPath: "/app/pythonpath"
+
+    extraConfigMountPath: "/app/configs"
+
+    image:
+      repository: ttl.sh/superset #apache/superset
+      tag: 1.1.0c
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+      port: 8088
+      annotations: {}
+        # cloud.google.com/load-balancer-type: "Internal"
+      loadBalancerIP: null
+
+    ingress:
+      enabled: true
+      hosts:
+        - superset.${domain}
+      tls: 
+        - secretName: superset-tls
+          hosts:
+          - superset.${domain}
+      annotations:
+        kubernetes.io/ingress.class: traefik-cert-manager
+        kubernetes.io/tls-acme: "true"
+        traefik.ingress.kubernetes.io/router.entrypoints: web, websecure
+        ingress.kubernetes.io/ssl-proxy-headers: "X-Forwarded-Proto: https"
+
+    resources: {}
+      # We usually recommend not to specify default resources and to leave this as a conscious
+      # choice for the user. This also increases chances charts run on environments with little
+      # resources, such as Minikube. If you do want to specify resources, uncomment the following
+      # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+      # limits:
+      #   cpu: 100m
+      #   memory: 128Mi
+      # requests:
+      #   cpu: 100m
+      #   memory: 128Mi
+
+    ##
+    ## Superset node configuration
+    supersetNode:
+      command:
+        - "/bin/sh"
+        - "-c"
+        # - ". {{ .Values.configMountPath }}/superset_bootstrap.sh;/usr/bin/docker-entrypoint.sh"
+        - |
+          #!/bin/bash
+          gunicorn -w 5 \
+          --log-level=debug \
+          --timeout 300 \
+          -b 0.0.0.0:8088 \
+          --limit-request-line 0 \
+          --limit-request-field_size 0 \
+          "superset.app:create_app()"
+
+      connections:
+        redis_host: '{{ template "superset.fullname" . }}-redis-headless'
+        redis_port: "6379"
+        db_host: '{{ template "superset.fullname" . }}-postgresql'
+        db_port: "5432"
+        db_user: superset
+        db_pass: superset
+        db_name: superset
+      forceReload: false # If true, forces deployment to reload on each upgrade
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: '{{ tpl .Values.envFromSecret . }}'
+          command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+
+      ## Annotations to be added to supersetNode deployment
+      deploymentAnnotations: {}
+
+      ## Annotations to be added to supersetNode pods
+      podAnnotations: {}
+
+    ##
+    ## Superset worker configuration
+    supersetWorker:
+      enabled: false
+      command:
+        - /bin/sh
+        - -c
+        - |
+          # Run
+          . {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app worker --pool=prefork -O fair --max-tasks-per-child=20 --loglevel=DEBUG -n "$${HOSTNAME}_tasks"
+      forceReload: false # If true, forces deployment to reload on each upgrade
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: '{{ tpl .Values.envFromSecret . }}'
+          command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+
+      ## Annotations to be added to supersetWorker deployment
+      deploymentAnnotations: {}
+
+      ## Annotations to be added to supersetWorker pods
+      podAnnotations: {}
+
+    ##
+    ## Superset beat configuration (to trigger scheduled jobs like reports)
+    supersetCeleryBeat:
+      # This is only required if you intend to use alerts and reports
+      enabled: true
+      command:
+        - "/bin/sh"
+        - "-c"
+        - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery beat --app=superset.tasks.celery_app:app --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule --loglevel=DEBUG"
+      forceReload: false # If true, forces deployment to reload on each upgrade
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: '{{ tpl .Values.envFromSecret . }}'
+          command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+
+      ## Annotations to be added to supersetCeleryBeat deployment
+      deploymentAnnotations: {}
+
+      ## Annotations to be added to supersetCeleryBeat pods
+      podAnnotations: {}
+
+    ##
+    ## Init job configuration
+    init:
+      # Configure resources
+      # Warning: fab commant consumes a lot of ram and can
+      # cause the process to be killed due to OOM if it exceeds limit
+      resources: {}
+        # limits:
+        #   cpu:
+        #   memory:
+        # requests:
+        #   cpu:
+        #   memory:
+      command:
+        - "/bin/sh"
+        - "-c"
+        - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; . {{ .Values.configMountPath }}/superset_init.sh"
+      enabled: true
+      loadExamples: true
+      adminUser:
+        username: admin
+        firstname: Superset
+        lastname: Admin
+        email: admin@superset.com
+        password: admin
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: '{{ tpl .Values.envFromSecret . }}'
+          command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+      initscript: |-
+        #!/bin/sh
+        echo "Upgrading DB schema..."
+        superset db upgrade
+        echo "Initializing roles..."
+        superset init
+        echo "Creating admin user..."
+        superset fab create-admin \
+          --username {{ .Values.init.adminUser.username }} \
+          --firstname {{ .Values.init.adminUser.firstname }} \
+          --lastname {{ .Values.init.adminUser.lastname }} \
+          --email {{ .Values.init.adminUser.email }} \
+          --password {{ .Values.init.adminUser.password }}
+        {{ if .Values.init.loadExamples }}
+        echo "Loading examples..."
+        superset load_examples
+        {{- end }}
+        echo "Initializing connection.... "
+        superset import_datasources -p {{ .Values.extraConfigMountPath }}/datasources-init.yaml
+    ##
+    ## Configuration values for the postgresql dependency.
+    ## ref: https://github.com/kubernetes/charts/blob/master/stable/postgresql/README.md
+    postgresql:
+      ##
+      ## Use the PostgreSQL chart dependency.
+      ## Set to false if bringing your own PostgreSQL.
+      enabled: true
+
+      ##
+      ## The name of an existing secret that contains the postgres password.
+      existingSecret:
+
+      ## Name of the key containing the secret.
+      existingSecretKey: postgresql-password
+
+      ##
+      ## If you are bringing your own PostgreSQL, you should set postgresHost and
+      ## also probably service.port, postgresqlUsername, postgresqlPassword, and postgresqlDatabase
+      ## postgresHost:
+      ##
+      ## PostgreSQL port
+      service:
+        port: 5432
+      ## PostgreSQL User to create.
+      postgresqlUsername: superset
+      ##
+      ## PostgreSQL Password for the new user.
+      ## If not set, a random 10 characters password will be used.
+      postgresqlPassword: superset
+      ##
+      ## PostgreSQL Database to create.
+      postgresqlDatabase: superset
+      ##
+      ## Persistent Volume Storage configuration.
+      ## ref: https://kubernetes.io/docs/user-guide/persistent-volumes
+      persistence:
+        ##
+        ## Enable PostgreSQL persistence using Persistent Volume Claims.
+        enabled: true
+        size: 2Gi
+        ##
+        ## Persistant class
+        # storageClass: classname
+        ##
+        ## Access modes:
+        accessModes:
+          - ReadWriteOnce
+
+    ## Configuration values for the Redis dependency.
+    ## ref: https://github.com/kubernetes/charts/blob/master/stable/redis/README.md
+    redis:
+      ##
+      ## Use the redis chart dependency.
+      ## Set to false if bringing your own redis.
+      enabled: true
+
+      usePassword: false
+
+      ##
+      ## The name of an existing secret that contains the redis password.
+      existingSecret:
+
+      ## Name of the key containing the secret.
+      existingSecretKey: redis-password
+
+      ##
+      ## If you are bringing your own redis, you can set the host in redisHost.
+      ## redisHost:
+      ##
+      ## Redis password
+      ##
+      password: superset
+      ##
+      ## Master configuration
+      master:
+        ##
+        ## Image configuration
+        # image:
+          ##
+          ## docker registry secret names (list)
+          # pullSecrets: nil
+        ##
+        ## Configure persistance
+        persistence:
+          ##
+          ## Use a PVC to persist data.
+          enabled: true
+          size: 1Gi
+          ##
+          ## Persistant class
+          # storageClass: classname
+          ##
+          ## Access mode:
+          accessModes:
+          - ReadWriteOnce
+      slave:
+        persistence:
+          enabled: true
+          size: 1Gi
+      ##
+      ## Disable cluster management by default.
+      cluster:
+        enabled: false
+
+    nodeSelector: {}
+
+    tolerations: []
+
+    affinity: {}
+---

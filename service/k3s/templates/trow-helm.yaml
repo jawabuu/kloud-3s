@@ -1,0 +1,71 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trow
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: trow
+  namespace: kube-system
+spec:
+  chart: trow
+  repo: https://trow.io
+  targetNamespace: trow
+  valuesContent: |-
+    replicaCount: 1
+    image:
+      repository: containersol/trow
+      pullPolicy: Always
+    trow:
+      domain: trow.${domain}
+      user: ${registry_user}
+      password: ${registry_password}
+      validation:
+        enabled: false
+        allowDocker: false
+        allowKubernetes: true
+    service:
+      type: ClusterIP
+      port: 8000
+    ingress:
+      enabled: true
+      gke: false
+      tls: 
+        - secretName: trow-tls
+          hosts:
+            - trow.${domain}
+      annotations:
+        kubernetes.io/ingress.class: traefik-cert-manager
+        kubernetes.io/tls-acme: "true"
+        traefik.ingress.kubernetes.io/router.entrypoints: web, websecure
+        ingress.kubernetes.io/ssl-proxy-headers: "X-Forwarded-Proto: https"
+    volumeClaim:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 5Gi
+    resources:
+      requests:
+        cpu: 250m
+        memory: 250Mi
+      limits:
+        cpu: 250m
+        memory: 250Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: trow-np
+  namespace: trow
+spec:
+  type: NodePort
+  ports:
+    - protocol: TCP
+      targetPort: http
+      port: 8000
+      nodePort: 30001
+  selector:
+    app.kubernetes.io/instance: trow
+    app.kubernetes.io/name: trow
