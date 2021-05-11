@@ -41,7 +41,7 @@ variable "k3s_version" {
 
 variable "debug_level" {
   description = "K3S debug level"
-  default     = 3
+  default     = 5
 }
 
 variable "overlay_interface" {
@@ -124,6 +124,49 @@ variable "floating_ip" {
   default     = {}
 }
 
+variable "longhorn_replicas" {
+  default     = 3
+  description = "Number of longhorn replicas"
+}
+
+variable "trform_domain" {
+  type        = bool
+  default     = false
+  description = "Whether this domain is manged using terraform. If false external_dns will create DNS records."
+}
+
+variable "dns_auth" {
+  type        = map
+  description = "Auth for configuring DNS including the provider"
+  default = {
+    provider = ""
+    auth     = ""
+  }
+}
+
+variable "create_certs" {
+  type        = bool
+  default     = false
+  description = "Option to create letsencrypt certs. Only enable if certain that your deployment is reachable."
+}
+
+variable "acme_email" {
+  type    = string
+  default = ""
+}
+
+variable "auth_user" {
+  default = "kloud-3s"
+}
+
+variable "auth_password" {
+  default = ""
+}
+
+variable "region" {
+  default = "k3s"
+}
+
 resource "random_string" "token1" {
   length  = 6
   upper   = false
@@ -162,6 +205,15 @@ locals {
   ha_cluster          = var.ha_cluster
   registration_domain = "k3s.${local.domain}"
 
+  agent_node_labels = [
+    "topology.kubernetes.io/region=${var.region}",
+    "node.longhorn.io/create-default-disk=config",
+  ]
+  server_node_labels = [
+    "topology.kubernetes.io/region=${var.region}",
+    "node.longhorn.io/create-default-disk=config",
+  ]
+
   agent_default_flags = [
     "-v ${local.debug_level}",
     "--server https://${local.registration_domain}:6443",
@@ -169,9 +221,8 @@ locals {
     local.cni == "default" ? "--flannel-iface ${local.kubernetes_interface}" : "",
     # https://github.com/kubernetes/kubernetes/issues/75457
     "--kubelet-arg 'node-labels=role.node.kubernetes.io/worker=worker'",
-    "--kubelet-arg 'node-labels=topology.kubernetes.io/zone=k3s'",
-    "--kubelet-arg 'node-labels=topology.kubernetes.io/region=k3s'",
     "--kubelet-arg 'node-status-update-frequency=4s'",
+    "--kubelet-arg 'node-labels=${join(",", local.agent_node_labels)}'",
   ]
 
   agent_install_flags = join(" ", concat(local.agent_default_flags))
@@ -188,17 +239,16 @@ locals {
     "--disable traefik",
     "--token ${local.cluster_token}",
     "--kubelet-arg 'node-status-update-frequency=4s'",
-    "--kubelet-arg 'node-labels=topology.kubernetes.io/zone=k3s'",
-    "--kubelet-arg 'node-labels=topology.kubernetes.io/region=k3s'",
     "--kube-controller-manager-arg 'node-monitor-period=2s'",
     "--kube-controller-manager-arg 'node-monitor-grace-period=16s'",
     "--kube-controller-manager-arg 'pod-eviction-timeout=24s'",
     "--kube-apiserver-arg 'default-not-ready-toleration-seconds=20'",
     "--kube-apiserver-arg 'default-unreachable-toleration-seconds=20'",
+    "--kubelet-arg 'node-labels=${join(",", local.server_node_labels)}'",
     # Flags left below to serve as examples for args that may need editing.
     # "--kube-controller-manager-arg 'node-cidr-mask-size=22'",
     # "--kubelet-arg 'max-pods=500'",
-    #"--kube-apiserver-arg 'requestheader-allowed-names=system:auth-proxy,kubernetes-proxy'",
+    # "--kube-apiserver-arg 'requestheader-allowed-names=system:auth-proxy,kubernetes-proxy'",
 
   ]
 
@@ -318,6 +368,12 @@ resource "null_resource" "k3s" {
     destination = "/tmp/weave.yaml"
   }
 
+  # Upload cilium.yaml for CNI
+  provisioner "file" {
+    content     = data.template_file.cilium-configuration.rendered
+    destination = "/tmp/cilium.yaml"
+  }
+
   # Install K3S server
   provisioner "remote-exec" {
     inline = [<<EOT
@@ -362,7 +418,7 @@ resource "null_resource" "k3s" {
         
         %{if local.cni == "cilium"~}
         sudo mount bpffs -t bpf /sys/fs/bpf
-        kubectl apply -f /tmp/manifests/cilium.yaml;
+        kubectl apply -f /tmp/cilium.yaml;
         echo "[INFO] ---Master waiting for cilium---";
         kubectl rollout status ds cilium -n kube-system;
         %{endif~}
@@ -528,6 +584,15 @@ data "template_file" "weave-configuration" {
   vars = {
     interface  = local.kubernetes_interface
     weave_cidr = local.overlay_cidr
+  }
+}
+
+data "template_file" "cilium-configuration" {
+  template = file("${path.module}/templates/cilium.yaml")
+
+  vars = {
+    interface   = local.kubernetes_interface
+    cilium_cidr = local.overlay_cidr
   }
 }
 

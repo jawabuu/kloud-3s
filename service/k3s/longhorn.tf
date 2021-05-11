@@ -1,10 +1,5 @@
-variable "longhorn_replicas" {
-  default     = 3
-  description = "Number of longhorn replicas"
-}
-
 locals {
-  longhorn = templatefile("${path.module}/templates/longhorn.yaml", {
+  longhorn = templatefile("${path.module}/templates/longhorn-helm.yaml", {
     longhorn_replicas = var.node_count < 3 ? var.node_count : var.longhorn_replicas
     domain            = var.domain
   })
@@ -31,33 +26,18 @@ resource "null_resource" "longhorn_apply" {
   # Upload longhorn
   provisioner "file" {
     content     = local.longhorn
-    destination = "/tmp/longhorn.yaml"
+    destination = "/var/lib/rancher/k3s/server/manifests/longhorn.yaml"
   }
-  # Install longhorn
+
+  # Annotate nodes
   provisioner "remote-exec" {
     inline = [<<EOT
       until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
-      echo "[INFO] ---Installing Longhorn---";
-      until kubectl apply --validate=false -f /tmp/longhorn.yaml; do nc -zvv localhost 6443; sleep 5; done;
-      until kubectl get storageclass local-path -o jsonpath='{.metadata.annotations.storageclass\.kubernetes\.io/is-default-class}' | grep -v 'true'; \
-      do kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'; \
-      sleep 3; done;
-      kubectl patch storageclass longhorn -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}';
-      echo "[INFO] ---Finished installing Longhorn---";
+      echo "[INFO] ---Annotating Nodes---";
+      until kubectl annotate --overwrite node --all node.longhorn.io/default-disks-config='[{ "path":"/var/lib/longhorn","allowScheduling":true},{"name":"fast-ssd-disk","path":"/mnt/disk2","allowScheduling":true,"storageReserved":524288000}]'; do nc -zvv localhost 6443; sleep 5; done;
+      echo "[INFO] ---Finished Annotating Nodes---";
     EOT
     ]
-  }
-
-  # Remove longhorn
-  provisioner "remote-exec" {
-    inline = [<<EOT
-      kubectl delete storageclass longhorn;
-      kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}';
-    EOT
-    ]
-
-    when       = destroy
-    on_failure = continue
   }
 
 }
