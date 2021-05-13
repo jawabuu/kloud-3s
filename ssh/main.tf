@@ -29,9 +29,11 @@ resource "null_resource" "create_ssh_keys" {
 
 
 output "private_key" {
+  depends_on = [null_resource.create_ssh_keys]
   value = var.ssh_key_path
 }
 
 output "public_key" {
+  depends_on = [null_resource.create_ssh_keys]
   value = var.ssh_pubkey_path
 }
