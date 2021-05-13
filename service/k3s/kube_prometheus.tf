@@ -5,7 +5,7 @@ resource "null_resource" "kube_prometheus_apply" {
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip
     run              = false
-    kube_prometheus  = filemd5("${path.module}/templates/kube_prometheus-helm.yaml")
+    kube_prometheus  = filemd5("${path.module}/templates/kube-prometheus-helm.yaml")
   }
 
   # Use master(s)

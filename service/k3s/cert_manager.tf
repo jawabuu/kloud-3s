@@ -1,5 +1,5 @@
 locals {
-  cert_manager = templatefile("${path.module}/templates/cert_manager-helm.yaml", {
+  cert_manager = templatefile("${path.module}/templates/cert-manager-helm.yaml", {
     domain       = var.domain
     dns_auth     = local.dns_auth
     acme_email   = var.acme_email == "" ? "info@${var.domain}" : var.acme_email

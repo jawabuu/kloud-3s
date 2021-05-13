@@ -1,7 +1,7 @@
 locals {
   trform_domain = var.trform_domain
   dns_auth      = var.dns_auth
-  external_dns = templatefile("${path.module}/templates/external_dns-helm.yaml", {
+  external_dns = templatefile("${path.module}/templates/external-dns-helm.yaml", {
     dns_auth   = local.dns_auth
     master_ips = local.ha_cluster == true ? join(",", slice(var.connections, 0, 3)) : false
   })

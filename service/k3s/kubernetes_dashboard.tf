@@ -1,5 +1,5 @@
 locals {
-  kubernetes_dashboard = templatefile("${path.module}/templates/kubernetes_dashboard-helm.yaml", {
+  kubernetes_dashboard = templatefile("${path.module}/templates/kubernetes-dashboard-helm.yaml", {
     domain = var.domain
   })
 }
