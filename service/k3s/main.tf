@@ -212,6 +212,7 @@ locals {
   server_node_labels = [
     "topology.kubernetes.io/region=${var.region}",
     "node.longhorn.io/create-default-disk=config",
+    "submariner.io/gateway=true",
   ]
 
   agent_default_flags = [
