@@ -35,8 +35,30 @@ variable "hostname_format" {
   default = ""
 }
 
+variable "ssh_key_path" {
+  type = string
+}
+
+variable "ssh_pubkey_path" {
+  type = string
+}
+
+resource "time_static" "id" {}
+
 provider "packet" {
   auth_token = var.auth_token
+}
+
+resource "packet_project_ssh_key" "tf-kube" {
+  name       = "tf-kube-${time_static.id.unix}"
+  public_key = file("${var.ssh_pubkey_path}")
+  project_id = local.project_id
+
+  lifecycle {
+    ignore_changes = [
+      public_key
+    ]
+  }
 }
 
 resource "packet_device" "host" {
@@ -48,12 +70,14 @@ resource "packet_device" "host" {
   billing_cycle    = var.billing_cycle
   project_id       = var.project_id
   user_data        = var.user_data
+  ssh_keys         = [packet_project_ssh_key.tf-kube.id]
 
   connection {
     user    = "root"
     type    = "ssh"
     timeout = "2m"
     host    = self.access_public_ipv4
+    private_key = file("${var.ssh_key_path}")
   }
 
   provisioner "remote-exec" {
@@ -78,6 +102,24 @@ output "private_ips" {
   value = "${packet_device.host.*.access_private_ipv4}"
 }
 
+output "public_network_interface" {
+  value = "bond0"
+}
+
 output "private_network_interface" {
   value = "bond0"
+}
+
+output "region" {
+  value = var.facility
+}
+
+output "nodes" {
+
+  value = [for index, server in packet_device.host : {
+    hostname   = server.name
+    public_ip  = server.access_public_ipv4
+    private_ip = server.access_private_ipv4
+  }]
+
 }
