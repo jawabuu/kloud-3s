@@ -172,6 +172,14 @@ data "template_file" "overlay-route-service" {
   }
 }
 
+# Trigger wireguard key creation whenever public ip changes.
+resource "null_resource" "create_keys" {
+  count = var.node_count
+  triggers = {
+    node_public_ip = element(var.connections, count.index)
+  }
+}
+
 data "external" "keys" {
   count = var.node_count
 
@@ -179,6 +187,7 @@ data "external" "keys" {
   query = {
     ip_address  = element(var.connections, count.index)
     private_key = abspath(var.ssh_key_path)
+    create_keys = element(null_resource.create_keys.*.id, count.index)
   }
 }
 
