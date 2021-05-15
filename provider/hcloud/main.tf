@@ -48,9 +48,14 @@ variable "ssh_pubkey_path" {
 }
 
 resource "hcloud_ssh_key" "tf-kube" {
-  count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
   name       = "tf-kube-${time_static.id.unix}"
   public_key = file("${var.ssh_pubkey_path}")
+
+  lifecycle {
+    ignore_changes = [
+      public_key
+    ]
+  }
 }
 
 resource "hcloud_server" "host" {
@@ -58,7 +63,7 @@ resource "hcloud_server" "host" {
   location    = var.location
   image       = var.image
   server_type = var.type
-  ssh_keys    = hcloud_ssh_key.tf-kube.*.id
+  ssh_keys    = [hcloud_ssh_key.tf-kube.id]
 
   count = var.hosts
 

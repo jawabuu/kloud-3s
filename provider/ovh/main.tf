@@ -108,16 +108,20 @@ provider "openstack" {
 }
 
 resource "openstack_compute_keypair_v2" "tf-kube" {
-  count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
   name       = "tf-kube-${time_static.id.unix}"
   public_key = file("${var.ssh_pubkey_path}")
+  lifecycle {
+    ignore_changes = [
+      public_key
+    ]
+  }
 }
 
 resource "openstack_compute_instance_v2" "host" {
   name        = format(var.hostname_format, count.index + 1)
   image_name  = var.image
   flavor_name = var.size
-  key_pair    = openstack_compute_keypair_v2.tf-kube[0].name
+  key_pair    = openstack_compute_keypair_v2.tf-kube.name
 
   # Important: orders of network declaration matters because
   # public network is attached on ens4, so keep it at the end of the list

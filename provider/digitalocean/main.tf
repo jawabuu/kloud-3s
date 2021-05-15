@@ -48,9 +48,13 @@ provider "digitalocean" {
 }
 
 resource "digitalocean_ssh_key" "tf-kube" {
-  count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
   name       = "tf-kube-${time_static.id.unix}"
   public_key = file("${var.ssh_pubkey_path}")
+  lifecycle {
+    ignore_changes = [
+      public_key
+    ]
+  }
 }
 
 resource "digitalocean_droplet" "host" {
@@ -60,7 +64,7 @@ resource "digitalocean_droplet" "host" {
   size               = var.size
   backups            = false
   private_networking = true
-  ssh_keys           = digitalocean_ssh_key.tf-kube.*.id
+  ssh_keys           = [digitalocean_ssh_key.tf-kube.id]
   vpc_uuid           = digitalocean_vpc.kube-vpc.id
 
   count = var.hosts

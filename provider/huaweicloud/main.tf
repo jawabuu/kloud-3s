@@ -82,6 +82,11 @@ resource "huaweicloud_networking_secgroup_rule" "allow_all_ingress" {
 resource "huaweicloud_compute_keypair" "ssh-key" {
   name       = "ssh-key-${time_static.id.unix}"
   public_key = file(var.ssh_pubkey_path)
+  lifecycle {
+    ignore_changes = [
+      public_key
+    ]
+  }
 }
 
 data "huaweicloud_images_image" "ubuntu" {

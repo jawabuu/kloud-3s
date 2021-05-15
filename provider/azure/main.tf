@@ -189,6 +189,12 @@ resource "azurerm_linux_virtual_machine" "host" {
     ]
   }
 
+  lifecycle {
+    ignore_changes = [
+      admin_ssh_key
+    ]
+  }
+
 }
 
 /*

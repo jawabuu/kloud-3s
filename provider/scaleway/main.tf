@@ -38,9 +38,13 @@ variable "ssh_pubkey_path" {
 }
 
 resource "scaleway_account_ssh_key" "tf-kube" {
-  count      = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
   name       = "tf-kube-${time_static.id.unix}"
   public_key = file("${var.ssh_pubkey_path}")
+  lifecycle {
+    ignore_changes = [
+      public_key
+    ]
+  }
 }
 
 provider "scaleway" {

@@ -136,6 +136,12 @@ resource "google_compute_instance" "host" {
     ]
   }
 
+  lifecycle {
+    ignore_changes = [
+      metadata["ssh-keys"]
+    ]
+  }
+
 }
 
 /*

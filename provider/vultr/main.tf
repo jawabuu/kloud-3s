@@ -72,9 +72,13 @@ data "vultr_os" "os" {
 
 
 resource "vultr_ssh_key" "tf-kube" {
-  count   = fileexists("${var.ssh_pubkey_path}") ? 1 : 0
   name    = "tf-kube-${time_static.id.unix}"
   ssh_key = file("${var.ssh_pubkey_path}")
+  lifecycle {
+    ignore_changes = [
+      public_key
+    ]
+  }
 }
 
 resource "vultr_server" "host" {
@@ -82,7 +86,7 @@ resource "vultr_server" "host" {
   region_id              = data.vultr_region.region.id
   os_id                  = data.vultr_os.os.id
   plan_id                = data.vultr_plan.plan.id
-  ssh_key_ids            = vultr_ssh_key.tf-kube.*.id
+  ssh_key_ids            = [vultr_ssh_key.tf-kube.id]
   network_ids            = [vultr_network.kube-vpc.id]
   enable_private_network = true
 

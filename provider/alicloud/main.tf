@@ -80,6 +80,11 @@ resource "alicloud_security_group_rule" "allow_all_ingress" {
 resource "alicloud_key_pair" "ssh-key" {
   key_name   = "ssh-key-${time_static.id.unix}"
   public_key = file(var.ssh_pubkey_path)
+  lifecycle {
+    ignore_changes = [
+      public_key
+    ]
+  }
 }
 
 data "alicloud_images" "ubuntu" {
