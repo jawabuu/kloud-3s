@@ -340,7 +340,6 @@ resource "null_resource" "k3s" {
 
   provisioner "remote-exec" {
     inline = [
-      "apt-get install -qy jq",
       "modprobe br_netfilter && echo br_netfilter >> /etc/modules",
     ]
   }
