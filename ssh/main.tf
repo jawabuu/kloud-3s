@@ -33,7 +33,7 @@ data "external" "ssh_keys" {
     create_ssh_keys = join(" ", null_resource.create_ssh_keys.*.id)
   }
   program = ["bash", "-c", <<-EOF
-  while ! test -f ${var.ssh_pubkey_path}; do echo 'waiting for keys..'; sleep 5; done
+  while ! test -f ${var.ssh_pubkey_path}; do echo 'waiting for keys..'; ((c++)) && ((c==10)) && break; sleep 5; done
   echo "{\"private_key\":\"${var.ssh_key_path}\",\"public_key\":\"${var.ssh_pubkey_path}\"}"
 EOF
   ]
