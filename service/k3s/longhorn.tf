@@ -1,6 +1,6 @@
 locals {
   longhorn = templatefile("${path.module}/templates/longhorn-helm.yaml", {
-    longhorn_replicas = var.node_count < 3 ? var.node_count : var.longhorn_replicas
+    longhorn_replicas = var.node_count < 4 ? (var.node_count == 3 ? 2 : 1) : var.longhorn_replicas
     domain            = var.domain
   })
 }
