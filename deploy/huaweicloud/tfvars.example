@@ -9,7 +9,7 @@ huaweicloud_account_name = "<required>"
 huaweicloud_region = "af-south-1a"
 huaweicloud_region_zone = "af-south-1a"
 
-k3s_version = "v1.17.5+k3s1"
+k3s_version = "v1.20.4+k3s1"
 node_count = 3
 cni = "weave"
 huaweicloud_size = "1c1g"

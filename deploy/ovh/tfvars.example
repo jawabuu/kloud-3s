@@ -5,7 +5,7 @@ domain = <required>
 digitalocean_token = <required>
 
 node_count = 2
-k3s_version = "v1.17.5+k3s1"
+k3s_version = "v1.20.4+k3s1"
 cni = "flannel"
 
 region      = <required>
