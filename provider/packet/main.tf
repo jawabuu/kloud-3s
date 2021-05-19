@@ -73,10 +73,10 @@ resource "packet_device" "host" {
   ssh_keys         = [packet_project_ssh_key.tf-kube.id]
 
   connection {
-    user    = "root"
-    type    = "ssh"
-    timeout = "2m"
-    host    = self.access_public_ipv4
+    user        = "root"
+    type        = "ssh"
+    timeout     = "2m"
+    host        = self.access_public_ipv4
     private_key = file("${var.ssh_key_path}")
   }
 
