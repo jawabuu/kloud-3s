@@ -167,6 +167,10 @@ variable "region" {
   default = "k3s"
 }
 
+variable "enable_volumes" {
+  default = "false"
+}
+
 resource "random_string" "token1" {
   length  = 6
   upper   = false

@@ -34,7 +34,13 @@ resource "null_resource" "longhorn_apply" {
     inline = [<<EOT
       until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
       echo "[INFO] ---Annotating Nodes---";
-      until kubectl annotate --overwrite node --all node.longhorn.io/default-disks-config='[{ "path":"/var/lib/longhorn","allowScheduling":true},{"name":"fast-ssd-disk","path":"/mnt/disk2","allowScheduling":true,"storageReserved":524288000}]'; do nc -zvv localhost 6443; sleep 5; done;
+
+      %{if var.enable_volumes == "true"~}
+        until kubectl annotate --overwrite node --all node.longhorn.io/default-disks-config='[{ "path":"/var/lib/longhorn","allowScheduling":true},{"name":"fast-ssd-disk","path":"/mnt/kloud3s","allowScheduling":true,"storageReserved":524288000}]'; do nc -zvv localhost 6443; sleep 5; done;
+      %{else~}
+        until kubectl annotate --overwrite node --all node.longhorn.io/default-disks-config='[{ "path":"/var/lib/longhorn","allowScheduling":true}]'; do nc -zvv localhost 6443; sleep 5; done;
+      %{endif~}
+
       echo "[INFO] ---Finished Annotating Nodes---";
     EOT
     ]
