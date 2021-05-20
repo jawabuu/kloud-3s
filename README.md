@@ -8,6 +8,10 @@ The following are currently tested;
 * [Linode](https://www.linode.com/?r=b402c474596a2d1656eac49aefe071916cbb2d61)
 * [ScaleWay](https://www.scaleway.com/)
 * [OVH](https://www.ovhcloud.com/en/public-cloud/)
+* [Google Cloud](https://cloud.google.com/)
+* [Azure](https://azure.microsoft.com/en-us/)
+* [Amazon Web Services](https://aws.amazon.com/)
+* [Alibaba Cloud](https://www.alibabacloud.com/)
 
 You may support the project by using the referral links above.
 
@@ -36,7 +40,10 @@ kloud-3s aims to add the following;
 1. Add testing by using some popular cloud-native projects, namely:
     * [traefik](https://github.com/containous/traefik)
     * [cert-manger](https://github.com/jetstack/cert-manager)
-    * [metallb](https://github.com/metallb/metallb)  
+    * [metallb](https://github.com/metallb/metallb) 
+    * [pomerium](https://github.com/pomerium/pomerium)
+    * [vault](https://github.com/hashicorp/vault)
+
 A successful deployment will complete without any error from these deployments.
 
 Features
@@ -178,7 +185,10 @@ Provider variables
 | **Linode** | linode_token | linode_type | linode_image | linode_region |
 | **ScaleWay** | scaleway_organization_id, scaleway_access_key, scaleway_secret_key | scaleway_type | scaleway_image | scaleway_zone |
 | **OVH** | tenant_name, user_name, password | ovh_type | ovh_image | region |
-
+| **Google** | creds_file | size | image | region, region_zone |
+| **Azure** | client_id, client_secret, tenant_id, subscription_id | size | - | region |
+| **AWS** | aws_access_key, aws_secret_key | size | image | region |
+| **AlibabaCloud** | alicloud_access_key, alicloud_secret_key | size | - | scaleway_zone |
 </details>
 
 Todos
@@ -190,6 +200,7 @@ Todos
  - [ ] Support more cloud providers
  - [ ] Support more DNS providers
  - [ ] Add Cloud Controller Manager module
+ - [ ] Implement K3S Auto upgrades
 
 
 References
