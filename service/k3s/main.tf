@@ -192,7 +192,7 @@ locals {
   valid_cni     = ["weave", "calico", "cilium", "flannel", "default"]
   validate_cni  = index(local.valid_cni, local.cni)
   loadbalancer  = var.loadbalancer
-  floating_ip   = try(var.floating_ip.ip_address, "")
+  floating_ip   = lookup(var.floating_ip, "ip_address", "")
 
   # Set overlay interface from map, but optionally allow override
   overlay_interface    = var.overlay_interface == "" ? lookup(var.cni_to_overlay_interface_map, local.cni, "cni0") : var.overlay_interface
