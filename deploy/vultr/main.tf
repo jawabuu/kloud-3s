@@ -8,16 +8,19 @@ module "ssh" {
 module "provider" {
   source = "../../provider/vultr"
 
-  api_key         = var.vultr_api_key
-  ssh_keys        = var.vultr_ssh_keys
-  region          = var.vultr_region
-  plan            = var.vultr_plan
-  os              = var.vultr_os
-  hosts           = var.node_count
-  hostname_format = var.hostname_format
-  vpc_cidr        = var.vpc_cidr
-  ssh_key_path    = module.ssh.private_key #var.ssh_key_path Override to use predefined key
-  ssh_pubkey_path = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
+  api_key           = var.vultr_api_key
+  ssh_keys          = var.vultr_ssh_keys
+  region            = var.vultr_region
+  plan              = var.vultr_plan
+  os                = var.vultr_os
+  hosts             = var.node_count
+  hostname_format   = var.hostname_format
+  vpc_cidr          = var.vpc_cidr
+  ssh_key_path      = module.ssh.private_key #var.ssh_key_path Override to use predefined key
+  ssh_pubkey_path   = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
+  enable_volumes    = var.enable_volumes
+  volume_size       = var.volume_size
+  enable_floatingip = var.enable_floatingip
 }
 
 module "swap" {

@@ -8,17 +8,20 @@ module "ssh" {
 module "provider" {
   source = "../../provider/google"
 
-  creds_file      = var.google_credentials_file
-  project         = var.google_project
-  region          = var.google_region
-  region_zone     = var.google_region_zone
-  size            = var.google_size
-  image           = var.google_image
-  hosts           = var.node_count
-  hostname_format = var.hostname_format
-  vpc_cidr        = var.vpc_cidr
-  ssh_key_path    = module.ssh.private_key #var.ssh_key_path Override to use predefined key
-  ssh_pubkey_path = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
+  creds_file        = var.google_credentials_file
+  project           = var.google_project
+  region            = var.google_region
+  region_zone       = var.google_region_zone
+  size              = var.google_size
+  image             = var.google_image
+  hosts             = var.node_count
+  hostname_format   = var.hostname_format
+  vpc_cidr          = var.vpc_cidr
+  ssh_key_path      = module.ssh.private_key #var.ssh_key_path Override to use predefined key
+  ssh_pubkey_path   = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
+  enable_volumes    = var.enable_volumes
+  volume_size       = var.volume_size
+  enable_floatingip = var.enable_floatingip
 }
 
 module "swap" {

@@ -8,16 +8,19 @@ module "ssh" {
 module "provider" {
   source = "../../provider/linode"
 
-  token           = var.linode_token
-  ssh_keys        = var.linode_ssh_keys
-  location        = var.linode_region
-  type            = var.linode_type
-  image           = var.linode_image
-  hosts           = var.node_count
-  hostname_format = var.hostname_format
-  vpc_cidr        = var.vpc_cidr
-  ssh_key_path    = module.ssh.private_key #var.ssh_key_path Override to use predefined key
-  ssh_pubkey_path = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
+  token             = var.linode_token
+  ssh_keys          = var.linode_ssh_keys
+  location          = var.linode_region
+  type              = var.linode_type
+  image             = var.linode_image
+  hosts             = var.node_count
+  hostname_format   = var.hostname_format
+  vpc_cidr          = var.vpc_cidr
+  ssh_key_path      = module.ssh.private_key #var.ssh_key_path Override to use predefined key
+  ssh_pubkey_path   = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
+  enable_volumes    = var.enable_volumes
+  volume_size       = var.volume_size
+  enable_floatingip = var.enable_floatingip
 }
 
 ## Swap is set on instance creation for linode ###

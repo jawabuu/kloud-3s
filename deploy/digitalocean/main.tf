@@ -8,16 +8,19 @@ module "ssh" {
 module "provider" {
   source = "../../provider/digitalocean"
 
-  token           = var.digitalocean_token
-  ssh_keys        = var.digitalocean_ssh_keys
-  region          = var.digitalocean_region
-  size            = var.digitalocean_size
-  image           = var.digitalocean_image
-  hosts           = var.node_count
-  hostname_format = var.hostname_format
-  vpc_cidr        = var.vpc_cidr
-  ssh_key_path    = module.ssh.private_key #var.ssh_key_path Override to use predefined key
-  ssh_pubkey_path = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
+  token             = var.digitalocean_token
+  ssh_keys          = var.digitalocean_ssh_keys
+  region            = var.digitalocean_region
+  size              = var.digitalocean_size
+  image             = var.digitalocean_image
+  hosts             = var.node_count
+  hostname_format   = var.hostname_format
+  vpc_cidr          = var.vpc_cidr
+  ssh_key_path      = module.ssh.private_key #var.ssh_key_path Override to use predefined key
+  ssh_pubkey_path   = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
+  enable_volumes    = var.enable_volumes
+  volume_size       = var.volume_size
+  enable_floatingip = var.enable_floatingip
 }
 
 module "swap" {
