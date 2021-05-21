@@ -76,7 +76,7 @@ resource "vultr_ssh_key" "tf-kube" {
   ssh_key = file("${var.ssh_pubkey_path}")
   lifecycle {
     ignore_changes = [
-      public_key
+      ssh_key
     ]
   }
 }
