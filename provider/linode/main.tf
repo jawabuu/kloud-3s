@@ -41,12 +41,18 @@ variable "ssh_pubkey_path" {
   type = string
 }
 
+variable "vpc_cidr" {
+  default = "10.115.0.0/24"
+}
+
+resource "time_static" "id" {}
+
 resource "linode_sshkey" "tf-kube" {
   label   = "tf-kube-${time_static.id.unix}"
   ssh_key = chomp(file(var.ssh_pubkey_path))
   lifecycle {
     ignore_changes = [
-      public_key
+      ssh_key
     ]
   }
 }
@@ -124,7 +130,7 @@ output "linode_servers" {
 }
 
 output "region" {
-  value = var.region
+  value = var.location
 }
 
 output "nodes" {
