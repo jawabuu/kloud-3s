@@ -44,7 +44,7 @@ variable "size" {
 }
 
 variable "apt_packages" {
-  type    = list
+  type    = list(any)
   default = []
 }
 
@@ -214,15 +214,15 @@ data "external" "network_interfaces" {
 */
 
 output "hostnames" {
-  value = "${azurerm_linux_virtual_machine.host.*.name}"
+  value = azurerm_linux_virtual_machine.host.*.name
 }
 
 output "public_ips" {
-  value = "${azurerm_linux_virtual_machine.host.*.public_ip_address}"
+  value = azurerm_linux_virtual_machine.host.*.public_ip_address
 }
 
 output "private_ips" {
-  value = "${azurerm_linux_virtual_machine.host.*.private_ip_address}"
+  value = azurerm_linux_virtual_machine.host.*.private_ip_address
 }
 
 output "public_network_interface" {
@@ -234,7 +234,7 @@ output "private_network_interface" {
 }
 
 output "azurerm_linux_virtual_machines" {
-  value = "${azurerm_linux_virtual_machine.host}"
+  value = azurerm_linux_virtual_machine.host
 }
 
 output "region" {

@@ -11,11 +11,11 @@ variable "managed_zone" {}
 variable "domain" {}
 
 variable "hostnames" {
-  type = list
+  type = list(any)
 }
 
 variable "public_ips" {
-  type = list
+  type = list(any)
 }
 
 variable "trform_domain" {
@@ -61,7 +61,7 @@ resource "google_dns_record_set" "wildcard" {
 }
 
 output "domains" {
-  value = "${google_dns_record_set.hosts.*.name}"
+  value = google_dns_record_set.hosts.*.name
 }
 
 output "dns_auth" {

@@ -1,7 +1,7 @@
 variable "node_count" {}
 
 variable "connections" {
-  type = list
+  type = list(any)
 }
 
 variable "ssh_key_path" {
@@ -9,7 +9,7 @@ variable "ssh_key_path" {
 }
 
 variable "hostnames" {
-  type = list
+  type = list(any)
 }
 
 variable "vpn_unit" {
@@ -17,7 +17,7 @@ variable "vpn_unit" {
 }
 
 variable "vpn_ips" {
-  type = list
+  type = list(any)
 }
 
 locals {
@@ -94,5 +94,5 @@ data "null_data_source" "endpoints" {
 }
 
 output "endpoints" {
-  value = "${split(",", data.null_data_source.endpoints.outputs["list"])}"
+  value = split(",", data.null_data_source.endpoints.outputs["list"])
 }

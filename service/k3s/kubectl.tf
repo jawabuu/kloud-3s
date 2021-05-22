@@ -21,7 +21,7 @@ EOT
   }
 }
 
-resource null_resource kubeconfig {
+resource "null_resource" "kubeconfig" {
 
   count = var.node_count > 0 ? 1 : 0
   triggers = {

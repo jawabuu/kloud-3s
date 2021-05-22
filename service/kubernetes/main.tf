@@ -1,7 +1,7 @@
 variable "node_count" {}
 
 variable "connections" {
-  type = list
+  type = list(any)
 }
 
 variable "ssh_key_path" {
@@ -9,7 +9,7 @@ variable "ssh_key_path" {
 }
 
 variable "vpn_ips" {
-  type = list
+  type = list(any)
 }
 
 variable "vpn_interface" {
@@ -17,7 +17,7 @@ variable "vpn_interface" {
 }
 
 variable "etcd_endpoints" {
-  type = list
+  type = list(any)
 }
 
 variable "overlay_interface" {

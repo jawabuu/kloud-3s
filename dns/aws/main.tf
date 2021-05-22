@@ -9,11 +9,11 @@ variable "region" {}
 variable "domain" {}
 
 variable "hostnames" {
-  type = list
+  type = list(any)
 }
 
 variable "public_ips" {
-  type = list
+  type = list(any)
 }
 
 variable "trform_domain" {
@@ -36,7 +36,7 @@ data "aws_route53_zone" "selected_domain" {
 resource "aws_route53_record" "hosts" {
   count = var.node_count
 
-  zone_id = "${data.aws_route53_zone.selected_domain.zone_id}"
+  zone_id = data.aws_route53_zone.selected_domain.zone_id
   name    = "${element(var.hostnames, count.index)}.${data.aws_route53_zone.selected_domain.name}"
   type    = "A"
   ttl     = "300"
@@ -65,7 +65,7 @@ resource "aws_route53_record" "wildcard" {
 }
 
 output "domains" {
-  value = "${aws_route53_record.hosts.*.name}"
+  value = aws_route53_record.hosts.*.name
 }
 
 output "dns_auth" {

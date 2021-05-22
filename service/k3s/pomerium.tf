@@ -39,6 +39,6 @@ resource "null_resource" "pomerium" {
   }
 }
 
-output pomerium {
+output "pomerium" {
   value = local.pomerium
 }

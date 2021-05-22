@@ -3,7 +3,7 @@ resource "hcloud_network" "kube-vpc" {
   ip_range = var.vpc_cidr
 }
 
-resource hcloud_network_subnet kube-hosts {
+resource "hcloud_network_subnet" "kube-hosts" {
   type         = "server"
   network_id   = hcloud_network.kube-vpc.id
   network_zone = "eu-central"

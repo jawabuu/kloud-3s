@@ -41,6 +41,6 @@ resource "null_resource" "trow" {
   }
 }
 
-output trow {
+output "trow" {
   value = local.trow
 }

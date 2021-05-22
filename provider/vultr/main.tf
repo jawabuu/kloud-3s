@@ -21,7 +21,7 @@ variable "os" {
 }
 
 variable "ssh_keys" {
-  type = list
+  type = list(any)
 }
 
 variable "vpc_cidr" {
@@ -37,7 +37,7 @@ provider "vultr" {
 }
 
 variable "apt_packages" {
-  type    = list
+  type    = list(any)
   default = []
 }
 
@@ -151,15 +151,15 @@ data "external" "network_interfaces" {
 }
 */
 output "hostnames" {
-  value = "${vultr_server.host.*.hostname}"
+  value = vultr_server.host.*.hostname
 }
 
 output "public_ips" {
-  value = "${vultr_server.host.*.main_ip}"
+  value = vultr_server.host.*.main_ip
 }
 
 output "private_ips" {
-  value = "${vultr_server.host.*.internal_ip}"
+  value = vultr_server.host.*.internal_ip
 }
 /*
 output "network_interfaces" {
@@ -175,7 +175,7 @@ output "private_network_interface" {
 }
 
 output "vultr_servers" {
-  value = "${vultr_server.host}"
+  value = vultr_server.host
 }
 
 output "region" {

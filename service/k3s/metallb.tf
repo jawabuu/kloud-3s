@@ -31,6 +31,6 @@ resource "null_resource" "metallb_install" {
 
 }
 
-output metallb_config {
+output "metallb_config" {
   value = local.metallb_config
 }

@@ -5,7 +5,7 @@ variable "hostname_format" {
 }
 
 variable "connections" {
-  type = list
+  type = list(any)
 }
 
 variable "ssh_key_path" {
@@ -17,7 +17,7 @@ variable "cluster_name" {
 }
 
 variable "vpn_ips" {
-  type    = list
+  type    = list(any)
   default = []
 }
 
@@ -26,12 +26,12 @@ variable "vpn_interface" {
 }
 
 variable "private_ips" {
-  type    = list
+  type    = list(any)
   default = []
 }
 
 variable "etcd_endpoints" {
-  type    = list
+  type    = list(any)
   default = []
 }
 
@@ -92,7 +92,7 @@ variable "loadbalancer" {
 
 variable "cni_to_overlay_interface_map" {
   description = "The interface created by the CNI e.g. calico=vxlan.calico, cilium=cilium_vxlan, weave-net=weave, flannel=cni0/flannel.1"
-  type        = map
+  type        = map(any)
   default = {
     flannel = "cni0"
     weave   = "weave"
@@ -103,7 +103,7 @@ variable "cni_to_overlay_interface_map" {
 
 variable "install_app" {
   description = "Additional apps to Install"
-  type        = map
+  type        = map(any)
   default     = {}
 }
 
@@ -136,7 +136,7 @@ variable "trform_domain" {
 }
 
 variable "dns_auth" {
-  type        = map
+  type        = map(any)
   description = "Auth for configuring DNS including the provider"
   default = {
     provider = ""
@@ -349,7 +349,7 @@ resource "null_resource" "k3s" {
   }
 
   # Upload k3s file
-  provisioner file {
+  provisioner "file" {
     content     = data.http.k3s_installer.body
     destination = "/tmp/k3s-installer"
   }
@@ -518,7 +518,7 @@ resource "null_resource" "k3s" {
 }
 
 # Get rid of cyclic errors by storing all required variables to be used in destroy provisioner
-resource null_resource k3s_cache {
+resource "null_resource" "k3s_cache" {
   count = var.node_count
 
   triggers = {
@@ -529,7 +529,7 @@ resource null_resource k3s_cache {
 }
 
 # Remove deleted node from cluster
-resource null_resource k3s_cleanup {
+resource "null_resource" "k3s_cleanup" {
   count = var.node_count
 
   triggers = {
@@ -550,7 +550,7 @@ resource null_resource k3s_cleanup {
   }
 
   # Clean up on deleting node
-  provisioner remote-exec {
+  provisioner "remote-exec" {
 
     when       = destroy
     on_failure = continue

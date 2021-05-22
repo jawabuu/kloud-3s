@@ -25,7 +25,7 @@ variable "plan" {
 }
 
 variable "apt_packages" {
-  type    = list
+  type    = list(any)
   default = []
 }
 
@@ -91,15 +91,15 @@ resource "packet_device" "host" {
 }
 
 output "public_ips" {
-  value = "${packet_device.host.*.access_public_ipv4}"
+  value = packet_device.host.*.access_public_ipv4
 }
 
 output "hostnames" {
-  value = "${packet_device.host.*.hostname}"
+  value = packet_device.host.*.hostname
 }
 
 output "private_ips" {
-  value = "${packet_device.host.*.access_private_ipv4}"
+  value = packet_device.host.*.access_private_ipv4
 }
 
 output "public_network_interface" {

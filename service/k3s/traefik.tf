@@ -36,10 +36,10 @@ resource "null_resource" "traefik_apply" {
   }
 }
 
-output traefik {
+output "traefik" {
   value = local.traefik
 }
 
-output default_password {
+output "default_password" {
   value = random_string.default_password.result
 }

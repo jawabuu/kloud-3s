@@ -52,6 +52,6 @@ resource "null_resource" "superset" {
 
 }
 
-output superset {
+output "superset" {
   value = local.superset
 }

@@ -1,7 +1,7 @@
 variable "node_count" {}
 
 variable "connections" {
-  type = list
+  type = list(any)
 }
 
 variable "ssh_key_path" {
@@ -57,7 +57,7 @@ resource "null_resource" "firewall" {
 }
 
 data "template_file" "ufw" {
-  template = "${file("${path.module}/scripts/ufw.sh")}"
+  template = file("${path.module}/scripts/ufw.sh")
 
   vars = {
     private_interface = var.private_interface

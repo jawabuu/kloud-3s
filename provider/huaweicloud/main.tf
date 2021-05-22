@@ -43,7 +43,7 @@ variable "size" {
 }
 
 variable "apt_packages" {
-  type    = list
+  type    = list(any)
   default = []
 }
 
@@ -185,15 +185,15 @@ data "external" "network_interfaces" {
 */
 
 output "hostnames" {
-  value = "${huaweicloud_compute_instance.host.*.name}"
+  value = huaweicloud_compute_instance.host.*.name
 }
 
 output "public_ips" {
-  value = "${huaweicloud_compute_instance.host.*.access_ip_v4}"
+  value = huaweicloud_compute_instance.host.*.access_ip_v4
 }
 
 output "private_ips" {
-  value = "${huaweicloud_compute_instance.host.*.network.0.fixed_ip_v4}"
+  value = huaweicloud_compute_instance.host.*.network.0.fixed_ip_v4
 }
 
 output "public_network_interface" {
@@ -205,7 +205,7 @@ output "private_network_interface" {
 }
 
 output "huaweicloud_compute_instances" {
-  value = "${huaweicloud_compute_instance.host}"
+  value = huaweicloud_compute_instance.host
 }
 
 output "region" {

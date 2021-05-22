@@ -90,7 +90,7 @@ variable "longhorn_replicas" {
 
 variable "install_app" {
   description = "Additional apps to Install"
-  type        = map
+  type        = map(any)
   default = {
     kubernetes_dashboard = true,
     longhorn             = true,
@@ -135,7 +135,7 @@ variable "registry_password" {
 }
 
 variable "apt_packages" {
-  type        = list
+  type        = list(any)
   default     = []
   description = "Additional packages to install"
 }

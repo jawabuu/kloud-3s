@@ -1,7 +1,7 @@
 variable "node_count" {}
 
 variable "connections" {
-  type = list
+  type = list(any)
 }
 
 variable "ssh_key_path" {
@@ -9,7 +9,7 @@ variable "ssh_key_path" {
 }
 
 variable "private_ips" {
-  type = list
+  type = list(any)
 }
 
 variable "vpn_interface" {
@@ -21,7 +21,7 @@ variable "vpn_port" {
 }
 
 variable "hostnames" {
-  type = list
+  type = list(any)
 }
 
 variable "overlay_cidr" {
@@ -202,7 +202,7 @@ data "template_file" "vpn_ips" {
 
 output "vpn_ips" {
   depends_on = [null_resource.wireguard, null_resource.wireguard-reload]
-  value      = "${data.template_file.vpn_ips.*.rendered}"
+  value      = data.template_file.vpn_ips.*.rendered
 }
 
 output "vpn_unit" {
@@ -211,13 +211,13 @@ output "vpn_unit" {
 }
 
 output "vpn_interface" {
-  value = "${var.vpn_interface}"
+  value = var.vpn_interface
 }
 
 output "vpn_port" {
-  value = "${var.vpn_port}"
+  value = var.vpn_port
 }
 
 output "overlay_cidr" {
-  value = "${var.overlay_cidr}"
+  value = var.overlay_cidr
 }

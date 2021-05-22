@@ -38,7 +38,7 @@ variable "size" {
 }
 
 variable "apt_packages" {
-  type    = list
+  type    = list(any)
   default = []
 }
 
@@ -204,15 +204,15 @@ data "external" "network_interfaces" {
 */
 
 output "hostnames" {
-  value = "${aws_instance.host.*.tags.name}"
+  value = aws_instance.host.*.tags.name
 }
 
 output "public_ips" {
-  value = "${aws_instance.host.*.public_ip}"
+  value = aws_instance.host.*.public_ip
 }
 
 output "private_ips" {
-  value = "${aws_instance.host.*.private_ip}"
+  value = aws_instance.host.*.private_ip
 }
 
 output "public_network_interface" {
@@ -224,7 +224,7 @@ output "private_network_interface" {
 }
 
 output "aws_instances" {
-  value = "${aws_instance.host}"
+  value = aws_instance.host
 }
 
 output "region" {

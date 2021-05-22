@@ -49,6 +49,6 @@ resource "null_resource" "longhorn_apply" {
 
 }
 
-output longhorn {
+output "longhorn" {
   value = local.longhorn
 }

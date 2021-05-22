@@ -32,7 +32,7 @@ variable "size" {
 }
 
 variable "apt_packages" {
-  type    = list
+  type    = list(any)
   default = []
 }
 
@@ -161,15 +161,15 @@ data "external" "network_interfaces" {
 */
 
 output "hostnames" {
-  value = "${google_compute_instance.host.*.name}"
+  value = google_compute_instance.host.*.name
 }
 
 output "public_ips" {
-  value = "${google_compute_instance.host.*.network_interface.0.access_config.0.nat_ip}"
+  value = google_compute_instance.host.*.network_interface.0.access_config.0.nat_ip
 }
 
 output "private_ips" {
-  value = "${google_compute_instance.host.*.network_interface.0.network_ip}"
+  value = google_compute_instance.host.*.network_interface.0.network_ip
 }
 
 output "public_network_interface" {
@@ -181,7 +181,7 @@ output "private_network_interface" {
 }
 
 output "google_compute_instances" {
-  value = "${google_compute_instance.host}"
+  value = google_compute_instance.host
 }
 
 output "region" {

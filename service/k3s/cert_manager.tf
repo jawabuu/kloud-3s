@@ -32,6 +32,6 @@ resource "null_resource" "cert_manager_apply" {
   }
 }
 
-output cert_manager {
+output "cert_manager" {
   value = local.cert_manager
 }

@@ -38,7 +38,7 @@ variable "size" {
 }
 
 variable "apt_packages" {
-  type    = list
+  type    = list(any)
   default = []
 }
 
@@ -163,15 +163,15 @@ data "external" "network_interfaces" {
 */
 
 output "hostnames" {
-  value = "${alicloud_instance.host.*.instance_name}"
+  value = alicloud_instance.host.*.instance_name
 }
 
 output "public_ips" {
-  value = "${alicloud_instance.host.*.public_ip}"
+  value = alicloud_instance.host.*.public_ip
 }
 
 output "private_ips" {
-  value = "${alicloud_instance.host.*.private_ip}"
+  value = alicloud_instance.host.*.private_ip
 }
 
 output "public_network_interface" {
@@ -183,7 +183,7 @@ output "private_network_interface" {
 }
 
 output "alicloud_instances" {
-  value = "${alicloud_instance.host}"
+  value = alicloud_instance.host
 }
 
 output "region" {

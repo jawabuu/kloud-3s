@@ -21,7 +21,7 @@ variable "image" {
 }
 
 variable "ssh_keys" {
-  type = list
+  type = list(any)
 }
 
 variable "vpc_cidr" {
@@ -35,7 +35,7 @@ provider "hcloud" {
 }
 
 variable "apt_packages" {
-  type    = list
+  type    = list(any)
   default = []
 }
 
@@ -100,15 +100,15 @@ data "external" "network_interfaces" {
 }
 */
 output "hostnames" {
-  value = "${hcloud_server.host.*.name}"
+  value = hcloud_server.host.*.name
 }
 
 output "public_ips" {
-  value = "${hcloud_server.host.*.ipv4_address}"
+  value = hcloud_server.host.*.ipv4_address
 }
 
 output "private_ips" {
-  value = "${hcloud_server_network.kube-host-network.*.ip}"
+  value = hcloud_server_network.kube-host-network.*.ip
 }
 /*
 output "network_interfaces" {
@@ -124,7 +124,7 @@ output "private_network_interface" {
 }
 
 output "hcloud_servers" {
-  value = "${hcloud_server.host}"
+  value = hcloud_server.host
 }
 
 output "region" {

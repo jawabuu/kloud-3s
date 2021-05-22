@@ -43,7 +43,7 @@ variable "hosts" {
 }
 
 variable "ssh_keys" {
-  type = list
+  type = list(any)
 }
 
 variable "hostname_format" {
@@ -65,7 +65,7 @@ variable "size" {
 }
 
 variable "apt_packages" {
-  type    = list
+  type    = list(any)
   default = []
 }
 
@@ -204,7 +204,7 @@ data "external" "network_interfaces" {
 }
 */
 output "hostnames" {
-  value = "${openstack_compute_instance_v2.host.*.name}"
+  value = openstack_compute_instance_v2.host.*.name
 }
 
 output "public_ips" {
@@ -232,7 +232,7 @@ output "private_network_interface" {
 }
 
 output "ovh_servers" {
-  value = "${openstack_compute_instance_v2.host}"
+  value = openstack_compute_instance_v2.host
 }
 
 output "region" {

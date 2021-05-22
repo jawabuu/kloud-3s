@@ -35,6 +35,6 @@ resource "null_resource" "external_dns_apply" {
 
 }
 
-output external_dns {
+output "external_dns" {
   value = local.external_dns
 }

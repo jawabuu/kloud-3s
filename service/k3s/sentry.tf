@@ -34,6 +34,6 @@ resource "null_resource" "sentry" {
   }
 }
 
-output sentry {
+output "sentry" {
   value = local.sentry
 }

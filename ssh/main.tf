@@ -13,10 +13,10 @@ variable "ssh_keys_dir" {
 # Create SSH Keys for terraform
 resource "null_resource" "create_ssh_keys" {
 
-  count = fileexists("${var.ssh_key_path}") ? 0 : 1
+  count = fileexists(var.ssh_key_path) ? 0 : 1
 
   triggers = {
-    ssh = fileexists("${var.ssh_key_path}")
+    ssh = fileexists(var.ssh_key_path)
   }
 
   provisioner "local-exec" {
@@ -40,9 +40,9 @@ EOF
 }
 
 output "private_key" {
-  value = fileexists("${var.ssh_key_path}") ? var.ssh_key_path : data.external.ssh_keys.result["private_key"]
+  value = fileexists(var.ssh_key_path) ? var.ssh_key_path : data.external.ssh_keys.result["private_key"]
 }
 
 output "public_key" {
-  value = fileexists("${var.ssh_pubkey_path}") ? var.ssh_pubkey_path : data.external.ssh_keys.result["public_key"]
+  value = fileexists(var.ssh_pubkey_path) ? var.ssh_pubkey_path : data.external.ssh_keys.result["public_key"]
 }

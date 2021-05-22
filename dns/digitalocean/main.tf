@@ -5,11 +5,20 @@ variable "token" {}
 variable "domain" {}
 
 variable "hostnames" {
-  type = list
+  type = list(any)
 }
 
 variable "public_ips" {
-  type = list
+  type = list(any)
+}
+
+terraform {
+  required_providers {
+    digitalocean = {
+      source  = "digitalocean/digitalocean"
+      version = "~> 2.8.0"
+    }
+  }
 }
 
 provider "digitalocean" {
@@ -68,7 +77,7 @@ resource "digitalocean_record" "wildcard" {
 }
 
 output "domains" {
-  value = "${digitalocean_record.hosts.*.fqdn}"
+  value = digitalocean_record.hosts.*.fqdn
 }
 
 output "dns_auth" {

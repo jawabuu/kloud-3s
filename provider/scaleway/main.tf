@@ -25,7 +25,7 @@ variable "image" {
 }
 
 variable "apt_packages" {
-  type    = list
+  type    = list(any)
   default = []
 }
 
@@ -128,7 +128,7 @@ output "private_network_interface" {
 }
 
 output "scaleway_servers" {
-  value = "${scaleway_instance_server.host}"
+  value = scaleway_instance_server.host
 }
 
 output "region" {

@@ -29,6 +29,6 @@ resource "null_resource" "kubernetes_dashboard_apply" {
 
 }
 
-output kubernetes_dashboard {
+output "kubernetes_dashboard" {
   value = local.kubernetes_dashboard
 }

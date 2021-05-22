@@ -21,7 +21,7 @@ variable "image" {
 }
 
 variable "ssh_keys" {
-  type = list
+  type = list(any)
 }
 
 provider "linode" {
@@ -29,7 +29,7 @@ provider "linode" {
 }
 
 variable "apt_packages" {
-  type    = list
+  type    = list(any)
   default = []
 }
 
@@ -102,15 +102,15 @@ data "external" "network_interfaces" {
 }
 */
 output "hostnames" {
-  value = "${linode_instance.host.*.label}"
+  value = linode_instance.host.*.label
 }
 
 output "public_ips" {
-  value = "${linode_instance.host.*.ip_address}"
+  value = linode_instance.host.*.ip_address
 }
 
 output "private_ips" {
-  value = "${linode_instance.host.*.private_ip_address}"
+  value = linode_instance.host.*.private_ip_address
 }
 /*
 output "network_interfaces" {
@@ -126,7 +126,7 @@ output "private_network_interface" {
 }
 
 output "linode_servers" {
-  value = "${linode_instance.host}"
+  value = linode_instance.host
 }
 
 output "region" {
