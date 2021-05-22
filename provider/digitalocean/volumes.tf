@@ -15,10 +15,10 @@ resource "digitalocean_volume_attachment" "kube_volume_attach" {
 }
 
 resource "digitalocean_volume" "kube_volume" {
-  count  = var.enable_volumes ? var.hosts : 0
-  region = var.region
-  name   = format(var.hostname_format, count.index + 1)
-  size   = var.volume_size
+  count       = var.enable_volumes ? var.hosts : 0
+  region      = var.region
+  name        = format(var.hostname_format, count.index + 1)
+  size        = var.volume_size
   description = "kloud3s extra volume"
 }
 
