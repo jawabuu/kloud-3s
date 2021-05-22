@@ -125,7 +125,7 @@ resource "vsphere_virtual_machine" "host" {
     inline = [
       "hostnamectl set-hostname '${format(var.hostname_format, count.index + 1)}'",
       "apt-get update",
-      "apt-get install -yq apt-transport-https curl ufw wireguard-tools wireguard ${join(" ", var.apt_packages)}",
+      "apt-get install -yq apt-transport-https curl ufw wireguard-tools wireguard open-iscsi nfs-common ${join(" ", var.apt_packages)}",
       "DEBIAN_FRONTEND=noninteractive apt-get install -yq -o Dpkg::Options::=--force-confnew sudo",
     ]
   }

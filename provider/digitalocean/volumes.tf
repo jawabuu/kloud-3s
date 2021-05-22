@@ -40,7 +40,6 @@ resource "null_resource" "mount_volume" {
   provisioner "remote-exec" {
     inline = [
       "while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done",
-      "apt-get install -yq open-iscsi nfs-common",
       "mkfs.ext4 -F /dev/disk/by-id/scsi-0DO_Volume_${digitalocean_volume.kube_volume[count.index].name}",
       "mkdir /mnt/kloud3s",
       "mount -o discard,defaults /dev/disk/by-id/scsi-0DO_Volume_${digitalocean_volume.kube_volume[count.index].name} /mnt/kloud3s",

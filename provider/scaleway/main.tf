@@ -76,7 +76,7 @@ resource "scaleway_instance_server" "host" {
   provisioner "remote-exec" {
     inline = [
       "apt-get update",
-      "apt-get install -yq apt-transport-https net-tools jq ufw netcat-traditional wireguard-tools wireguard ${join(" ", var.apt_packages)}",
+      "apt-get install -yq apt-transport-https net-tools jq ufw netcat-traditional wireguard-tools wireguard open-iscsi nfs-common ${join(" ", var.apt_packages)}",
       # fix a problem with later wireguard installation
       "DEBIAN_FRONTEND=noninteractive apt-get install -yq -o Dpkg::Options::=--force-confnew sudo",
     ]

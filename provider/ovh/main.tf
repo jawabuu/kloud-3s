@@ -183,7 +183,7 @@ EOF
     inline = [
       "until [ -f /var/lib/cloud/instance/boot-finished ]; do sleep 1; done",
       "sudo apt-get update",
-      "sudo apt-get install -yq jq net-tools ufw wireguard-tools wireguard ${join(" ", var.apt_packages)}",
+      "sudo apt-get install -yq jq net-tools ufw wireguard-tools wireguard open-iscsi nfs-common ${join(" ", var.apt_packages)}",
     ]
   }
 

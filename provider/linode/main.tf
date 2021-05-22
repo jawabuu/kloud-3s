@@ -82,7 +82,7 @@ resource "linode_instance" "host" {
       "while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done",
       "hostnamectl set-hostname ${self.label}",
       "apt-get update",
-      "apt-get install -yq jq net-tools ufw wireguard-tools wireguard ${join(" ", var.apt_packages)}",
+      "apt-get install -yq jq net-tools ufw wireguard-tools wireguard open-iscsi nfs-common ${join(" ", var.apt_packages)}",
     ]
   }
 }

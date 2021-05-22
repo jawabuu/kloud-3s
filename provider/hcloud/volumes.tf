@@ -42,7 +42,6 @@ resource "null_resource" "mount_volume" {
   provisioner "remote-exec" {
     inline = [
       "while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done",
-      "apt-get install -yq open-iscsi nfs-common",
       "mkfs.ext4 -F ${hcloud_volume.kube_volume[count.index].linux_device}",
       "mkdir /mnt/kloud3s",
       "mount -o discard,defaults ${hcloud_volume.kube_volume[count.index].linux_device} /mnt/kloud3s",

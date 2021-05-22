@@ -34,7 +34,6 @@ resource "null_resource" "mount_volume" {
   provisioner "remote-exec" {
     inline = [
       "while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done",
-      "apt-get install -yq open-iscsi nfs-common",
       "mkfs.ext4 -F /dev/disk/by-id/scsi-0Linode_Volume_${linode_volume.kube_volume[count.index].label}",
       "mkdir /mnt/kloud3s",
       "mount -o discard,defaults /dev/disk/by-id/scsi-0Linode_Volume_${linode_volume.kube_volume[count.index].label} /mnt/kloud3s",

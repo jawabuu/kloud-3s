@@ -83,7 +83,7 @@ resource "packet_device" "host" {
   provisioner "remote-exec" {
     inline = [
       "apt-get update",
-      "apt-get install -yq apt-transport-https ufw wireguard-tools wireguard ${join(" ", var.apt_packages)}",
+      "apt-get install -yq apt-transport-https ufw wireguard-tools wireguard open-iscsi nfs-common ${join(" ", var.apt_packages)}",
       # fix a problem with later wireguard installation
       "DEBIAN_FRONTEND=noninteractive apt-get install -yq -o Dpkg::Options::=--force-confnew sudo",
     ]
