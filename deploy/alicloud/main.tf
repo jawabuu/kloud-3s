@@ -104,6 +104,7 @@ module "k3s" {
   loadbalancer      = var.loadbalancer
   registry_user     = var.registry_user
   registry_password = var.registry_password
+  enable_volumes    = var.enable_volumes
 }
 
 output "private_key" {

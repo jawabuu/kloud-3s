@@ -1,5 +1,5 @@
 variable "enable_volumes" {
-  default     = true
+  default     = false
   description = "Whether to use volumes or not"
 }
 
