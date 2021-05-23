@@ -11,6 +11,10 @@ variable "ssh_key_path" {
 resource "null_resource" "swap" {
   count = var.node_count
 
+  triggers = {
+    node_public_ip = element(var.connections, count.index)
+  }
+
   connection {
     host        = element(var.connections, count.index)
     user        = "root"
