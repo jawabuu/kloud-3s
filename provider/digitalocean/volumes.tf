@@ -43,7 +43,7 @@ resource "null_resource" "mount_volume" {
       "mkfs.ext4 -F /dev/disk/by-id/scsi-0DO_Volume_${digitalocean_volume.kube_volume[count.index].name}",
       "mkdir /mnt/kloud3s",
       "mount -o discard,defaults /dev/disk/by-id/scsi-0DO_Volume_${digitalocean_volume.kube_volume[count.index].name} /mnt/kloud3s",
-      "echo /dev/disk/by-id/scsi-0DO_Volume_'${digitalocean_volume.kube_volume[count.index].name} /mnt/kloud3s ext4 discard,nofail,defaults 0 0' >> /etc/fstab",
+      "echo '/dev/disk/by-id/scsi-0DO_Volume_${digitalocean_volume.kube_volume[count.index].name} /mnt/kloud3s ext4 discard,nofail,defaults 0 0' >> /etc/fstab",
     ]
   }
 }
