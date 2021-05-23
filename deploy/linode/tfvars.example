@@ -8,11 +8,25 @@ k3s_version = "v1.20.4+k3s1"
 node_count = 2
 linode_token = "<required>"
 
+enable_volumes           = "false"
+volume_size              = 10
+enable_floatingip        = "false"
+
+install_app = {
+  kubernetes_dashboard = false,
+  longhorn             = false,
+  ip-floater           = false,
+  vault                = false,
+  trow                 = false,
+  superset             = false,
+  sentry               = false,
+  kube_prometheus      = false,
+  elastic_cloud        = false
+}
 # HA Cluster
 #ha_cluster = "true"
 # External DNS Management and WildCard Letsencrypt Certs
 #trform_domain = "false"
 # LetsEncrypt Cert Issuance 
 #create_certs = "true"
-# Additional Apps
-#install_app = { kubernetes_dashboard = true, longhorn = true}
+
