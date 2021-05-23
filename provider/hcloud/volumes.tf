@@ -43,7 +43,7 @@ resource "null_resource" "mount_volume" {
     inline = [
       "while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done",
       "mkfs.ext4 -F ${hcloud_volume.kube_volume[count.index].linux_device}",
-      "mkdir /mnt/kloud3s",
+      "mkdir -p /mnt/kloud3s",
       "mount -o discard,defaults ${hcloud_volume.kube_volume[count.index].linux_device} /mnt/kloud3s",
       "echo '${hcloud_volume.kube_volume[count.index].linux_device} /mnt/kloud3s ext4 discard,nofail,defaults 0 0' >> /etc/fstab",
     ]

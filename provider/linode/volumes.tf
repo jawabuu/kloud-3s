@@ -35,7 +35,7 @@ resource "null_resource" "mount_volume" {
     inline = [
       "while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done",
       "mkfs.ext4 -F /dev/disk/by-id/scsi-0Linode_Volume_${linode_volume.kube_volume[count.index].label}",
-      "mkdir /mnt/kloud3s",
+      "mkdir -p /mnt/kloud3s",
       "mount -o discard,defaults /dev/disk/by-id/scsi-0Linode_Volume_${linode_volume.kube_volume[count.index].label} /mnt/kloud3s",
       "echo '/dev/disk/by-id/scsi-0Linode_Volume_${linode_volume.kube_volume[count.index].label} /mnt/kloud3s ext4 discard,nofail,defaults 0 0' >> /etc/fstab",
     ]
