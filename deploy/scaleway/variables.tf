@@ -70,11 +70,6 @@ variable "ha_cluster" {
   description = "Create highly available cluster. Currently experimental and requires node_count >= 3"
 }
 
-variable "loadbalancer" {
-  default     = "metallb"
-  description = "How LoadBalancer IPs are assigned. Options are metallb(default), traefik, ccm & akrobateo"
-}
-
 variable "trform_domain" {
   type        = bool
   default     = false

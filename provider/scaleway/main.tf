@@ -37,6 +37,12 @@ variable "ssh_pubkey_path" {
   type = string
 }
 
+variable "vpc_cidr" {
+  default = "10.115.0.0/24"
+}
+
+resource "time_static" "id" {}
+
 resource "scaleway_account_ssh_key" "tf-kube" {
   name       = "tf-kube-${time_static.id.unix}"
   public_key = file(var.ssh_pubkey_path)
@@ -52,7 +58,7 @@ provider "scaleway" {
   access_key      = var.access_key
   secret_key      = var.secret_key
   zone            = var.zone
-  version         = ">= 1.14"
+  version         = "1.17.2"
 }
 
 resource "scaleway_instance_server" "host" {
@@ -132,7 +138,7 @@ output "scaleway_servers" {
 }
 
 output "region" {
-  value = var.region
+  value = var.zone
 }
 
 output "nodes" {
