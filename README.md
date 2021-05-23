@@ -6,6 +6,7 @@ The following are currently tested;
 * [Vultr](https://www.vultr.com/?ref=8601755)
 * [DigitalOcean](https://www.digitalocean.com/?refcode=661c567f71b1)
 * [Linode](https://www.linode.com/?r=b402c474596a2d1656eac49aefe071916cbb2d61)
+* [UpCloud](https://upcloud.com/signup/?promo=Q25K8M)
 * [ScaleWay](https://www.scaleway.com/)
 * [OVH](https://www.ovhcloud.com/en/public-cloud/)
 * [Google Cloud](https://cloud.google.com/)
@@ -183,6 +184,7 @@ Provider variables
 | **HetznerCloud** | hcloud_token | hcloud_type | hcloud_image | hcloud_location |
 | **Vultr** | vultr_api_key | vultr_plan | vultr_os | vultr_region |
 | **Linode** | linode_token | linode_type | linode_image | linode_region |
+| **UpCloud** | upcloud_username, upcloud_password | upcloud_plan | upcloud_image | upcloud_zone |
 | **ScaleWay** | scaleway_organization_id, scaleway_access_key, scaleway_secret_key | scaleway_type | scaleway_image | scaleway_zone |
 | **OVH** | tenant_name, user_name, password | ovh_type | ovh_image | region |
 | **Google** | creds_file | size | image | region, region_zone |
