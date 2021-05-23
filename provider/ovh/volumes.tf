@@ -7,3 +7,68 @@ variable "volume_size" {
   default     = 10
   description = "Volume size"
 }
+
+resource "openstack_blockstorage_volume_v2" "kube_volume" {
+  count = var.enable_volumes ? var.hosts : 0
+  name  = format(var.hostname_format, count.index + 1)
+  size  = var.volume_size
+}
+
+resource "openstack_compute_volume_attach_v2" "kube_volume_attach" {
+  count       = var.enable_volumes ? var.hosts : 0
+  instance_id = openstack_compute_instance_v2.host[count.index].id
+  volume_id   = openstack_blockstorage_volume_v2.kube_volume[count.index].id
+}
+
+resource "null_resource" "mount_volume" {
+  count = var.enable_volumes ? var.hosts : 0
+  triggers = {
+    volume = openstack_blockstorage_volume_v2.kube_volume[count.index].id
+    server = openstack_compute_instance_v2.host[count.index].id
+  }
+
+  depends_on = [openstack_compute_volume_attach_v2.kube_volume_attach]
+
+  connection {
+    host        = openstack_compute_instance_v2.host[count.index].network[1].fixed_ip_v4
+    user        = "root"
+    agent       = false
+    private_key = file(var.ssh_key_path)
+    timeout     = "30s"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done",
+      "mkfs.ext4 -F /dev/sdb",
+      "mkdir -p /mnt/kloud3s",
+      "mount -o discard,defaults /dev/sdb /mnt/kloud3s",
+      "echo '/dev/sdb /mnt/kloud3s ext4 discard,nofail,defaults 0 0' >> /etc/fstab",
+    ]
+  }
+}
+
+
+resource "null_resource" "resize_volume" {
+  count = var.enable_volumes ? var.hosts : 0
+  triggers = {
+    size = var.volume_size
+  }
+
+  depends_on = [null_resource.mount_volume]
+
+  connection {
+    host        = openstack_compute_instance_v2.host[count.index].network[1].fixed_ip_v4
+    user        = "root"
+    agent       = false
+    private_key = file(var.ssh_key_path)
+    timeout     = "30s"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "resize2fs /dev/sdb || true",
+      "df -h | grep sdb || true",
+    ]
+  }
+}
