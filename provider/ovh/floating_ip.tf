@@ -6,7 +6,7 @@ variable "enable_floatingip" {
 
 resource "openstack_networking_floatingip_v2" "kloud3s" {
   count = var.hosts > 0 && var.enable_floatingip ? 1 : 0
-  pool  = openstack_networking_network_v2.kube-vpc.name #"Ext-Net"
+  pool  = "Ext-Net"
 }
 
 output "floating_ip" {
