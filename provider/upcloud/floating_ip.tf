@@ -14,6 +14,6 @@ output "floating_ip" {
   value = {
     ip_address    = try(upcloud_floating_ip_address.kloud3s[0].ip_address, ""),
     provider      = "upcloud"
-    provider_auth = var.password
+    provider_auth = base64encode("${var.username}:${var.password}")
   }
 }

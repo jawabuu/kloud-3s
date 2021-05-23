@@ -30,6 +30,15 @@ variable "vpc_cidr" {
 
 resource "time_static" "id" {}
 
+terraform {
+  required_providers {
+    vultr = {
+      source  = "vultr/vultr"
+      version = "~> 1.5.0"
+    }
+  }
+}
+
 provider "vultr" {
   api_key     = var.api_key
   rate_limit  = 700
