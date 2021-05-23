@@ -73,7 +73,7 @@ data "vultr_os" "os" {
 
 resource "vultr_ssh_key" "tf-kube" {
   name    = "tf-kube-${time_static.id.unix}"
-  ssh_key = file("${var.ssh_pubkey_path}")
+  ssh_key = file(var.ssh_pubkey_path)
   lifecycle {
     ignore_changes = [
       ssh_key
@@ -98,7 +98,7 @@ resource "vultr_server" "host" {
     timeout     = "2m"
     host        = self.main_ip
     agent       = false
-    private_key = file("${var.ssh_key_path}")
+    private_key = file(var.ssh_key_path)
   }
 
   provisioner "remote-exec" {

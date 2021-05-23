@@ -176,7 +176,7 @@ resource "azurerm_linux_virtual_machine" "host" {
     timeout     = "2m"
     host        = self.public_ip_address
     agent       = false
-    private_key = file("${var.ssh_key_path}")
+    private_key = file(var.ssh_key_path)
   }
 
   provisioner "remote-exec" {

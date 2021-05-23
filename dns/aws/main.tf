@@ -40,7 +40,7 @@ resource "aws_route53_record" "hosts" {
   name    = "${element(var.hostnames, count.index)}.${data.aws_route53_zone.selected_domain.name}"
   type    = "A"
   ttl     = "300"
-  records = ["${element(var.public_ips, count.index)}"]
+  records = [element(var.public_ips, count.index)]
 }
 
 resource "aws_route53_record" "domain" {
@@ -50,7 +50,7 @@ resource "aws_route53_record" "domain" {
   name    = data.aws_route53_zone.selected_domain.name
   type    = "A"
   ttl     = "300"
-  records = ["${element(var.public_ips, 0)}"]
+  records = [element(var.public_ips, 0)]
 }
 
 resource "aws_route53_record" "wildcard" {
@@ -61,7 +61,7 @@ resource "aws_route53_record" "wildcard" {
   name    = "*"
   type    = "CNAME"
   ttl     = "300"
-  records = ["${data.aws_route53_zone.selected_domain.name}"]
+  records = [data.aws_route53_zone.selected_domain.name]
 }
 
 output "domains" {

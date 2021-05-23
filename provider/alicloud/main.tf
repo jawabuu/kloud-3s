@@ -133,7 +133,7 @@ resource "alicloud_instance" "host" {
     timeout     = "2m"
     host        = self.public_ip
     agent       = false
-    private_key = file("${var.ssh_key_path}")
+    private_key = file(var.ssh_key_path)
   }
 
   provisioner "remote-exec" {

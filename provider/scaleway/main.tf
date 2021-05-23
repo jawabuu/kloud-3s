@@ -39,7 +39,7 @@ variable "ssh_pubkey_path" {
 
 resource "scaleway_account_ssh_key" "tf-kube" {
   name       = "tf-kube-${time_static.id.unix}"
-  public_key = file("${var.ssh_pubkey_path}")
+  public_key = file(var.ssh_pubkey_path)
   lifecycle {
     ignore_changes = [
       public_key
@@ -69,7 +69,7 @@ resource "scaleway_instance_server" "host" {
     timeout     = "2m"
     host        = self.public_ip
     agent       = false
-    private_key = file("${var.ssh_key_path}")
+    private_key = file(var.ssh_key_path)
   }
 
 

@@ -22,7 +22,7 @@ resource "null_resource" "cert_manager_apply" {
     host        = self.triggers.master_public_ip
     user        = "root"
     agent       = false
-    private_key = file("${self.triggers.ssh_key_path}")
+    private_key = file(self.triggers.ssh_key_path)
   }
 
   # Upload cert_manager

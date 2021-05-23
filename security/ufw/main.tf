@@ -44,13 +44,13 @@ resource "null_resource" "firewall" {
     host        = element(var.connections, count.index)
     user        = "root"
     agent       = false
-    private_key = file("${var.ssh_key_path}")
+    private_key = file(var.ssh_key_path)
 
   }
 
   provisioner "remote-exec" {
     inline = [
-      "${data.template_file.ufw.rendered}"
+      data.template_file.ufw.rendered
     ]
 
   }

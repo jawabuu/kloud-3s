@@ -24,7 +24,7 @@ resource "null_resource" "external_dns_apply" {
     host        = self.triggers.master_public_ip
     user        = "root"
     agent       = false
-    private_key = file("${self.triggers.ssh_key_path}")
+    private_key = file(self.triggers.ssh_key_path)
   }
 
   # Upload external-dns

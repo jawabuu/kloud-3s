@@ -18,7 +18,7 @@ resource "null_resource" "kubernetes_dashboard_apply" {
     host        = self.triggers.master_public_ip
     user        = "root"
     agent       = false
-    private_key = file("${self.triggers.ssh_key_path}")
+    private_key = file(self.triggers.ssh_key_path)
   }
 
   # Upload kubernetes_dashboard

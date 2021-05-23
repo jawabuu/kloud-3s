@@ -27,7 +27,7 @@ resource "null_resource" "mount_volume" {
     host        = linode_instance.host[count.index].ip_address
     user        = "root"
     agent       = false
-    private_key = file("${var.ssh_key_path}")
+    private_key = file(var.ssh_key_path)
     timeout     = "30s"
   }
 
@@ -54,7 +54,7 @@ resource "null_resource" "resize_volume" {
     host        = linode_instance.host[count.index].ip_address
     user        = "root"
     agent       = false
-    private_key = file("${var.ssh_key_path}")
+    private_key = file(var.ssh_key_path)
     timeout     = "30s"
   }
 

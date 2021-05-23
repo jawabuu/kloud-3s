@@ -20,7 +20,7 @@ resource "null_resource" "metallb_install" {
     host        = self.triggers.master_public_ip
     user        = "root"
     agent       = false
-    private_key = file("${self.triggers.ssh_key_path}")
+    private_key = file(self.triggers.ssh_key_path)
   }
 
   # Upload metallb

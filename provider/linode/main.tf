@@ -74,7 +74,7 @@ resource "linode_instance" "host" {
     timeout     = "2m"
     host        = self.ip_address
     agent       = false
-    private_key = file("${var.ssh_key_path}")
+    private_key = file(var.ssh_key_path)
   }
 
   provisioner "remote-exec" {

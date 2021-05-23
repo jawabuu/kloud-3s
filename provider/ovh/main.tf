@@ -95,7 +95,7 @@ provider "ovh" {
 data ovh_vracks vracks {}
 
 output "vracks" {
-  value = "${data.ovh_vracks.vracks}"
+  value = data.ovh_vracks.vracks
 }
 */
 
@@ -109,7 +109,7 @@ provider "openstack" {
 
 resource "openstack_compute_keypair_v2" "tf-kube" {
   name       = "tf-kube-${time_static.id.unix}"
-  public_key = file("${var.ssh_pubkey_path}")
+  public_key = file(var.ssh_pubkey_path)
   lifecycle {
     ignore_changes = [
       public_key
@@ -176,7 +176,7 @@ EOF
     timeout     = "2m"
     host        = self.network[1].fixed_ip_v4
     agent       = false
-    private_key = file("${var.ssh_key_path}")
+    private_key = file(var.ssh_key_path)
   }
 
   provisioner "remote-exec" {

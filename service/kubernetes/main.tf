@@ -51,7 +51,7 @@ resource "null_resource" "kubernetes" {
     host        = element(var.connections, count.index)
     user        = "root"
     agent       = false
-    private_key = file("${var.ssh_key_path}")
+    private_key = file(var.ssh_key_path)
   }
 
   provisioner "remote-exec" {

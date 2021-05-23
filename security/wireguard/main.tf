@@ -43,7 +43,7 @@ resource "null_resource" "wireguard" {
     host        = element(var.connections, count.index)
     user        = "root"
     agent       = false
-    private_key = file("${var.ssh_key_path}")
+    private_key = file(var.ssh_key_path)
   }
 
   provisioner "remote-exec" {
@@ -66,7 +66,7 @@ resource "null_resource" "wireguard" {
 
   provisioner "remote-exec" {
     inline = [
-      "${join("\n", formatlist("echo '%s %s' >> /etc/hosts", data.template_file.vpn_ips.*.rendered, var.hostnames))}",
+      join("\n", formatlist("echo '%s %s' >> /etc/hosts", data.template_file.vpn_ips.*.rendered, var.hostnames)),
       "systemctl is-enabled wg-quick@${var.vpn_interface} || systemctl enable wg-quick@${var.vpn_interface}",
       "systemctl daemon-reload",
       "systemctl restart wg-quick@${var.vpn_interface}",
@@ -102,7 +102,7 @@ resource "null_resource" "wireguard-reload" {
     host        = element(var.connections, count.index)
     user        = "root"
     agent       = false
-    private_key = file("${var.ssh_key_path}")
+    private_key = file(var.ssh_key_path)
   }
 
   provisioner "file" {
@@ -120,7 +120,7 @@ resource "null_resource" "wireguard-reload" {
     inline = [
       #"echo '------WIREGUARD 1-----'",
       #"wg",
-      "${join("\n", formatlist("echo '%s %s' >> /etc/hosts", data.template_file.vpn_ips.*.rendered, var.hostnames))}",
+      join("\n", formatlist("echo '%s %s' >> /etc/hosts", data.template_file.vpn_ips.*.rendered, var.hostnames)),
       "systemctl is-enabled wg-quick@${var.vpn_interface} || systemctl enable wg-quick@${var.vpn_interface}",
       #"echo '------WIREGUARD 2-----'",
       #"wg",
@@ -146,7 +146,7 @@ data "template_file" "interface-conf" {
     address     = element(data.template_file.vpn_ips.*.rendered, count.index)
     port        = var.vpn_port
     private_key = element(data.external.keys.*.result.private_key, count.index)
-    peers       = "${replace(join("\n", data.template_file.peer-conf.*.rendered), element(data.template_file.peer-conf.*.rendered, count.index), "")}"
+    peers       = replace(join("\n", data.template_file.peer-conf.*.rendered), element(data.template_file.peer-conf.*.rendered, count.index), "")
   }
 }
 

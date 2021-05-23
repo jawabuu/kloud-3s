@@ -49,7 +49,7 @@ provider "digitalocean" {
 
 resource "digitalocean_ssh_key" "tf-kube" {
   name       = "tf-kube-${time_static.id.unix}"
-  public_key = file("${var.ssh_pubkey_path}")
+  public_key = file(var.ssh_pubkey_path)
   lifecycle {
     ignore_changes = [
       public_key
@@ -75,7 +75,7 @@ resource "digitalocean_droplet" "host" {
     timeout     = "2m"
     host        = self.ipv4_address
     agent       = false
-    private_key = file("${var.ssh_key_path}")
+    private_key = file(var.ssh_key_path)
   }
 
   provisioner "remote-exec" {

@@ -33,7 +33,7 @@ resource "null_resource" "mount_volume" {
     host        = digitalocean_droplet.host[count.index].ipv4_address
     user        = "root"
     agent       = false
-    private_key = file("${var.ssh_key_path}")
+    private_key = file(var.ssh_key_path)
     timeout     = "30s"
   }
 
@@ -60,7 +60,7 @@ resource "null_resource" "resize_volume" {
     host        = digitalocean_droplet.host[count.index].ipv4_address
     user        = "root"
     agent       = false
-    private_key = file("${var.ssh_key_path}")
+    private_key = file(var.ssh_key_path)
     timeout     = "30s"
   }
 

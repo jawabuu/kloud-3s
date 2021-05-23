@@ -293,13 +293,13 @@ resource "null_resource" "set_dns_rr" {
     host        = self.triggers.node_public_ip
     user        = "root"
     agent       = false
-    private_key = file("${self.triggers.ssh_key_path}")
+    private_key = file(self.triggers.ssh_key_path)
     timeout     = "30s"
   }
 
   provisioner "remote-exec" {
     inline = [
-      "${join("\n", formatlist("echo '%s %s' >> /etc/hosts", split(" ", self.triggers.vpn_ips), self.triggers.registration_domain))}",
+      join("\n", formatlist("echo '%s %s' >> /etc/hosts", split(" ", self.triggers.vpn_ips), self.triggers.registration_domain)),
     ]
   }
 
@@ -332,14 +332,14 @@ resource "null_resource" "k3s" {
     follower_install_flags = local.follower_install_flags
     registration_domain    = null_resource.set_dns_rr[count.index].triggers.registration_domain
     # Below is used to debug triggers
-    # always_run            = "${timestamp()}"
+    # always_run            = timestamp()
   }
 
   connection {
     host        = element(var.connections, count.index)
     user        = "root"
     agent       = false
-    private_key = file("${var.ssh_key_path}")
+    private_key = file(var.ssh_key_path)
   }
 
   provisioner "remote-exec" {
@@ -546,7 +546,7 @@ resource "null_resource" "k3s_cleanup" {
     host        = self.triggers.master_public_ip
     user        = "root"
     agent       = false
-    private_key = file("${self.triggers.ssh_key_path}")
+    private_key = file(self.triggers.ssh_key_path)
   }
 
   # Clean up on deleting node
