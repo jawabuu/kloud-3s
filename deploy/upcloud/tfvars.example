@@ -1,0 +1,19 @@
+# DNS Settings
+# Delete the DNS module in main.tf if you do not have these
+create_zone = "true"
+domain = "<required>"
+digitalocean_token = "<required>"
+
+k3s_version = "v1.20.4+k3s1"
+node_count = 3
+upcloud_username = "<required>"
+upcloud_password = "<required>"
+
+# HA Cluster
+#ha_cluster = "true"
+# External DNS Management and WildCard Letsencrypt Certs
+#trform_domain = "false"
+# LetsEncrypt Cert Issuance 
+#create_certs = "true"
+# Additional Apps
+#install_app = { kubernetes_dashboard = true, longhorn = true}
