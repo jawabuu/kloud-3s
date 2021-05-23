@@ -67,6 +67,8 @@ resource "scaleway_instance_server" "host" {
   image             = var.image
   enable_dynamic_ip = true
 
+  additional_volume_ids = var.enable_volumes ? [scaleway_instance_volume.kube_volume[count.index].id] : null
+
   count = var.hosts
 
   connection {
