@@ -12,6 +12,7 @@ enable_volumes           = "false"
 volume_size              = 10
 enable_floatingip        = "false"
 
+# Additional apps
 install_app = {
   kubernetes_dashboard = false,
   longhorn             = false,

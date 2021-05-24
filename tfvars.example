@@ -8,6 +8,7 @@ node_count = 2
 digitalocean_token = "<required>"
 cni = "cilium"
 
+# Additional apps
 install_app = {
   kubernetes_dashboard = true,
   longhorn             = true,
