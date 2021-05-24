@@ -557,8 +557,8 @@ spec:
           name: cilium-run
         resources:
           requests:
-            cpu: 100m
-            memory: 100Mi
+            cpu: 75m
+            memory: 75Mi
       restartPolicy: Always
       priorityClassName: system-node-critical
       serviceAccount: cilium
