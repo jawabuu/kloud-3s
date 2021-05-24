@@ -265,7 +265,7 @@ locals {
     "--cluster-cidr ${local.overlay_cidr}",
     "--service-cidr ${local.service_cidr}",
     "--node-label 'kloud-3s.io/deploy-traefik=true'",
-    local.ha_cluster == true ? "--cluster-init" : "",
+    local.ha_cluster == true ? "--cluster-init" : "--cluster-init",
     local.floating_ip == "" ? "--tls-san 127.0.0.2" : "--tls-san ${local.floating_ip}",
   ]
 
