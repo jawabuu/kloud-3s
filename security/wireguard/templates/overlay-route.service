@@ -5,7 +5,7 @@ After=wg-quick@wg0.service
 [Service]
 Type=oneshot
 User=root
-ExecStart=/sbin/ip route add ${overlay_cidr} dev wg0 src ${address}
+ExecStart=/sbin/ip route add ${service_cidr} dev ${vpn_interface} src ${address}
 
 [Install]
 WantedBy=multi-user.target

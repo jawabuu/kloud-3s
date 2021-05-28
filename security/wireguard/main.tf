@@ -28,6 +28,10 @@ variable "overlay_cidr" {
   type = string
 }
 
+variable "service_cidr" {
+  type = string
+}
+
 variable "vpn_iprange" {
   default = "10.0.1.0/24"
 }
@@ -87,7 +91,7 @@ resource "null_resource" "wireguard" {
       "systemctl start overlay-route.service",
     ]
   }
-  */
+  //*/
 }
 
 
@@ -126,6 +130,7 @@ resource "null_resource" "wireguard-reload" {
       "systemctl daemon-reload",
       # Restart is required on changes
       "systemctl restart wg-quick@${var.vpn_interface}",
+      # "systemctl start overlay-route.service",
       # Reload instead of restart to maintain active connections. Does not work.
       #"wg-quick strip wg0 | wg setconf wg0 /dev/stdin",
       #"wg-quick strip wg0 | wg addconf wg0 /dev/stdin",
@@ -164,8 +169,10 @@ data "template_file" "overlay-route-service" {
   template = file("${path.module}/templates/overlay-route.service")
 
   vars = {
-    address      = element(data.template_file.vpn_ips.*.rendered, count.index)
-    overlay_cidr = var.overlay_cidr
+    address       = element(data.template_file.vpn_ips.*.rendered, count.index)
+    overlay_cidr  = var.overlay_cidr
+    service_cidr  = var.service_cidr
+    vpn_interface = var.vpn_interface
   }
 }
 
