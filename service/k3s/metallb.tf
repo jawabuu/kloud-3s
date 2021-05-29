@@ -1,6 +1,7 @@
 locals {
   metallb_config = templatefile("${path.module}/templates/metallb-helm.yaml", {
     master_public_ip = local.floating_ip == "" ? local.master_public_ip : local.floating_ip
+    ip_config        = local.floating_ip == "" ? true : false
   })
 }
 

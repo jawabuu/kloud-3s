@@ -139,7 +139,9 @@ spec:
         - name: CURRENT_NODE
           valueFrom:
             fieldRef:
-              fieldPath: spec.nodeName
+              fieldPath: spec.nodeName %{~ if ip_config }
+        - name: UPDATE_IP
+          value: "yes" %{ endif }
         command: ['sh', '-c' ]
         args:
         - | #!/bin/sh
@@ -172,5 +174,5 @@ spec:
                   fi
                 fi
                 echo
-                sleep 10
+                sleep 20
             done
