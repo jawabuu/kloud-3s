@@ -330,6 +330,7 @@ resource "null_resource" "k3s" {
     server_install_flags   = local.server_install_flags
     agent_install_flags    = local.agent_install_flags
     follower_install_flags = local.follower_install_flags
+    ha_cluster             = local.ha_cluster
     registration_domain    = null_resource.set_dns_rr[count.index].triggers.registration_domain
   }
 
@@ -431,7 +432,9 @@ EOF
         tar zxvf cni-plugins-linux-amd64-v0.8.6.tgz && mkdir -p /opt/cni/bin && mv * /opt/cni/bin/);
         %{endif~}
         
-        echo "[INFO] ---Installing k3s server---";
+        echo "==================================";
+        echo "[INFO] ---Installing %{if local.ha_cluster~}HA%{endif} k3s server---";
+        echo "===================================";
                 
         INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer server ${local.server_install_flags} \
         --node-name ${self.triggers.node_name} --node-external-ip ${self.triggers.node_public_ip};
@@ -508,7 +511,9 @@ EOF
         
         %{if local.ha_cluster == true && count.index < 3~}
         
-        echo "[INFO] ---Installing k3s server-follower---";
+        echo "=============================================";
+        echo "[INFO] ---Installing k3s server-follower[${count.index}]---";
+        echo "=============================================";
 
         until $(curl -f -so nul https://${local.registration_domain}:6443/ping --cacert /var/lib/rancher/k3s/agent/server-ca.crt); 
         do echo '[WARN] Waiting for master to be ready';
@@ -522,7 +527,9 @@ EOF
         
         %{else~}
         
-        echo "[INFO] ---Installing k3s agent---";
+        echo "===================================";
+        echo "[INFO] ---Installing k3s agent[${count.index}]---";
+        echo "===================================";
 
         until $(curl -f -so nul https://${local.registration_domain}:6443/ping --cacert /var/lib/rancher/k3s/agent/server-ca.crt); 
         do echo '[WARN] Waiting for master to be ready';

@@ -90,6 +90,7 @@ module "k3s" {
   private_interface = module.provider.private_network_interface
   domain            = var.domain
   region            = module.provider.region
+  ha_cluster        = var.ha_cluster
   ### Optional Settings Below. You may safely omit them. ###
   # Uncomment below if you have specified the DNS module
   dns_auth          = module.dns.dns_auth
