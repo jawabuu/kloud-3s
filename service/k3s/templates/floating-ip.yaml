@@ -385,7 +385,7 @@ data:
           echo "Attaching IP - ${FLOATING_IP} to node ${NODE_NAME}"
         else
           echo "Moving IP from node ${ASSIGNED_TO} to node ${NODE_NAME}"
-          for n in echo $(get_node_list "?labelSelector=kloud3s-floating-ip=${FLOATING_IP}") ;do
+          for n in $(echo $(get_node_list "?labelSelector=kloud3s-floating-ip=${FLOATING_IP}")) ;do
            echo "$(date "+%Y-%m-%d %H:%M:%S") Removing Node $n Label:  kloud3s-floating-ip"
            remove_node_label $n "kloud3s-floating-ip";
           done
@@ -393,7 +393,7 @@ data:
         FLOATING_IP_ID=$(get_floating_ip_id)
         echo "$(date "+%Y-%m-%d %H:%M:%S") Assigning FloatingIP Id:  $FLOATING_IP_ID"
         assign_floating_ip ${FLOATING_IP_ID} ${NODE_ID}
-        echo "$(date "+%Y-%m-%d %H:%M:%S") Setting Node Label:  kloud3s-floating-ip=$FLOATING_IP"
+        echo "$(date "+%Y-%m-%d %H:%M:%S") Setting Label on Node $NODE_NAME :  kloud3s-floating-ip=$FLOATING_IP"
         set_node_label $NODE_NAME "kloud3s-floating-ip" "${FLOATING_IP}"
       fi
     }
