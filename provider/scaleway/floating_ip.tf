@@ -13,5 +13,6 @@ output "floating_ip" {
     ip_address    = try(scaleway_instance_ip.kloud3s[0].address, ""),
     provider      = "scaleway"
     provider_auth = var.secret_key
+    id            = try(scaleway_instance_ip.kloud3s[0].id, ""),
   }
 }

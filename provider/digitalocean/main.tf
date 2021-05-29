@@ -66,6 +66,7 @@ resource "digitalocean_droplet" "host" {
   private_networking = true
   ssh_keys           = [digitalocean_ssh_key.tf-kube.id]
   vpc_uuid           = digitalocean_vpc.kube-vpc.id
+  tags               = ["kloud3s"]
 
   count = var.hosts
 

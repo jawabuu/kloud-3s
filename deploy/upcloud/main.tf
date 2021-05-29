@@ -53,6 +53,7 @@ module "wireguard" {
   private_ips  = module.provider.private_ips
   hostnames    = module.provider.hostnames
   overlay_cidr = module.k3s.overlay_cidr
+  service_cidr = var.service_cidr
   vpn_iprange  = var.vpn_iprange
   ssh_key_path = module.ssh.private_key
 }
@@ -105,6 +106,7 @@ module "k3s" {
   registry_user     = var.registry_user
   registry_password = var.registry_password
   enable_volumes    = var.enable_volumes
+  floating_ip       = module.provider.floating_ip
 }
 
 output "private_key" {

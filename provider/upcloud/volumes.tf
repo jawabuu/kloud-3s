@@ -63,6 +63,9 @@ resource "null_resource" "resize_volume" {
     inline = [
       "resize2fs /dev/vdb || true",
       "df -h | grep vdb || true",
+      ## UpCloud stops instances when resizing volumes.
+      ## DNS breaks and you may have to turn on instances from the console.
+      "systemctl restart systemd-resolved.service",
     ]
   }
 }

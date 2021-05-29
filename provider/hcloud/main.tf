@@ -47,6 +47,11 @@ variable "ssh_pubkey_path" {
   type = string
 }
 
+locals {
+  private_network_interface = length(regexall("cpx", var.type)) > 0 ? "enp7s0" : "ens10"
+}
+
+
 resource "hcloud_ssh_key" "tf-kube" {
   name       = "tf-kube-${time_static.id.unix}"
   public_key = file(var.ssh_pubkey_path)
@@ -120,7 +125,7 @@ output "public_network_interface" {
 }
 
 output "private_network_interface" {
-  value = length(regexall("cpx", var.type)) > 0 ? "enp7s0" : "ens10"
+  value = local.private_network_interface
 }
 
 output "hcloud_servers" {

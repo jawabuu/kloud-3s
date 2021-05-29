@@ -331,8 +331,6 @@ resource "null_resource" "k3s" {
     agent_install_flags    = local.agent_install_flags
     follower_install_flags = local.follower_install_flags
     registration_domain    = null_resource.set_dns_rr[count.index].triggers.registration_domain
-    # Below is used to debug triggers
-    # always_run            = timestamp()
   }
 
   connection {
@@ -353,7 +351,7 @@ resource "null_resource" "k3s" {
     content     = data.http.k3s_installer.body
     destination = "/tmp/k3s-installer"
   }
-
+  /*
   # Upload calico.yaml for CNI
   provisioner "file" {
     content     = data.template_file.calico-configuration.rendered
@@ -377,6 +375,34 @@ resource "null_resource" "k3s" {
     content     = data.template_file.cilium-configuration.rendered
     destination = "/tmp/cilium.yaml"
   }
+*/
+  # Unify CNI upload
+  provisioner "remote-exec" {
+    inline = count.index == 0 && local.cni != "default" ? [<<EOT
+  %{if local.cni == "flannel"~}
+  cat <<-EOF > /tmp/flannel.yaml
+${data.template_file.flannel-configuration.rendered}
+EOF
+  %{endif~}
+  %{if local.cni == "calico"~}
+  cat <<-EOF > /tmp/calico.yaml
+${data.template_file.calico-configuration.rendered}
+EOF
+  %{endif~}
+  %{if local.cni == "cilium"~}
+  cat <<-EOF > /tmp/cilium.yaml
+${data.template_file.cilium-configuration.rendered}
+EOF
+  %{endif~}
+  %{if local.cni == "weave"~}
+  cat <<-EOF > /tmp/weave.yaml
+${data.template_file.weave-configuration.rendered}
+EOF
+  %{endif~}
+      EOT
+    ] : null
+  }
+
 
   # Install K3S server
   provisioner "remote-exec" {
@@ -441,7 +467,7 @@ resource "null_resource" "k3s" {
         
         %{if local.cni == "flannel"~}
         kubectl apply -f /tmp/flannel.yaml;
-        kubectl rollout status ds kube-flannel-ds-amd64 -n kube-system;
+        kubectl rollout status ds kube-flannel-ds -n kube-system;
         %{endif~}
         
         echo "[INFO] ---Finished installing CNI ${local.cni}---";        
@@ -484,7 +510,7 @@ resource "null_resource" "k3s" {
         
         echo "[INFO] ---Installing k3s server-follower---";
 
-        until $(curl -fv -so nul https://${local.registration_domain}:6443/ping --cacert /var/lib/rancher/k3s/agent/server-ca.crt); 
+        until $(curl -f -so nul https://${local.registration_domain}:6443/ping --cacert /var/lib/rancher/k3s/agent/server-ca.crt); 
         do echo '[WARN] Waiting for master to be ready';
 
         INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer server ${local.follower_install_flags} \
@@ -498,7 +524,7 @@ resource "null_resource" "k3s" {
         
         echo "[INFO] ---Installing k3s agent---";
 
-        until $(curl -fv -so nul https://${local.registration_domain}:6443/ping --cacert /var/lib/rancher/k3s/agent/server-ca.crt); 
+        until $(curl -f -so nul https://${local.registration_domain}:6443/ping --cacert /var/lib/rancher/k3s/agent/server-ca.crt); 
         do echo '[WARN] Waiting for master to be ready';
 
         INSTALL_K3S_VERSION=${local.k3s_version} \
@@ -556,8 +582,8 @@ resource "null_resource" "k3s_cleanup" {
     on_failure = continue
     inline = [
       "echo 'Cleaning up ${self.triggers.node_name}...'",
-      "kubectl drain ${self.triggers.node_name} --force --delete-local-data --ignore-daemonsets --timeout 180s",
-      "kubectl delete node ${self.triggers.node_name}",
+      "kubectl drain ${self.triggers.node_name} --force --delete-emptydir-data --ignore-daemonsets --timeout 60s",
+      "kubectl delete node ${self.triggers.node_name} --timeout 30s",
       "sed -i \"/${self.triggers.node_name}/d\" /var/lib/rancher/k3s/server/cred/node-passwd",
     ]
   }

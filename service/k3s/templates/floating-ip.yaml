@@ -1,0 +1,404 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: floating-ip-controller
+  namespace: floating-ip
+  labels:
+    app: floating-ip-controller
+spec:
+  selector:
+    matchLabels:
+      app: floating-ip-controller
+  template:
+    metadata:
+      labels:
+        app: floating-ip-controller
+    spec:
+      serviceAccountName: floating-ip
+      priorityClassName: system-node-critical
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - effect: NoSchedule
+        operator: Exists
+      - effect: NoExecute
+        operator: Exists
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+      - effect: NoSchedule
+        key: node.kubernetes.io/disk-pressure
+        operator: Exists
+      - effect: NoSchedule
+        key: node.kubernetes.io/memory-pressure
+        operator: Exists
+      - effect: NoSchedule
+        key: node.kubernetes.io/pid-pressure
+        operator: Exists
+      - effect: NoSchedule
+        key: node.kubernetes.io/unschedulable
+        operator: Exists
+      - effect: NoSchedule
+        key: node.kubernetes.io/network-unavailable
+        operator: Exists
+      containers:
+      - name: floating-ip-controller
+        image: linkyard/kubectl
+        envFrom:
+        - secretRef:
+            name: floating-ip
+        command: ['bash', '-c', '/scripts/floating-ip.sh']
+        volumeMounts:
+        - mountPath: /scripts/floating-ip.sh
+          name: floating-ip
+          subPath: floating-ip.sh
+      restartPolicy: Always
+      volumes:
+      - configMap:
+          defaultMode: 0755
+          name: floating-ip
+        name: floating-ip
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: floating-ip
+  namespace: floating-ip
+data:
+  floating-ip.sh: |
+    #!/bin/bash
+    K8S_CURL_ARGS="--cacert /run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    KUBE_API_ENDPOINT="${KUBE_API_ENDPOINT:-"https://kubernetes.default.svc:443"}"
+    K8S_TOKEN="$(cat /run/secrets/kubernetes.io/serviceaccount/token)"
+    SLEEP_TIME="${SLEEP_TIME:-"30"}"
+
+    while [ $# -gt 0 ]; do
+
+      if [[ $1 == *"--"* ]]; then
+            param="${1/--/}"
+            declare $param="$2"
+      fi
+      shift
+    done
+
+    LABEL_SELECTOR="?labelSelector=node-role.kubernetes.io=master"
+    if [[ ! -z "${NODE_SELECTOR}" ]]; then
+      LABEL_SELECTOR="?labelSelector=${NODE_SELECTOR}"
+    fi
+
+    if [[ -z "${PROVIDER}" ]]; then
+      echo "FATAL - Variable PROVIDER must be provided"
+      exit 1
+    fi
+
+    if [[ -z "${PROVIDER_AUTH}" ]]; then
+      echo "FATAL - Variable PROVIDER_AUTH must be provided"
+      exit 1
+    fi
+
+    if [[ -z "${FLOATING_IP}" ]]; then
+      echo "FATAL - Variable FLOATING_IP must be provided"
+      exit 1
+    fi
+
+    ######### KUBERNETES API ###########
+
+    # Returns a list of all nodes matching label
+    function get_node_list(){
+      SELECTOR=${1:-}
+      curl -s ${K8S_CURL_ARGS} \
+        --header "Authorization: Bearer ${K8S_TOKEN}" \
+        "${KUBE_API_ENDPOINT}/api/v1/nodes${SELECTOR}" \
+      | jq -cr '.items[].metadata.name'
+    }
+
+    # Get current cluster leader
+    function get_leader_node(){
+
+      if [[ ! -z "${NODE_SELECTOR}" ]]; then
+
+      curl -s ${K8S_CURL_ARGS} \
+        --header "Authorization: Bearer ${K8S_TOKEN}" \
+        "${KUBE_API_ENDPOINT}/api/v1/nodes${LABEL_SELECTOR}&limit=1" \
+        | jq -r '.items[].metadata.name'
+
+      else
+
+      curl -s ${K8S_CURL_ARGS} \
+        --header "Authorization: Bearer ${K8S_TOKEN}" \
+        "${KUBE_API_ENDPOINT}/apis/coordination.k8s.io/v1/namespaces/kube-system/leases/kube-controller-manager" \
+        | jq -r '.spec.holderIdentity' | sed "s/_[^_]*$//" || \
+      curl -s ${K8S_CURL_ARGS} \
+        --header "Authorization: Bearer ${K8S_TOKEN}" \
+        "${KUBE_API_ENDPOINT}/api/v1/nodes${LABEL_SELECTOR}&limit=1" \
+        | jq -r '.items[].metadata.name' 
+
+      fi
+    }
+
+    # Get current cluster leader's ExternalIP
+    function get_leader_nodeip(){
+      NODE_NAME=${1:-$MASTER_NODE}
+      curl -s ${K8S_CURL_ARGS} \
+        --header "Authorization: Bearer ${K8S_TOKEN}" \
+        "${KUBE_API_ENDPOINT}/api/v1/nodes/${NODE_NAME}" \
+        | jq -r '.status.addresses[] | select(.type=="ExternalIP").address'
+    }
+
+    # Sets a label on a node
+    # Usage: set_node_label <nodeName> <labelKey> <labelValue>
+    function set_node_label(){
+      NODE_NAME="${1}"
+      KEY="${2}"
+      VALUE="${3}"
+      curl -O /dev/null -sX PATCH ${K8S_CURL_ARGS} -H "Content-Type: application/json-patch+json" \
+        --header "Authorization: Bearer ${K8S_TOKEN}" \
+        "${KUBE_API_ENDPOINT}/api/v1/nodes/${NODE_NAME}" \
+        --data '[{"op": "add", "path": "/metadata/labels/'${KEY}'", "value": "'${VALUE}'"}]' \
+        | jq -Cr '.metadata.labels'
+    }
+
+    # Deletes a label from a node
+    # Usage: delete_node_label <nodeName> <labelKey>
+    function remove_node_label() {
+      NODE_NAME="${1}"
+      KEY="${2}"
+      curl -O /dev/null -sX PATCH ${K8S_CURL_ARGS} -H "Content-Type: application/json-patch+json" \
+        --header "Authorization: Bearer ${K8S_TOKEN}" \
+        "${KUBE_API_ENDPOINT}/api/v1/nodes/${NODE_NAME}" \
+        --data '[{"op": "remove", "path": "/metadata/labels/'${KEY}'"}]' \
+        | jq -Cr '.metadata.labels'
+    }
+
+    ######### KUBERNETES API ###########
+
+
+    ######### PROVIDER API ###########
+
+    # Get provider's node_id
+    function get_node_id(){
+      NODE_NAME="${1}"
+      case $PROVIDER in
+        digitalocean)
+              curl -s -H "Content-Type: application/json" \
+                -H "Authorization: Bearer $PROVIDER_AUTH" \
+                "https://api.digitalocean.com/v2/droplets?tag_name=kloud3s" \
+                | jq -cr '.droplets[] | select(.name=="'$NODE_NAME'").id'
+              ;;
+        hcloud)
+              curl -s -H "Authorization: Bearer $PROVIDER_AUTH" \
+              "https://api.hetzner.cloud/v1/servers?name=$NODE_NAME" \
+              | jq -cr '.servers[].id'
+              ;;
+        vultr)
+              curl -s -H "Authorization: Bearer $PROVIDER_AUTH" \
+              "https://api.vultr.com/v2/instances?label=$NODE_NAME" \
+              | jq -cr '.instances[].id'
+              ;;
+        upcloud)
+              uuid=$(curl -s -H "Authorization: Basic $PROVIDER_AUTH" \
+              "https://api.upcloud.com/1.3/server" \
+              | jq -cr  '.servers.server[] | select(.hostname=="'$NODE_NAME'").uuid')
+
+              curl -s -H "Authorization: Basic $PROVIDER_AUTH" \
+              "https://api.upcloud.com/1.3/server/$uuid" \
+              | jq -cr '.server.networking.interfaces.interface[] | select(.type=="public").mac'
+              ;; 
+        scaleway)
+              curl -sk -H "X-Auth-Token: $PROVIDER_AUTH" \
+              "https://api.scaleway.com/instance/v1/zones/$ZONE/servers?name=$NODE_NAME" \
+              | jq -cr '.servers[].id'
+              ;;
+        linode)
+              curl -s -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $PROVIDER_AUTH" \
+              "https://api.linode.com/v4/linode/instances" \
+              | jq -cr '.data[] | select(.label=="'$NODE_NAME'").id'
+              ;;
+        ovh)
+              echo $NODE_NAME
+              ;; 
+        *)
+              echo "Provider $PROVIDER is not supported."
+              ;;
+    esac
+    }
+
+    # Get provider's floating_ip id
+    function get_floating_ip_id(){
+      case $PROVIDER in
+        digitalocean)
+            curl -s -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $PROVIDER_AUTH" \
+            "https://api.digitalocean.com/v2/floating_ips" \
+            | jq -cr '.floating_ips[] | select(.ip=="'$FLOATING_IP'").ip'
+              ;;
+        hcloud)
+              curl -s -H "Authorization: Bearer $PROVIDER_AUTH" \
+              "https://api.hetzner.cloud/v1/floating_ips" \
+              | jq -cr '.floating_ips[] | select(.ip=="'$FLOATING_IP'").id'
+              ;;
+        vultr)
+              curl -s -H "Authorization: Bearer $PROVIDER_AUTH" \
+              "https://api.vultr.com/v2/reserved-ips" \
+              | jq -cr '.reserved_ips[] | select(.subnet=="'$FLOATING_IP'").id'
+              ;;
+        upcloud)
+              curl -s -H "Authorization: Basic $PROVIDER_AUTH" \
+              "https://api.upcloud.com/1.3/ip_address" \
+              | jq -cr  '.ip_addresses.ip_address[] | select(.address=="'$FLOATING_IP'").address'
+              ;;
+        scaleway)
+              curl -sk -H "X-Auth-Token: $PROVIDER_AUTH" \
+              "https://api.scaleway.com/instance/v1/zones/$ZONE/ips/$FLOATING_IP" \
+              | jq -cr '.ip.id'
+              ;;
+        linode)
+              curl -s -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $PROVIDER_AUTH" \
+              "https://api.linode.com/v4/networking/ips" \
+              | jq -cr '.data[] | select(.address=="'$FLOATING_IP'").address'
+              ;;
+        ovh)
+              echo $FLOATING_IP
+              ;;
+        *)
+              echo "Provider $PROVIDER is not supported."
+              ;;
+    esac
+    }
+
+    # Returns the node where the IP is currently assigned or null
+    function get_current_attachment(){
+      case $PROVIDER in
+        digitalocean)
+            curl -s -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $PROVIDER_AUTH" \
+            "https://api.digitalocean.com/v2/floating_ips" \
+            | jq -cr '.floating_ips[] | select(.ip=="'$FLOATING_IP'").droplet.id'
+              ;;
+        hcloud)
+              curl -s -H "Authorization: Bearer $PROVIDER_AUTH" \
+              "https://api.hetzner.cloud/v1/floating_ips" \
+              | jq -cr '.floating_ips[] | select(.ip=="'$FLOATING_IP'").server'
+              ;;
+        vultr)
+              curl -s -H "Authorization: Bearer $PROVIDER_AUTH" \
+              "https://api.vultr.com/v2/reserved-ips" \
+              | jq -cr '.reserved_ips[] | select(.subnet=="'$FLOATING_IP'").instance_id'
+              ;;
+        upcloud)
+              curl -s -H "Authorization: Basic $PROVIDER_AUTH" \
+              "https://api.upcloud.com/1.3/ip_address" \
+              | jq -cr  '.ip_addresses.ip_address[] | select(.address=="'$FLOATING_IP'").mac'
+              ;; 
+        scaleway)
+              curl -sk -H "X-Auth-Token: $PROVIDER_AUTH" \
+              "https://api.scaleway.com/instance/v1/zones/$ZONE/ips/$FLOATING_IP" \
+              | jq -cr '.ip.server.id'
+              ;;
+        linode)
+              curl -s -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $PROVIDER_AUTH" \
+              "https://api.linode.com/v4/networking/ips" \
+              | jq -cr '.data[] | select(.address=="'$FLOATING_IP'").linode_id'
+              ;;
+        *)
+              echo "Provider $PROVIDER is not supported."
+              ;;
+    esac
+    }
+
+
+    # Assigns a floating ip to a droplet
+    # Usage: assign_floating_ip x.x.x.x <nodeId>
+    function assign_floating_ip(){
+      FLOATING_IP_ID="${1}"
+      NODE_ID="${2}"
+      
+      case $PROVIDER in
+        digitalocean)
+            curl -O /dev/null -sX POST -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${PROVIDER_AUTH}" \
+            -d '{"type":"assign","droplet_id":'${NODE_ID}'}' \
+            "https://api.digitalocean.com/v2/floating_ips/${FLOATING_IP_ID}/actions"
+              ;;
+        hcloud)
+              curl -s -H "Authorization: Bearer $PROVIDER_AUTH" \
+              -H "Content-Type: application/json" \
+              -d '{"server":'${NODE_ID}'}' \
+              "https://api.hetzner.cloud/v1/floating_ips/$FLOATING_IP_ID/actions/assign"
+              ;;
+        vultr)
+              curl -sX POST -H "Authorization: Bearer $PROVIDER_AUTH" \
+              "https://api.vultr.com/v2/reserved-ips/$FLOATING_IP_ID/detach"
+
+              curl -s -H "Authorization: Bearer $PROVIDER_AUTH" \
+              -d '{"instance_id" : "'${NODE_ID}'"}' \
+              "https://api.vultr.com/v2/reserved-ips/$FLOATING_IP_ID/attach"
+              ;;
+        upcloud)
+              curl -sX PATCH -H "Authorization: Basic $PROVIDER_AUTH" \
+              -H "content-type: application/json" \
+              "https://api.upcloud.com/1.3/ip_address/$FLOATING_IP_ID" \
+              -d '{"ip_address" : {"mac" : "'${NODE_ID}'"}}'
+              ;; 
+        scaleway)
+              curl -skX PATCH -H "X-Auth-Token: $PROVIDER_AUTH" \
+              -H "content-type: application/json" \
+              -d '{"server" : "'${NODE_ID}'"}' \
+              "https://api.scaleway.com/instance/v1/zones/$ZONE/ips/$FLOATING_IP_ID"
+              ;;
+        linode)
+              curl -s -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $PROVIDER_AUTH" \
+              "https://api.linode.com/v4/networking/ipv4/share" \
+              -d '{"linode_id": '$NODE_ID',"ips": ["'$FLOATING_IP_ID'"]}'
+              ;;
+        *)
+              echo "Provider $PROVIDER is not supported."
+              ;;
+      esac
+    }
+
+
+    ######### PROVIDER API ###########
+
+
+    function run_main(){
+      echo "$(date "+%Y-%m-%d %H:%M:%S") ### Starting floating-ip controller every ${SLEEP_TIME}s ###"
+      NODE_NAME=$(get_leader_node)
+      echo "$(date "+%Y-%m-%d %H:%M:%S") Node Name:  $NODE_NAME"
+      NODE_ID=$(get_node_id $NODE_NAME)
+      echo "$(date "+%Y-%m-%d %H:%M:%S") Node Id:  $NODE_ID"
+      ASSIGNED_TO=$(get_current_attachment)
+      echo "$(date "+%Y-%m-%d %H:%M:%S") Node Assigned:  $ASSIGNED_TO"
+
+      if [[ "${ASSIGNED_TO}" == "${NODE_ID}" ]]; then
+        echo "Already assigned - Doing nothing"
+      else
+        if [[ "${ASSIGNED_TO}" == "null" ]]; then
+          echo "Attaching IP - ${FLOATING_IP} to node ${NODE_NAME}"
+        else
+          echo "Moving IP from node ${ASSIGNED_TO} to node ${NODE_NAME}"
+          for n in echo $(get_node_list "?labelSelector=kloud3s-floating-ip=${FLOATING_IP}") ;do
+           echo "$(date "+%Y-%m-%d %H:%M:%S") Removing Node $n Label:  kloud3s-floating-ip"
+           remove_node_label $n "kloud3s-floating-ip";
+          done
+        fi
+        FLOATING_IP_ID=$(get_floating_ip_id)
+        echo "$(date "+%Y-%m-%d %H:%M:%S") Assigning FloatingIP Id:  $FLOATING_IP_ID"
+        assign_floating_ip ${FLOATING_IP_ID} ${NODE_ID}
+        echo "$(date "+%Y-%m-%d %H:%M:%S") Setting Node Label:  kloud3s-floating-ip=$FLOATING_IP"
+        set_node_label $NODE_NAME "kloud3s-floating-ip" "${FLOATING_IP}"
+      fi
+    }
+
+    while true; do
+      run_main
+      sleep ${SLEEP_TIME}
+    done

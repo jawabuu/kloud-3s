@@ -146,9 +146,9 @@ data:
   hubble-tls-cert-file: /var/lib/cilium/tls/hubble/server.crt
   hubble-tls-key-file: /var/lib/cilium/tls/hubble/server.key
   hubble-tls-client-ca-files: /var/lib/cilium/tls/hubble/client-ca.crt
-  ipam: "cluster-pool"
-  cluster-pool-ipv4-cidr: "10.0.0.0/8"
-  cluster-pool-ipv4-mask-size: "24"
+  ipam: "kubernetes"
+  # cluster-pool-ipv4-cidr: "${cilium_cidr}"
+  # cluster-pool-ipv4-mask-size: "24"
   disable-cnp-status-updates: "true"
 ---
 # Source: cilium/templates/cilium-agent-clusterrole.yaml
@@ -277,7 +277,7 @@ rules:
 - apiGroups:
   - ""
   resources:
-  # to perform the translation of a CNP that contains `ToGroup` to its endpoints
+  # to perform the translation of a CNP that contains 'ToGroup' to its endpoints
   - services
   - endpoints
   # to check apiserver connectivity
@@ -669,7 +669,7 @@ spec:
       containers:
       - args:
         - --config-dir=/tmp/cilium/config-map
-        - --debug=$(CILIUM_DEBUG)
+        - --debug=true
         command:
         - cilium-operator-generic
         env:

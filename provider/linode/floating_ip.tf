@@ -6,3 +6,9 @@ variable "enable_floatingip" {
 output "floating_ip" {
   value = {}
 }
+
+resource "linode_instance_ip" "kloud3s" {
+  count     = var.hosts > 0 && var.enable_floatingip ? 0 : 0
+  linode_id = linode_instance.host[0].id
+  public    = true
+}

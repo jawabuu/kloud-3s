@@ -15,5 +15,6 @@ output "floating_ip" {
     ip_address    = try(openstack_networking_floatingip_v2.kloud3s[0].address, ""),
     provider      = "ovh"
     provider_auth = base64encode("${var.application_key}:${var.application_secret}")
+    id            = try(openstack_networking_floatingip_v2.kloud3s[0].id, ""),
   }
 }

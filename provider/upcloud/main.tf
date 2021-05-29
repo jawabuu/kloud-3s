@@ -50,6 +50,17 @@ variable "ssh_pubkey_path" {
   type = string
 }
 
+
+variable "storage_sizes" {
+  type = map(any)
+  default = {
+    "1xCPU-1GB" = 25
+    "1xCPU-2GB" = 50
+    "2xCPU-4GB" = 80
+    "4xCPU-8GB" = 160
+  }
+}
+
 terraform {
   required_version = ">= 0.13"
   required_providers {
@@ -69,7 +80,7 @@ resource "upcloud_server" "host" {
 
   template {
     storage = var.image
-    size    = 30
+    size    = lookup(var.storage_sizes, var.type, 30)
   }
 
   network_interface {

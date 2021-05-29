@@ -92,6 +92,7 @@ resource "vultr_ssh_key" "tf-kube" {
 
 resource "vultr_server" "host" {
   hostname               = format(var.hostname_format, count.index + 1)
+  label                  = format(var.hostname_format, count.index + 1)
   region_id              = data.vultr_region.region.id
   os_id                  = data.vultr_os.os.id
   plan_id                = data.vultr_plan.plan.id
@@ -113,6 +114,7 @@ resource "vultr_server" "host" {
   provisioner "remote-exec" {
     inline = [
       "while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done",
+      "hostnamectl set-hostname ${self.label}",
       "apt-get update",
       "apt-get install -yq net-tools jq ufw wireguard-tools wireguard open-iscsi nfs-common ${join(" ", var.apt_packages)}",
     ]
@@ -160,7 +162,7 @@ data "external" "network_interfaces" {
 }
 */
 output "hostnames" {
-  value = vultr_server.host.*.hostname
+  value = vultr_server.host.*.label
 }
 
 output "public_ips" {
@@ -188,7 +190,7 @@ output "vultr_servers" {
 }
 
 output "region" {
-  value = var.region
+  value = data.vultr_region.region.regioncode
 }
 
 output "nodes" {
