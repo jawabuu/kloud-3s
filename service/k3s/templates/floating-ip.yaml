@@ -85,7 +85,7 @@ data:
       shift
     done
 
-    LABEL_SELECTOR="?labelSelector=node-role.kubernetes.io=master"
+    LABEL_SELECTOR="?labelSelector=node-role.kubernetes.io/master=true"
     if [[ ! -z "${NODE_SELECTOR}" ]]; then
       LABEL_SELECTOR="?labelSelector=${NODE_SELECTOR}"
     fi
@@ -123,7 +123,7 @@ data:
 
       curl -s ${K8S_CURL_ARGS} \
         --header "Authorization: Bearer ${K8S_TOKEN}" \
-        "${KUBE_API_ENDPOINT}/api/v1/nodes${LABEL_SELECTOR}&limit=1" \
+        "${KUBE_API_ENDPOINT}/api/v1/nodes?labelSelector=${NODE_SELECTOR}&limit=1" \
         | jq -r '.items[].metadata.name'
 
       else
