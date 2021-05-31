@@ -41,18 +41,21 @@ resource "null_resource" "wireguard" {
 
   triggers = {
     node_public_ip = element(var.connections, count.index)
+    create_keys    = md5(join(" ", null_resource.create_keys.*.id))
+    vpn_iprange    = var.vpn_iprange
+    ssh_key_path   = var.ssh_key_path
   }
 
   connection {
-    host        = element(var.connections, count.index)
+    host        = self.triggers.node_public_ip
     user        = "root"
     agent       = false
-    private_key = file(var.ssh_key_path)
+    private_key = file(self.triggers.ssh_key_path)
   }
 
   provisioner "remote-exec" {
     inline = [
-      "echo net.ipv4.ip_forward=1 >> /etc/sysctl.conf",
+      "echo net.ipv4.ip_forward=1 > /etc/sysctl.conf",
       "sysctl -p",
     ]
   }
@@ -70,10 +73,20 @@ resource "null_resource" "wireguard" {
 
   provisioner "remote-exec" {
     inline = [
+      "echo '##WIREGUARD_START##' >> /etc/hosts",
       join("\n", formatlist("echo '%s %s' >> /etc/hosts", data.template_file.vpn_ips.*.rendered, var.hostnames)),
+      "echo '##WIREGUARD_END##' >> /etc/hosts",
       "systemctl is-enabled wg-quick@${var.vpn_interface} || systemctl enable wg-quick@${var.vpn_interface}",
       "systemctl daemon-reload",
       "systemctl restart wg-quick@${var.vpn_interface}",
+    ]
+  }
+
+  provisioner "remote-exec" {
+    when       = destroy
+    on_failure = continue
+    inline = [
+      "sed '/##WIREGUARD_START/{:a;N;/WIREGUARD_END##/!ba};//d'  /etc/hosts > /etc/hosts.tmp && mv /etc/hosts.tmp /etc/hosts",
     ]
   }
 
@@ -92,52 +105,6 @@ resource "null_resource" "wireguard" {
     ]
   }
   //*/
-}
-
-
-resource "null_resource" "wireguard-reload" {
-
-  count = var.node_count
-
-  # Recreate wireguard configs if there's any change in the number of nodes
-  triggers = {
-    wireguard    = join(" ", null_resource.wireguard.*.id)
-    overlay_cidr = var.overlay_cidr
-  }
-
-  connection {
-    host        = element(var.connections, count.index)
-    user        = "root"
-    agent       = false
-    private_key = file(var.ssh_key_path)
-  }
-
-  provisioner "file" {
-    content     = element(data.template_file.interface-conf.*.rendered, count.index)
-    destination = "/etc/wireguard/${var.vpn_interface}.conf"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "chmod 700 /etc/wireguard/${var.vpn_interface}.conf",
-    ]
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      join("\n", formatlist("echo '%s %s' >> /etc/hosts", data.template_file.vpn_ips.*.rendered, var.hostnames)),
-      "systemctl is-enabled wg-quick@${var.vpn_interface} || systemctl enable wg-quick@${var.vpn_interface}",
-      "systemctl daemon-reload",
-      # Restart is required on changes
-      "systemctl restart wg-quick@${var.vpn_interface}",
-      # "systemctl start overlay-route.service",
-      # Reload instead of restart to maintain active connections. Does not work.
-      #"wg-quick strip wg0 | wg setconf wg0 /dev/stdin",
-      #"wg-quick strip wg0 | wg addconf wg0 /dev/stdin",
-      #"wg-quick strip wg0 | wg syncconf wg0 /dev/stdin",
-    ]
-  }
-
 }
 
 data "template_file" "interface-conf" {
@@ -205,7 +172,7 @@ data "template_file" "vpn_ips" {
 }
 
 output "vpn_ips" {
-  depends_on = [null_resource.wireguard, null_resource.wireguard-reload]
+  depends_on = [null_resource.wireguard]
   value      = data.template_file.vpn_ips.*.rendered
 }
 
