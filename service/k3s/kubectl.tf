@@ -25,7 +25,7 @@ resource "null_resource" "kubeconfig" {
 
   count = var.node_count > 0 ? 1 : 0
   triggers = {
-    endpoint_ip     = local.floating_ip == "" : local.master_public_ip : local.floating_ip
+    endpoint_ip     = local.floating_ip == "" ? local.master_public_ip : local.floating_ip
     kubeconfig_path = var.kubeconfig_path
     key             = join(" ", null_resource.key_wait.*.id)
     cluster_name    = var.cluster_name
