@@ -372,6 +372,7 @@ data:
     function run_main(){
       echo "$(date "+%Y-%m-%d %H:%M:%S") ### Starting ${CURRENT_NODE} floating-ip controller every ${SLEEP_TIME}s ###"
 
+      NODE_NAME=''
       until [[ ! -z "${NODE_NAME}" ]]; do
         NODE_NAME=$(get_leader_node)
         while test -z "${NODE_NAME}"; do
