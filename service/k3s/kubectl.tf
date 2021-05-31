@@ -58,7 +58,7 @@ resource "null_resource" "kubeconfig" {
     ## This would set the cluster,context and user entries to the same value.
     
     kubectl config use ${var.cluster_name};
-    kubectl get nodes;
+    kubectl get nodes --request-timeout=90s;
 EOT 
   }
 
