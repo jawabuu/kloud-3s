@@ -137,6 +137,10 @@ output "default_password" {
   value = module.k3s.default_password
 }
 
+output "floating_ip" {
+  value = try(module.provider.floating_ip.ip_address, "")
+}
+
 /*
 output "servers" {
   value = module.provider.digitalocean_droplets

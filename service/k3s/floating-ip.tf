@@ -1,9 +1,10 @@
 locals {
   floating-ip = templatefile("${path.module}/templates/floating-ip-secrets.yaml", {
-    provider_auth = lookup(var.floating_ip, "provider_auth", "")
-    provider      = lookup(var.floating_ip, "provider", "")
-    floating_ip   = local.floating_ip
-    zone          = lookup(var.floating_ip, "zone", var.region)
+    provider_auth       = lookup(var.floating_ip, "provider_auth", "")
+    provider            = lookup(var.floating_ip, "provider", "")
+    floating_ip         = local.floating_ip
+    zone                = lookup(var.floating_ip, "zone", var.region)
+    registration_domain = local.registration_domain
   })
 }
 
@@ -14,6 +15,7 @@ resource "null_resource" "floating-ip_apply" {
     floating_ip      = md5(local.floating-ip)
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip
+    deployment       = md5(file("${path.module}/templates/floating-ip.yaml"))
   }
 
   # Use master(s)

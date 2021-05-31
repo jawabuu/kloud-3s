@@ -19,35 +19,30 @@ spec:
       priorityClassName: system-node-critical
       tolerations:
       - effect: NoSchedule
+        operator: Exists
         key: node-role.kubernetes.io/master
       - effect: NoSchedule
         operator: Exists
-      - effect: NoExecute
-        operator: Exists
-      - effect: NoExecute
-        key: node.kubernetes.io/not-ready
-        operator: Exists
-      - effect: NoExecute
-        key: node.kubernetes.io/unreachable
-        operator: Exists
-      - effect: NoSchedule
-        key: node.kubernetes.io/disk-pressure
-        operator: Exists
-      - effect: NoSchedule
-        key: node.kubernetes.io/memory-pressure
-        operator: Exists
-      - effect: NoSchedule
-        key: node.kubernetes.io/pid-pressure
-        operator: Exists
-      - effect: NoSchedule
-        key: node.kubernetes.io/unschedulable
-        operator: Exists
-      - effect: NoSchedule
-        key: node.kubernetes.io/network-unavailable
-        operator: Exists
+        key: node-role.kubernetes.io/master
+      dnsPolicy: "ClusterFirst"
+      dnsConfig:
+        nameservers:
+          - 1.1.1.1
+        options:
+          - name: ndots
+            value: '2'
       containers:
       - name: floating-ip-controller
         image: linkyard/kubectl
+        env:
+        - name: HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: CURRENT_NODE
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         envFrom:
         - secretRef:
             name: floating-ip
@@ -56,12 +51,17 @@ spec:
         - mountPath: /scripts/floating-ip.sh
           name: floating-ip
           subPath: floating-ip.sh
+        - mountPath: /etc/hosts
+          name: etc-hosts
       restartPolicy: Always
       volumes:
-      - configMap:
+      - name: floating-ip
+        configMap:
           defaultMode: 0755
           name: floating-ip
-        name: floating-ip
+      - name: etc-hosts
+        hostPath:
+          path: /etc/hosts
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -71,8 +71,8 @@ metadata:
 data:
   floating-ip.sh: |
     #!/bin/bash
-    K8S_CURL_ARGS="--cacert /run/secrets/kubernetes.io/serviceaccount/ca.crt"
-    KUBE_API_ENDPOINT="${KUBE_API_ENDPOINT:-"https://kubernetes.default.svc:443"}"
+    K8S_CURL_ARGS="--cacert /run/secrets/kubernetes.io/serviceaccount/ca.crt --connect-timeout 5"
+    KUBE_API_ENDPOINT="${KUBE_API_ENDPOINT:-"https://kubernetes.default:443"}"
     K8S_TOKEN="$(cat /run/secrets/kubernetes.io/serviceaccount/token)"
     SLEEP_TIME="${SLEEP_TIME:-"30"}"
 
@@ -370,11 +370,31 @@ data:
 
 
     function run_main(){
-      echo "$(date "+%Y-%m-%d %H:%M:%S") ### Starting floating-ip controller every ${SLEEP_TIME}s ###"
-      NODE_NAME=$(get_leader_node)
+      echo "$(date "+%Y-%m-%d %H:%M:%S") ### Starting ${CURRENT_NODE} floating-ip controller every ${SLEEP_TIME}s ###"
+
+      until [[ ! -z "${NODE_NAME}" ]]; do
+        NODE_NAME=$(get_leader_node)
+        while test -z "${NODE_NAME}"; do
+          NODE_NAME=$(KUBE_API_ENDPOINT=$K3S_API_ENDPOINT get_leader_node);
+          echo "$(date "+%Y-%m-%d %H:%M:%S") Getting node..";
+          ((c++)) && ((c==3)) && c=0 && break
+          sleep 3
+        done
+      done
+
+      NODE_TO_ASSIGN=${NODE_NAME}
       echo "$(date "+%Y-%m-%d %H:%M:%S") Node Name:  $NODE_NAME"
+
+      [[ "${NODE_NAME}" == "null" ]] && return;
+
       NODE_ID=$(get_node_id $NODE_NAME)
+      until [[ ! -z "${NODE_ID}" ]]; do
+        NODE_ID=$(get_node_id $NODE_NAME);
+        echo "$(date "+%Y-%m-%d %H:%M:%S") Getting node_id..";
+        sleep 3;
+      done
       echo "$(date "+%Y-%m-%d %H:%M:%S") Node Id:  $NODE_ID"
+
       ASSIGNED_TO=$(get_current_attachment)
       echo "$(date "+%Y-%m-%d %H:%M:%S") Node Assigned:  $ASSIGNED_TO"
 
@@ -391,10 +411,10 @@ data:
           done
         fi
         FLOATING_IP_ID=$(get_floating_ip_id)
-        echo "$(date "+%Y-%m-%d %H:%M:%S") Assigning FloatingIP Id:  $FLOATING_IP_ID"
+        echo "$(date "+%Y-%m-%d %H:%M:%S") Assigning FloatingIP Id:  ${FLOATING_IP_ID}"
         assign_floating_ip ${FLOATING_IP_ID} ${NODE_ID}
-        echo "$(date "+%Y-%m-%d %H:%M:%S") Setting Label on Node $NODE_NAME :  kloud3s-floating-ip=$FLOATING_IP"
-        set_node_label $NODE_NAME "kloud3s-floating-ip" "${FLOATING_IP}"
+        echo "$(date "+%Y-%m-%d %H:%M:%S") Setting Label on Node ${NODE_TO_ASSIGN} :  kloud3s-floating-ip=${FLOATING_IP}"
+        set_node_label "${NODE_TO_ASSIGN}" "kloud3s-floating-ip" "${FLOATING_IP}"
       fi
     }
 

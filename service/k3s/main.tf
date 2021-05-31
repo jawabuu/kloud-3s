@@ -245,10 +245,10 @@ locals {
     "--token ${local.cluster_token}",
     "--kubelet-arg 'node-status-update-frequency=4s'",
     "--kube-controller-manager-arg 'node-monitor-period=2s'",
-    "--kube-controller-manager-arg 'node-monitor-grace-period=16s'",
+    "--kube-controller-manager-arg 'node-monitor-grace-period=8s'",
     "--kube-controller-manager-arg 'pod-eviction-timeout=24s'",
-    "--kube-apiserver-arg 'default-not-ready-toleration-seconds=20'",
-    "--kube-apiserver-arg 'default-unreachable-toleration-seconds=20'",
+    "--kube-apiserver-arg 'default-not-ready-toleration-seconds=10'",
+    "--kube-apiserver-arg 'default-unreachable-toleration-seconds=10'",
     "--kubelet-arg 'node-labels=${join(",", local.server_node_labels)}'",
     # Flags left below to serve as examples for args that may need editing.
     # "--kube-controller-manager-arg 'node-cidr-mask-size=22'",

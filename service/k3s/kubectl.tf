@@ -25,7 +25,7 @@ resource "null_resource" "kubeconfig" {
 
   count = var.node_count > 0 ? 1 : 0
   triggers = {
-    ip              = local.master_public_ip
+    endpoint_ip     = local.floating_ip == "" : local.master_public_ip : local.floating_ip
     kubeconfig_path = var.kubeconfig_path
     key             = join(" ", null_resource.key_wait.*.id)
     cluster_name    = var.cluster_name
@@ -41,7 +41,7 @@ resource "null_resource" "kubeconfig" {
     export KUBECONFIG=${var.kubeconfig_path}/${var.cluster_name}-k3s.yaml;
     
     # Create new cluster entry
-    kubectl config set-cluster ${var.cluster_name}-cluster --server=https://${local.master_public_ip}:${var.api_secure_port};
+    kubectl config set-cluster ${var.cluster_name}-cluster --server=https://${self.triggers.endpoint_ip}:${var.api_secure_port};
     # Set certificate data
     kubectl config set clusters.${var.cluster_name}-cluster.certificate-authority-data $(kubectl config view --raw | grep certificate-authority-data | cut -d ' ' -f 6)
     # Create new context
@@ -53,7 +53,7 @@ resource "null_resource" "kubeconfig" {
     sed -i -e 's/default/${var.cluster_name}-admin/g' ${var.kubeconfig_path}/${var.cluster_name}-k3s.yaml;
     
     ## An easier less convoluted method for the block above would be; 
-    # kubectl config set-cluster ${var.cluster_name}-cluster --server=https://${local.master_public_ip}:${var.api_secure_port};
+    # kubectl config set-cluster ${var.cluster_name}-cluster --server=https://${self.triggers.endpoint_ip}:${var.api_secure_port};
     # sed -i -e 's/default/${var.cluster_name}/g' ${var.kubeconfig_path}/${var.cluster_name}-k3s.yaml;
     ## This would set the cluster,context and user entries to the same value.
     
