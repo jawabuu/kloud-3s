@@ -9,7 +9,7 @@ aws_region = "eu-west-1"
 aws_region_zone = "eu-west-1c"
 
 
-k3s_version = "v1.20.4+k3s1"
+k3s_version = "v1.21.1+k3s1"
 node_count = 3
 cni = "weave"
 aws_size = "t2.micro"

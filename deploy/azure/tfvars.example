@@ -8,7 +8,7 @@ client_secret = "<required>"
 tenant_id = "<required>"
 subscription_id = "<required>"
 
-k3s_version = "v1.20.4+k3s1"
+k3s_version = "v1.21.1+k3s1"
 node_count = 3
 cni = "weave"
 azure_image = "20.04-LTS"

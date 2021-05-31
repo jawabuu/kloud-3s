@@ -4,7 +4,7 @@ create_zone = "true"
 domain = "<required>"
 digitalocean_token = "<required>"
 
-k3s_version = "v1.20.4+k3s1"
+k3s_version = "v1.21.1+k3s1"
 node_count = 3
 upcloud_username = "<required>"
 upcloud_password = "<required>"

@@ -60,7 +60,7 @@ The objective is to provide a consistent deployment experience across the suppor
     | Software | Version |
     | ------ | ------ |
     | Ubuntu| 20.04 LTS|
-    | K3S | v1.20.4+k3s1|
+    | K3S | v1.21.1+k3s1|
 1. kloud-3s tests a successful deployment by using traefik and cert-manager deployments sending requests to the following endpoints;
     | Test | Response Code | Certificate Issuer |
     | ------ | ------ | ------ |
@@ -168,7 +168,7 @@ Common variables for deployment
 |node_count|3|Number of nodes in cluster|
 |create_zone|false|Create a domain zone if it does not exist|
 |domain|none|Domain for the deployment|
-|k3s_version|latest|This is set to v1.20.4+k3s1|
+|k3s_version|latest|This is set to v1.21.1+k3s1|
 |cni|weave|Choice of CNI among default,flannel,cilium,calico,weave|
 |overlay_cidr|10.42.0.0/16|pod cidr for k3s|
 |vpc_cidr|10.115.0.0/24|vpc cidr for supported providers|

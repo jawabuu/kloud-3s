@@ -8,7 +8,7 @@ google_project = "<required>"
 google_region = "<required>"
 google_region_zone = "<required>"
 
-k3s_version = "v1.20.4+k3s1"
+k3s_version = "v1.21.1+k3s1"
 node_count = 3
 cni = "weave"
 google_image = "ubuntu-os-cloud/ubuntu-2004-focal-v20201111"
