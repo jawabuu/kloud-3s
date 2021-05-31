@@ -61,11 +61,16 @@ provider "scaleway" {
   version         = "1.17.2"
 }
 
+resource "scaleway_instance_ip" "host" {
+  count = var.hosts
+}
+
 resource "scaleway_instance_server" "host" {
   name              = format(var.hostname_format, count.index + 1)
   type              = var.type
   image             = var.image
-  enable_dynamic_ip = true
+  enable_dynamic_ip = false
+  ip_id             = scaleway_instance_ip.host[count.index].id
 
   additional_volume_ids = var.enable_volumes ? [scaleway_instance_volume.kube_volume[count.index].id] : null
 
@@ -149,6 +154,7 @@ output "nodes" {
     hostname   = server.name
     public_ip  = server.public_ip,
     private_ip = server.private_ip,
+    dns_name   = "${element(split("/", server.id),1)}.pub.instances.scw.cloud"
   }]
 
 }
