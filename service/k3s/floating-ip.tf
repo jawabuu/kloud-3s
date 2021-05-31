@@ -9,7 +9,7 @@ locals {
 }
 
 resource "null_resource" "floating-ip_apply" {
-  count = var.node_count > 0 && local.floating_ip != "" ? 1 : 0
+  count = var.node_count > 0 && lookup(var.install_app, "floating-ip", false) == true ? 1 : 0
   triggers = {
     k3s_id           = join(" ", null_resource.k3s.*.id)
     floating_ip      = md5(local.floating-ip)
