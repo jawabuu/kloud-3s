@@ -51,6 +51,7 @@ resource "null_resource" "wireguard" {
     user        = "root"
     agent       = false
     private_key = file(self.triggers.ssh_key_path)
+    timeout     = "30s"
   }
 
   provisioner "remote-exec" {
@@ -73,6 +74,7 @@ resource "null_resource" "wireguard" {
 
   provisioner "remote-exec" {
     inline = [
+      "sed '/##WIREGUARD_START/{:a;N;/WIREGUARD_END##/!ba};//d'  /etc/hosts > /etc/hosts.tmp && mv /etc/hosts.tmp /etc/hosts",
       "echo '##WIREGUARD_START##' >> /etc/hosts",
       join("\n", formatlist("echo '%s %s' >> /etc/hosts", data.template_file.vpn_ips.*.rendered, var.hostnames)),
       "echo '##WIREGUARD_END##' >> /etc/hosts",
