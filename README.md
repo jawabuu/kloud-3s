@@ -6,7 +6,7 @@ The following are currently tested;
 * [Vultr](https://www.vultr.com/?ref=8601755)
 * [DigitalOcean](https://www.digitalocean.com/?refcode=661c567f71b1)
 * [Linode](https://www.linode.com/?r=b402c474596a2d1656eac49aefe071916cbb2d61)
-* **[UpCloud](https://upcloud.com/signup/?promo=Q25K8M)
+* [UpCloud](https://upcloud.com/signup/?promo=Q25K8M)**
 * [ScaleWay](https://www.scaleway.com/)
 * [OVH](https://www.ovhcloud.com/en/public-cloud/)
 * [Google Cloud](https://cloud.google.com/)
