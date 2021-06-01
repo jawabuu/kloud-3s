@@ -93,7 +93,7 @@ module "k3s" {
   dns_auth          = module.dns.dns_auth
   trform_domain     = module.dns.trform_domain
   create_certs      = var.create_certs
-  longhorn_replicas = var.longhorn_replicas
+  ha_nodes          = var.ha_nodes
   install_app       = var.install_app
   auth_user         = var.auth_user
   auth_password     = var.auth_password

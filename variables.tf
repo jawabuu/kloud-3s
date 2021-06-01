@@ -82,10 +82,9 @@ variable "create_certs" {
   description = "Option to create letsencrypt certs. Only enable if certain that your deployment is reachable."
 }
 
-variable "longhorn_replicas" {
+variable "ha_nodes" {
   default     = 3
-  description = "Number of longhorn replicas"
-
+  description = "Number of controller nodes for HA cluster. Must be greater than 3 and odd-numbered."
 }
 
 variable "install_app" {

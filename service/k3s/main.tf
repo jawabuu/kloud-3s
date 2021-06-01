@@ -85,6 +85,11 @@ variable "ha_cluster" {
   description = "Enable High Availability, Minimum number of nodes must be 3"
 }
 
+variable "ha_nodes" {
+  default     = 3
+  description = "Number of controller nodes for HA cluster. Must be greater than 3 and odd-numbered."
+}
+
 variable "loadbalancer" {
   default     = "metallb"
   description = "How LoadBalancer IPs are assigned. Options are metallb(default), traefik, ccm & akrobateo"
@@ -126,7 +131,7 @@ variable "floating_ip" {
 
 variable "longhorn_replicas" {
   default     = 3
-  description = "Number of longhorn replicas"
+  description = "Number of longhorn replicas, automatically set based on number of nodes"
 }
 
 variable "trform_domain" {
@@ -206,7 +211,8 @@ locals {
   master_private_ip = length(var.private_ips) > 0 ? var.private_ips[0] : ""
   ssh_key_path      = var.ssh_key_path
   # Add validation for high availability here i.e. node_count > 3
-  ha_cluster          = var.ha_cluster
+  ha_nodes            = var.ha_nodes >= 3 && var.ha_nodes % 2 == 1 ? var.ha_nodes : 3
+  ha_cluster          = var.node_count >= local.ha_nodes ? var.ha_cluster : false
   registration_domain = "k3s.${local.domain}"
 
   agent_node_labels = [
@@ -283,7 +289,7 @@ resource "null_resource" "set_dns_rr" {
   count = var.node_count
   triggers = {
     registration_domain = local.registration_domain
-    vpn_ips             = local.ha_cluster == true ? join(" ", slice(var.vpn_ips, 0, 3)) : local.master_ip
+    vpn_ips             = local.ha_cluster == true ? join(" ", slice(var.vpn_ips, 0, local.ha_nodes)) : local.master_ip
     node_public_ip      = element(var.connections, count.index)
     ssh_key_path        = var.ssh_key_path
     domain              = local.domain
@@ -509,7 +515,7 @@ EOF
                 
         until $(curl -fk -so nul https://${local.registration_domain}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
         
-        %{if local.ha_cluster == true && count.index < 3~}
+        %{if local.ha_cluster == true && count.index < local.ha_nodes~}
         
         echo "=============================================";
         echo "[INFO] ---Installing k3s server-follower[${count.index}]---";
