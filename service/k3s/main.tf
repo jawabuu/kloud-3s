@@ -587,6 +587,7 @@ resource "null_resource" "k3s_cleanup" {
     user        = "root"
     agent       = false
     private_key = file(self.triggers.ssh_key_path)
+    timeout     = "2m"
   }
 
   # Clean up on deleting node
@@ -598,7 +599,9 @@ resource "null_resource" "k3s_cleanup" {
       "echo 'Cleaning up ${self.triggers.node_name}...'",
       "kubectl drain ${self.triggers.node_name} --force --delete-emptydir-data --ignore-daemonsets --timeout 60s",
       "kubectl delete node ${self.triggers.node_name} --timeout 30s",
+      "kubectl patch node ${self.triggers.node_name} -p '{\"metadata\":{\"finalizers\":[]}}' --type=merge",
       "sed -i \"/${self.triggers.node_name}/d\" /var/lib/rancher/k3s/server/cred/node-passwd",
+      "rm -rf /var/lib/rancher/k3s/agent/server-ca.crt",
     ]
   }
 
