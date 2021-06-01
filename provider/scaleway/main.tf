@@ -154,7 +154,7 @@ output "nodes" {
     hostname   = server.name
     public_ip  = server.public_ip,
     private_ip = server.private_ip,
-    dns_name   = "${element(split("/", server.id),1)}.pub.instances.scw.cloud"
+    dns_name   = "${element(split("/", server.id), 1)}.pub.instances.scw.cloud"
   }]
 
 }
