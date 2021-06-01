@@ -171,7 +171,14 @@ Common variables for deployment
 |k3s_version|latest|This is set to v1.21.1+k3s1|
 |cni|weave|Choice of CNI among default,flannel,cilium,calico,weave|
 |overlay_cidr|10.42.0.0/16|pod cidr for k3s|
+|service_cidr|10.43.0.0/16|service cidr for k3s|
 |vpc_cidr|10.115.0.0/24|vpc cidr for supported providers|
+|vpn_iprange|10.0.1.0/24|vpn cidr for wireguard|
+|ha_cluster|false|Create a high-availabilty cluster|
+|ha_nodes|3|Number of controller nodes in HA cluster|
+|enable_floatingip|false|Use a floating ip|
+|install_app.floating_ip|false|Install floating-ip controller|
+|create_certs|false|Create letsencrypt certs|
 |ssh_key_path|`./../../.ssh/tf-kube`|Filepath for ssh private key|
 |ssh_pubkey_path|`./../../.ssh/tf-kube.pub`|Filepath for ssh public key|
 |ssh_keys_dir|`./../../.ssh`|Directory to store created ssh keys|
