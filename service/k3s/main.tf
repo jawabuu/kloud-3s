@@ -338,6 +338,7 @@ resource "null_resource" "k3s" {
     follower_install_flags = local.follower_install_flags
     ha_cluster             = local.ha_cluster
     registration_domain    = null_resource.set_dns_rr[count.index].triggers.registration_domain
+    node_type              = count.index == 0 ? "controller" : (local.ha_cluster == true && count.index < local.ha_nodes ? "ha_controller" : "agent")
   }
 
   connection {
@@ -414,7 +415,7 @@ EOF
   # Install K3S server
   provisioner "remote-exec" {
     inline = [<<EOT
-      %{if count.index == 0~}
+      %{if self.triggers.node_type == "controller"~}
       
         echo "[INFO] ---Uninstalling k3s-server---";
         # Clear CNI routes
@@ -439,7 +440,7 @@ EOF
         %{endif~}
         
         echo "==================================";
-        echo "[INFO] ---Installing %{if local.ha_cluster~}HA%{endif} k3s server---";
+        echo "[INFO] ---Installing %{if local.ha_cluster~}HA%{endif} k3s server ${self.triggers.node_type}[${count.index}]---";
         echo "===================================";
                 
         INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer server ${local.server_install_flags} \
@@ -515,10 +516,10 @@ EOF
                 
         until $(curl -fk -so nul https://${local.registration_domain}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
         
-        %{if local.ha_cluster == true && count.index < local.ha_nodes~}
+        %{if self.triggers.node_type == "ha_controller"~}
         
         echo "=============================================";
-        echo "[INFO] ---Installing k3s server-follower[${count.index}]---";
+        echo "[INFO] ---Installing k3s server ${self.triggers.node_type}[${count.index}]---";
         echo "=============================================";
 
         until $(curl -f -so nul https://${local.registration_domain}:6443/ping --cacert /var/lib/rancher/k3s/agent/server-ca.crt); 
@@ -534,7 +535,7 @@ EOF
         %{else~}
         
         echo "===================================";
-        echo "[INFO] ---Installing k3s agent[${count.index}]---";
+        echo "[INFO] ---Installing k3s ${self.triggers.node_type}[${count.index}]---";
         echo "===================================";
 
         until $(curl -f -so nul https://${local.registration_domain}:6443/ping --cacert /var/lib/rancher/k3s/agent/server-ca.crt); 
