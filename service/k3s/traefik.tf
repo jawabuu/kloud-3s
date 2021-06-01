@@ -4,7 +4,7 @@ locals {
     create_certs  = var.create_certs
     auth_user     = var.auth_user
     auth_password = var.auth_password == "" ? random_string.default_password.result : var.auth_password
-    master_ips    = local.ha_cluster == true ? join(",", slice(var.connections, 0, 3)) : false
+    master_ips    = local.ha_cluster == true ? join(",", slice(var.connections, 0, local.ha_nodes)) : false
   })
 }
 
