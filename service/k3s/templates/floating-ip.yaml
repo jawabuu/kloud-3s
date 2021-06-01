@@ -118,12 +118,13 @@ data:
 
     # Get current cluster leader
     function get_leader_node(){
+      SELECTOR=${1:-}
 
-      if [[ ! -z "${NODE_SELECTOR}" ]]; then
+      if [[ ! -z "${SELECTOR}" ]]; then
 
       curl -s ${K8S_CURL_ARGS} \
         --header "Authorization: Bearer ${K8S_TOKEN}" \
-        "${KUBE_API_ENDPOINT}/api/v1/nodes?labelSelector=${NODE_SELECTOR}&limit=1" \
+        "${KUBE_API_ENDPOINT}/api/v1/nodes?labelSelector=${SELECTOR}&limit=1" \
         | jq -r '.items[].metadata.name'
 
       else
