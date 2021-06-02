@@ -1,3 +1,7 @@
+## Requirements
+
+No requirements.
+
 ## Providers
 
 No provider.
@@ -5,7 +9,7 @@ No provider.
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:-----:|
+|------|-------------|------|---------|:--------:|
 | additional\_rules | add custom firewall rules during provisioning e.g. allow 1194/udp, allow ftp | `list(string)` | `[]` | no |
 | apt\_packages | Additional packages to install | `list(any)` | `[]` | no |
 | auth\_password | Traefik basic auth password | `string` | `""` | no |

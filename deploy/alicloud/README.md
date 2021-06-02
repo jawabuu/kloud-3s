@@ -1,3 +1,7 @@
+## Requirements
+
+No requirements.
+
 ## Providers
 
 No provider.
@@ -5,7 +9,7 @@ No provider.
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:-----:|
+|------|-------------|------|---------|:--------:|
 | additional\_rules | add custom firewall rules during provisioning e.g. allow 1194/udp, allow ftp | `list(string)` | `[]` | no |
 | alicloud\_access\_key | n/a | `string` | `""` | no |
 | alicloud\_image | n/a | `string` | `"ubuntu_20_04_x64_20G_alibase_20200914.vhd"` | no |
