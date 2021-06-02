@@ -3,9 +3,9 @@ on:
   push:
     branches:
       - master
-    paths:
-      - 'deploy/**'
-      - '.github/workflows/terraform-docs.yaml'
+    # paths:
+    #   - 'deploy/**'
+    #   - '.github/workflows/terraform-docs.yaml'
 jobs:
   docs:
     runs-on: ubuntu-latest
@@ -15,7 +15,7 @@ jobs:
         ref: master
     
     - name: Render terraform docs inside the README.md and push changes back to branch
-      uses: Dirrk/terraform-docs@v1.0.7
+      uses: Dirrk/terraform-docs@v1.0.8
       with:
         tf_docs_content_type: table
         tf_docs_find_dir: deploy/
