@@ -39,6 +39,7 @@
 | Name | Version |
 |------|---------|
 | terraform | >= 0.12.26 |
+| vultr | ~> 1.5.0 |
 
 ## Providers
 
