@@ -18,10 +18,6 @@ No provider.
 | cni | Choice of CNI to install e.g. flannel, weave, cilium, calico | `string` | `"cilium"` | no |
 | create\_certs | Option to create letsencrypt certs. Only enable if certain that your deployment is reachable. | `bool` | `false` | no |
 | create\_zone | n/a | `bool` | `false` | no |
-| digitalocean\_image | n/a | `string` | `"ubuntu-20-04-x64"` | no |
-| digitalocean\_region | n/a | `string` | `"fra1"` | no |
-| digitalocean\_size | n/a | `string` | `"s-1vcpu-1gb"` | no |
-| digitalocean\_ssh\_keys | n/a | `list(string)` | <pre>[<br>  ""<br>]</pre> | no |
 | digitalocean\_token | n/a | `string` | `""` | no |
 | domain | n/a | `string` | `"kloud3s.io"` | no |
 | enable\_floatingip | Whether to use a floating ip or not | `bool` | `false` | no |
@@ -53,6 +49,11 @@ No provider.
 | volume\_size | Volume size in GB | `number` | `10` | no |
 | vpc\_cidr | CIDR for nodes provider vpc if available | `string` | `"10.115.0.0/24"` | no |
 | vpn\_iprange | CIDR for nodes wireguard vpn | `string` | `"10.0.1.0/24"` | no |
+| vultr\_api\_key | n/a | `string` | `""` | no |
+| vultr\_os | n/a | `string` | `"Ubuntu 20.04 x64"` | no |
+| vultr\_plan | n/a | `string` | `"1024 MB RAM,25 GB SSD,1.00 TB BW"` | no |
+| vultr\_region | n/a | `string` | `"New Jersey"` | no |
+| vultr\_ssh\_keys | n/a | `list(string)` | <pre>[<br>  ""<br>]</pre> | no |
 
 ## Outputs
 

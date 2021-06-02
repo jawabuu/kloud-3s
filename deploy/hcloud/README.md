@@ -18,10 +18,6 @@ No provider.
 | cni | Choice of CNI to install e.g. flannel, weave, cilium, calico | `string` | `"cilium"` | no |
 | create\_certs | Option to create letsencrypt certs. Only enable if certain that your deployment is reachable. | `bool` | `false` | no |
 | create\_zone | n/a | `bool` | `false` | no |
-| digitalocean\_image | n/a | `string` | `"ubuntu-20-04-x64"` | no |
-| digitalocean\_region | n/a | `string` | `"fra1"` | no |
-| digitalocean\_size | n/a | `string` | `"s-1vcpu-1gb"` | no |
-| digitalocean\_ssh\_keys | n/a | `list(string)` | <pre>[<br>  ""<br>]</pre> | no |
 | digitalocean\_token | n/a | `string` | `""` | no |
 | domain | n/a | `string` | `"kloud3s.io"` | no |
 | enable\_floatingip | Whether to use a floating ip or not | `bool` | `false` | no |
@@ -33,6 +29,11 @@ No provider.
 | google\_region | n/a | `string` | `""` | no |
 | ha\_cluster | Create highly available cluster. Currently experimental and requires node\_count >= 3 | `bool` | `false` | no |
 | ha\_nodes | Number of controller nodes for HA cluster. Must be greater than 3 and odd-numbered. | `number` | `3` | no |
+| hcloud\_image | n/a | `string` | `"ubuntu-20.04"` | no |
+| hcloud\_location | n/a | `string` | `"nbg1"` | no |
+| hcloud\_ssh\_keys | n/a | `list(string)` | <pre>[<br>  ""<br>]</pre> | no |
+| hcloud\_token | n/a | `string` | `""` | no |
+| hcloud\_type | n/a | `string` | `"cx11"` | no |
 | hostname\_format | n/a | `string` | `"kube%d"` | no |
 | install\_app | Additional apps to Install | `map(any)` | <pre>{<br>  "elastic_cloud": false,<br>  "k8dash": false,<br>  "kube_prometheus": false,<br>  "kubernetes_dashboard": true,<br>  "longhorn": false<br>}</pre> | no |
 | k3s\_version | n/a | `string` | `"latest"` | no |

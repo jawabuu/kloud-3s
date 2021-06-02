@@ -11,17 +11,16 @@ No provider.
 | auth\_password | Traefik basic auth password | `string` | `""` | no |
 | auth\_user | Traefik basic auth username | `string` | `"kloud-3s"` | no |
 | aws\_access\_key | n/a | `string` | `""` | no |
+| aws\_image | n/a | `string` | `"ami-082e4f383a98efbe9"` | no |
 | aws\_region | n/a | `string` | `"eu-west-1"` | no |
+| aws\_region\_zone | n/a | `string` | `"eu-west-1c"` | no |
 | aws\_secret\_key | n/a | `string` | `""` | no |
+| aws\_size | n/a | `string` | `"t2.micro"` | no |
 | cloudflare\_api\_token | n/a | `string` | `""` | no |
 | cloudflare\_email | n/a | `string` | `""` | no |
 | cni | Choice of CNI to install e.g. flannel, weave, cilium, calico | `string` | `"cilium"` | no |
 | create\_certs | Option to create letsencrypt certs. Only enable if certain that your deployment is reachable. | `bool` | `false` | no |
 | create\_zone | n/a | `bool` | `false` | no |
-| digitalocean\_image | n/a | `string` | `"ubuntu-20-04-x64"` | no |
-| digitalocean\_region | n/a | `string` | `"fra1"` | no |
-| digitalocean\_size | n/a | `string` | `"s-1vcpu-1gb"` | no |
-| digitalocean\_ssh\_keys | n/a | `list(string)` | <pre>[<br>  ""<br>]</pre> | no |
 | digitalocean\_token | n/a | `string` | `""` | no |
 | domain | n/a | `string` | `"kloud3s.io"` | no |
 | enable\_floatingip | Whether to use a floating ip or not | `bool` | `false` | no |

@@ -7,6 +7,12 @@ No provider.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:-----:|
 | additional\_rules | add custom firewall rules during provisioning e.g. allow 1194/udp, allow ftp | `list(string)` | `[]` | no |
+| alicloud\_access\_key | n/a | `string` | `""` | no |
+| alicloud\_image | n/a | `string` | `"ubuntu_20_04_x64_20G_alibase_20200914.vhd"` | no |
+| alicloud\_region | n/a | `string` | `"eu-central-1"` | no |
+| alicloud\_region\_zone | n/a | `string` | `"eu-central-1a"` | no |
+| alicloud\_secret\_key | n/a | `string` | `""` | no |
+| alicloud\_size | n/a | `string` | `"1c1g"` | no |
 | apt\_packages | Additional packages to install | `list(any)` | `[]` | no |
 | auth\_password | Traefik basic auth password | `string` | `""` | no |
 | auth\_user | Traefik basic auth username | `string` | `"kloud-3s"` | no |
@@ -18,10 +24,6 @@ No provider.
 | cni | Choice of CNI to install e.g. flannel, weave, cilium, calico | `string` | `"cilium"` | no |
 | create\_certs | Option to create letsencrypt certs. Only enable if certain that your deployment is reachable. | `bool` | `false` | no |
 | create\_zone | n/a | `bool` | `false` | no |
-| digitalocean\_image | n/a | `string` | `"ubuntu-20-04-x64"` | no |
-| digitalocean\_region | n/a | `string` | `"fra1"` | no |
-| digitalocean\_size | n/a | `string` | `"s-1vcpu-1gb"` | no |
-| digitalocean\_ssh\_keys | n/a | `list(string)` | <pre>[<br>  ""<br>]</pre> | no |
 | digitalocean\_token | n/a | `string` | `""` | no |
 | domain | n/a | `string` | `"kloud3s.io"` | no |
 | enable\_floatingip | Whether to use a floating ip or not | `bool` | `false` | no |

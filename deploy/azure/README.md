@@ -13,15 +13,16 @@ No provider.
 | aws\_access\_key | n/a | `string` | `""` | no |
 | aws\_region | n/a | `string` | `"eu-west-1"` | no |
 | aws\_secret\_key | n/a | `string` | `""` | no |
+| azure\_image | n/a | `string` | `"20.04-LTS"` | no |
+| azure\_region | n/a | `string` | `"West Europe"` | no |
+| azure\_size | n/a | `string` | `"Standard_B1ms"` | no |
+| client\_id | n/a | `string` | `""` | no |
+| client\_secret | n/a | `string` | `""` | no |
 | cloudflare\_api\_token | n/a | `string` | `""` | no |
 | cloudflare\_email | n/a | `string` | `""` | no |
 | cni | Choice of CNI to install e.g. flannel, weave, cilium, calico | `string` | `"cilium"` | no |
 | create\_certs | Option to create letsencrypt certs. Only enable if certain that your deployment is reachable. | `bool` | `false` | no |
 | create\_zone | n/a | `bool` | `false` | no |
-| digitalocean\_image | n/a | `string` | `"ubuntu-20-04-x64"` | no |
-| digitalocean\_region | n/a | `string` | `"fra1"` | no |
-| digitalocean\_size | n/a | `string` | `"s-1vcpu-1gb"` | no |
-| digitalocean\_ssh\_keys | n/a | `list(string)` | <pre>[<br>  ""<br>]</pre> | no |
 | digitalocean\_token | n/a | `string` | `""` | no |
 | domain | n/a | `string` | `"kloud3s.io"` | no |
 | enable\_floatingip | Whether to use a floating ip or not | `bool` | `false` | no |
@@ -48,6 +49,8 @@ No provider.
 | ssh\_key\_path | n/a | `string` | `"../../.ssh/tf-kube"` | no |
 | ssh\_keys\_dir | n/a | `string` | `"../../.ssh"` | no |
 | ssh\_pubkey\_path | n/a | `string` | `"../../.ssh/tf-kube.pub"` | no |
+| subscription\_id | n/a | `string` | `""` | no |
+| tenant\_id | n/a | `string` | `""` | no |
 | test-traefik | Deploy traefik test. | `bool` | `true` | no |
 | trform\_domain | Manage this domain and it's wildcard domain using terraform. | `bool` | `false` | no |
 | volume\_size | Volume size in GB | `number` | `10` | no |

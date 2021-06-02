@@ -18,19 +18,18 @@ No provider.
 | cni | Choice of CNI to install e.g. flannel, weave, cilium, calico | `string` | `"cilium"` | no |
 | create\_certs | Option to create letsencrypt certs. Only enable if certain that your deployment is reachable. | `bool` | `false` | no |
 | create\_zone | n/a | `bool` | `false` | no |
-| digitalocean\_image | n/a | `string` | `"ubuntu-20-04-x64"` | no |
-| digitalocean\_region | n/a | `string` | `"fra1"` | no |
-| digitalocean\_size | n/a | `string` | `"s-1vcpu-1gb"` | no |
-| digitalocean\_ssh\_keys | n/a | `list(string)` | <pre>[<br>  ""<br>]</pre> | no |
 | digitalocean\_token | n/a | `string` | `""` | no |
 | domain | n/a | `string` | `"kloud3s.io"` | no |
 | enable\_floatingip | Whether to use a floating ip or not | `bool` | `false` | no |
 | enable\_volumes | Whether to use volumes or not | `bool` | `false` | no |
 | etcd\_node\_count | n/a | `number` | `3` | no |
 | google\_credentials\_file | n/a | `string` | `""` | no |
+| google\_image | n/a | `string` | `"ubuntu-os-cloud/ubuntu-2004-focal-v20201111"` | no |
 | google\_managed\_zone | n/a | `string` | `""` | no |
 | google\_project | n/a | `string` | `""` | no |
-| google\_region | n/a | `string` | `""` | no |
+| google\_region | n/a | `string` | `"us-central1"` | no |
+| google\_region\_zone | n/a | `string` | `"us-central1-a"` | no |
+| google\_size | n/a | `string` | `"g1-small"` | no |
 | ha\_cluster | Create highly available cluster. Currently experimental and requires node\_count >= 3 | `bool` | `false` | no |
 | ha\_nodes | Number of controller nodes for HA cluster. Must be greater than 3 and odd-numbered. | `number` | `3` | no |
 | hostname\_format | n/a | `string` | `"kube%d"` | no |

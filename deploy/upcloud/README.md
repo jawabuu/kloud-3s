@@ -18,10 +18,6 @@ No provider.
 | cni | Choice of CNI to install e.g. flannel, weave, cilium, calico | `string` | `"cilium"` | no |
 | create\_certs | Option to create letsencrypt certs. Only enable if certain that your deployment is reachable. | `bool` | `false` | no |
 | create\_zone | n/a | `bool` | `false` | no |
-| digitalocean\_image | n/a | `string` | `"ubuntu-20-04-x64"` | no |
-| digitalocean\_region | n/a | `string` | `"fra1"` | no |
-| digitalocean\_size | n/a | `string` | `"s-1vcpu-1gb"` | no |
-| digitalocean\_ssh\_keys | n/a | `list(string)` | <pre>[<br>  ""<br>]</pre> | no |
 | digitalocean\_token | n/a | `string` | `""` | no |
 | domain | n/a | `string` | `"kloud3s.io"` | no |
 | enable\_floatingip | Whether to use a floating ip or not | `bool` | `false` | no |
@@ -50,6 +46,12 @@ No provider.
 | ssh\_pubkey\_path | n/a | `string` | `"../../.ssh/tf-kube.pub"` | no |
 | test-traefik | Deploy traefik test. | `bool` | `true` | no |
 | trform\_domain | Manage this domain and it's wildcard domain using terraform. | `bool` | `false` | no |
+| upcloud\_image | n/a | `string` | `"Ubuntu Server 20.04 LTS (Focal Fossa)"` | no |
+| upcloud\_password | n/a | `string` | `""` | no |
+| upcloud\_plan | n/a | `string` | `"1xCPU-1GB"` | no |
+| upcloud\_ssh\_keys | n/a | `list` | <pre>[<br>  ""<br>]</pre> | no |
+| upcloud\_username | n/a | `string` | `""` | no |
+| upcloud\_zone | n/a | `string` | `"uk-lon1"` | no |
 | volume\_size | Volume size in GB | `number` | `10` | no |
 | vpc\_cidr | CIDR for nodes provider vpc if available | `string` | `"10.115.0.0/24"` | no |
 | vpn\_iprange | CIDR for nodes wireguard vpn | `string` | `"10.0.1.0/24"` | no |
