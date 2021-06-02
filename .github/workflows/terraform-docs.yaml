@@ -16,5 +16,5 @@ jobs:
       with:
         find-dir: deploy/
         output-file: README.md
-        output-method: inject
+        output-method: replace
         git-push: "false"
