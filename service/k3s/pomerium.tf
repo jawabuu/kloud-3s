@@ -19,7 +19,7 @@ resource "random_password" "cookie_secret" {
 resource "null_resource" "pomerium" {
   count = var.node_count > 0 ? 1 : 0
   triggers = {
-    k3s_id           = join(" ", null_resource.k3s.*.id)
+    k3s_id           = md5(join(" ", null_resource.k3s.*.id))
     pomerium         = md5(local.pomerium)
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip

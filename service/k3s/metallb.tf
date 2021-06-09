@@ -11,7 +11,7 @@ resource "null_resource" "metallb_install" {
   triggers = {
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip
-    k3s_id           = join(" ", null_resource.k3s.*.id)
+    k3s_id           = md5(join(" ", null_resource.k3s.*.id))
     metallb_config   = md5(local.metallb_config)
     floating_ip      = local.floating_ip
   }

@@ -1,7 +1,7 @@
 resource "null_resource" "kube_prometheus_apply" {
   count = var.node_count > 0 && lookup(var.install_app, "kube_prometheus", false) == true ? 1 : 0
   triggers = {
-    k3s_id           = join(" ", null_resource.k3s.*.id)
+    k3s_id           = md5(join(" ", null_resource.k3s.*.id))
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip
     run              = false

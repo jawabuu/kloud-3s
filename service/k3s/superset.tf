@@ -23,7 +23,7 @@ resource "null_resource" "superset" {
   count      = var.node_count > 0 && lookup(var.install_app, "superset", false) == true ? 1 : 0
   depends_on = [null_resource.longhorn_apply]
   triggers = {
-    k3s_id           = join(" ", null_resource.k3s.*.id)
+    k3s_id           = md5(join(" ", null_resource.k3s.*.id))
     superset         = md5(local.superset)
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip
@@ -42,13 +42,6 @@ resource "null_resource" "superset" {
     content     = local.superset
     destination = "/var/lib/rancher/k3s/server/manifests/superset-helm.yaml"
   }
-
-  # Upload superset chart
-  provisioner "file" {
-    source      = "${path.module}/templates/superset-1.1.11.tgz"
-    destination = "/var/lib/rancher/k3s/server/static/charts/superset-1.1.11.tgz"
-  }
-
 
 }
 

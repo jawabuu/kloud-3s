@@ -13,7 +13,7 @@ resource "null_resource" "sentry" {
   count      = var.node_count > 0 && lookup(var.install_app, "sentry", false) == true ? 1 : 0
   depends_on = [null_resource.longhorn_apply]
   triggers = {
-    k3s_id           = join(" ", null_resource.k3s.*.id)
+    k3s_id           = md5(join(" ", null_resource.k3s.*.id))
     sentry           = md5(local.sentry)
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip

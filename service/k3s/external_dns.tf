@@ -12,7 +12,7 @@ resource "null_resource" "external_dns_apply" {
   # The terraform DNS module already manages this.
   count = var.node_count > 0 && local.trform_domain == false ? 1 : 0
   triggers = {
-    k3s_id           = join(" ", null_resource.k3s.*.id)
+    k3s_id           = md5(join(" ", null_resource.k3s.*.id))
     external_dns     = md5(local.external_dns)
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip

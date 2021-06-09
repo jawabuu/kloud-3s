@@ -10,7 +10,7 @@ locals {
 resource "null_resource" "cert_manager_apply" {
   count = var.node_count > 0 ? 1 : 0
   triggers = {
-    k3s_id           = join(" ", null_resource.k3s.*.id)
+    k3s_id           = md5(join(" ", null_resource.k3s.*.id))
     cert_manager     = md5(local.cert_manager)
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip
