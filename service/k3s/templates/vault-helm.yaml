@@ -151,7 +151,13 @@ spec:
         - matchExpressions:
           - key : node-role.kubernetes.io/master
             operator: Exists
-  
+
+  vaultPodSpec:
+    priorityClassName: system-cluster-critical
+
+  vaultConfigurerPodSpec:
+    priorityClassName: system-cluster-critical
+
   # Vault Pods , Services and TLS Secret annotations
   vaultAnnotations:
     traefik.ingress.kubernetes.io/service.serversscheme: "https"
