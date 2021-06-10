@@ -18,8 +18,7 @@ spec:
   valuesContent: |-
     ingress:
       enabled: true
-      hosts:
-        - sentry.${domain}
+      hostname: sentry.${domain}
       tls: 
         - secretName: sentry-tls
           hosts:
