@@ -1,3 +1,14 @@
+locals {
+  kube-prometheus = templatefile("${path.module}/templates/kube-prometheus-helm.yaml", {
+    domain         = var.domain
+    mail_config    = var.mail_config
+    oidc_config    = var.oidc_config
+    admin_password = var.auth_password == "" ? random_string.default_password.result : var.auth_password
+    client_id      = join(",", [for x in var.oidc_config : x.value if x.name == "authenticate.idp.clientID"])
+    client_secret  = join(",", [for x in var.oidc_config : x.value if x.name == "authenticate.idp.clientSecret"])
+  })
+}
+
 resource "null_resource" "kube_prometheus_apply" {
   count = var.node_count > 0 && lookup(var.install_app, "kube_prometheus", false) == true ? 1 : 0
   triggers = {
@@ -5,7 +16,7 @@ resource "null_resource" "kube_prometheus_apply" {
     ssh_key_path     = local.ssh_key_path
     master_public_ip = local.master_public_ip
     run              = false
-    kube_prometheus  = filemd5("${path.module}/templates/kube-prometheus-helm.yaml")
+    kube_prometheus  = md5(local.kube-prometheus)
   }
 
   # Use master(s)
@@ -18,8 +29,8 @@ resource "null_resource" "kube_prometheus_apply" {
 
   # Upload kube-prometheus
   provisioner "file" {
-    source      = "${path.module}/templates/kube_prometheus-helm.yaml"
-    destination = "/var/lib/rancher/k3s/server/manifests/kube_prometheus.yaml"
+    content     = local.kube-prometheus
+    destination = "/var/lib/rancher/k3s/server/manifests/kube-prometheus.yaml"
   }
 
 }
