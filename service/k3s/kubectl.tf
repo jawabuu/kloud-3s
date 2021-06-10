@@ -64,6 +64,19 @@ EOT
 
 }
 
+data "template_file" "kubeconfig" {
+  template = file("${path.module}/templates/kubeconfig.yaml")
+
+  vars = {
+    domain = local.domain
+  }
+}
+
+resource "local_file" "kubeconfig" {
+  filename = "${var.kubeconfig_path}/${var.cluster_name}-exec.yaml"
+  content  = data.template_file.kubeconfig.rendered
+}
+
 output "kubeconfig" {
   value = "export KUBECONFIG=${abspath(var.kubeconfig_path)}/${var.cluster_name}-k3s.yaml"
 }
