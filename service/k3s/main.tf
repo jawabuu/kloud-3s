@@ -318,6 +318,46 @@ resource "null_resource" "set_dns_rr" {
   }
 }
 
+resource "null_resource" "syslog_config" {
+  count = var.node_count
+
+  triggers = {
+    node_public_ip = element(var.connections, count.index)
+  }
+
+  connection {
+    host        = element(var.connections, count.index)
+    user        = "root"
+    agent       = false
+    private_key = file(var.ssh_key_path)
+  }
+
+  provisioner "remote-exec" {
+    inline = [<<EOT
+    cat <<-EOF > /etc/custom-logrotate.conf
+/var/log/syslog
+{
+        su root syslog
+        rotate 7
+        daily
+        maxsize 50M
+        missingok
+        notifempty
+        delaycompress
+        compress
+        postrotate
+                /usr/lib/rsyslog/rsyslog-rotate
+        endscript
+}
+EOF
+      sed "s|/etc/logrotate.conf|/etc/custom-logrotate.conf|" /etc/cron.daily/logrotate > /etc/cron.hourly/custom-logrotate;
+      logrotate -d /etc/custom-logrotate.conf;
+      logrotate -f -v /etc/custom-logrotate.conf;
+      EOT
+    ]
+  }
+}
+
 resource "null_resource" "k3s" {
   count = var.node_count
 
