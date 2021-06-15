@@ -18,6 +18,8 @@ spec:
       tag: "v0.14.0"
     operator:
       enabled: true
+      config:
+        ingressClass: "traefik-cert-manager"
     ingress:
       hosts:
         - k8sdash.${domain}
