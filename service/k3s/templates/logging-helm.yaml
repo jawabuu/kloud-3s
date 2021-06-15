@@ -14,6 +14,10 @@ spec:
   repo: https://grafana.github.io/helm-charts
   targetNamespace: logging
   version: 2.4.1
+  valuesContent: |-
+
+    promtail:
+      enabled: false
 ---
 apiVersion: helm.cattle.io/v1
 kind: HelmChart
@@ -24,67 +28,184 @@ spec:
   chart: logging-operator
   repo: https://kubernetes-charts.banzaicloud.com
   targetNamespace: logging
-  version: 3.10.0
+  version: 3.9.5
   valuesContent: |-
 
     createCustomResource: false
 ---
-apiVersion: logging.banzaicloud.io/v1beta1
-kind: Logging
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
 metadata:
-  name: default-logging-simple
+  name: logging-operator-logging
+  namespace: kube-system
 spec:
-  fluentd: {}
-  fluentbit: {}
-  controlNamespace: logging
+  chart: logging-operator-logging
+  repo: https://kubernetes-charts.banzaicloud.com
+  targetNamespace: logging
+  version: 3.9.5
+  jobImage: rancher/klipper-helm:v0.6.0-build20210608
+  valuesContent: |-
+
+    nameOverride: logging-operator-stack
+    enableRecreateWorkloadOnImmutableFieldChange: true
+    controlNamespace: logging
+    tls:
+      enabled: true
+    fluentd:
+      disablePvc: true
+      bufferStorageVolume:
+        hostPath:
+          path: ""
+    clusterFlows:
+      - name: eventrouter
+        spec:
+          filters:
+            - parser:
+                remove_key_name_field: true
+                reserve_data: true
+                parse:
+                  type: json
+            - record_modifier:
+                records:
+                - fluentd_worker: $${ENV["HOSTNAME"]}
+                - event_namespace: $${record["event"]["metadata"]["namespace"]}
+          match:
+            - select:
+                labels:
+                  app: eventrouter
+          globalOutputRefs:
+            - loki
+      - name: webapp-pods
+        spec:
+          filters:
+            - parser:
+                remove_key_name_field: true
+                reserve_data: true
+                parse:
+                  type: multi_format
+                  patterns:
+                  - format: nginx
+                  - format: regexp
+                    expression: "^\\[(?<timestamp>\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}),(?<pid>\\d{3}):\\s(?<severity>\\w*)\\/(?<worker>[a-zA-Z\\-0-9]*)\\]\\s(?<message>.*)$"
+                    time_key: timestamp
+                    time_format: "%Y-%m-%d %H:%M:%S"
+                    keep_time_key: false
+                  - format: none
+            - record_modifier:
+                records:
+                - fluentd_worker: $${ENV["HOSTNAME"]}
+          match:
+            - select:
+                namespaces:
+                - default
+          globalOutputRefs:
+            - loki
+      - name: system-pods
+        spec:
+          filters:
+            - parser:
+                remove_key_name_field: true
+                reserve_data: true
+                parse:
+                  type: multi_format
+                  patterns:
+                  - format: nginx
+                  - format: none
+            - record_modifier:
+                records:
+                - fluentd_worker: $${ENV["HOSTNAME"]}
+          match:
+            - exclude:
+                namespaces:
+                - default
+            - exclude:
+                labels:
+                  app: eventrouter
+            - select: {}
+          globalOutputRefs:
+            - loki
+
+
+    clusterOutputs:
+      - name: loki
+        spec:
+          loki:
+            url: http://loki:3100
+            configure_kubernetes_labels: true
+            labels:
+              fluentd_worker: ""
+              event_namespace: ""
+            extra_labels:
+              cluster: "${cluster}"
+              region: "${region}"
 ---
-apiVersion: logging.banzaicloud.io/v1beta1
-kind: Output
+apiVersion: v1
+kind: ServiceAccount
 metadata:
- name: loki-output
-spec:
- loki:
-   url: http://loki:3100
-   configure_kubernetes_labels: true
-   buffer:
-     timekey: 5m
-     timekey_wait: 30s
-     timekey_use_utc: true
+  name: eventrouter 
+  namespace: kube-system
 ---
-apiVersion: logging.banzaicloud.io/v1beta1
-kind: Flow
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
 metadata:
-  name: loki-flow
-spec:
-  filters:
-    - tag_normaliser: {}
-    - parser:
-        remove_key_name_field: true
-        reserve_data: true
-        parse:
-          type: nginx
-  match:
-    - select:
-        labels:
-          app.kubernetes.io/name: log-generator
-  localOutputRefs:
-    - loki-output
+  name: eventrouter 
+rules:
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: eventrouter 
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: eventrouter
+subjects:
+- kind: ServiceAccount
+  name: eventrouter
+  namespace: kube-system
+---
+apiVersion: v1
+data:
+  config.json: |- 
+    {
+      "sink": "stdout"
+    }
+kind: ConfigMap
+metadata:
+  name: eventrouter-cm
+  namespace: kube-system
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
- name: log-generator
+  name: eventrouter
+  namespace: kube-system
+  labels:
+    app: eventrouter
 spec:
- selector:
-   matchLabels:
-     app.kubernetes.io/name: log-generator
- replicas: 1
- template:
-   metadata:
-     labels:
-       app.kubernetes.io/name: log-generator
-   spec:
-     containers:
-     - name: nginx
-       image: banzaicloud/log-generator:0.3.2
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eventrouter
+  template:
+    metadata:
+      labels:
+        app: eventrouter
+        tier: control-plane-addons
+    spec:
+      containers:
+        - name: kube-eventrouter
+          image: gcr.io/heptio-images/eventrouter:latest
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - name: config-volume
+            mountPath: /etc/eventrouter
+      serviceAccount: eventrouter
+      volumes:
+        - name: config-volume
+          configMap:
+            name: eventrouter-cm
 ---
