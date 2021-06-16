@@ -112,7 +112,7 @@ spec:
                   - format: regexp
                     expression: "^(?<ip>[^\\s]*)\\s-\\s(?<user>[^\"]*)\\s\\[(?<timestamp>[^\\]]*)\\]\\s\"(?<method>[^\\s]*)\\s(?<url>[^\\s]*)\\s(?<protocol>[^\"]*)\"\\s(?<status>\\d*)\\s(?<size>\\d*)\\s\"(?<referrer>[^\\s]*)\"\\s\"(?<browser>[^\"]*)\"\\s(?<pid>\\d*)\\s\"(?<source>[^\"]*)\"\\s\"(?<backend>[^\"]*)\"\\s(?<duration>.*ms)$"
                     time_key: timestamp
-                    time_format: "%m/%b/%Y:%H:%M:%S +0000"
+                    time_format: "%d/%b/%Y:%H:%M:%S +0000"
                     keep_time_key: false
                   - format: none
             - record_modifier:
