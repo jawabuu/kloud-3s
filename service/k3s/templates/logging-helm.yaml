@@ -342,13 +342,13 @@ spec:
     - record_transformer:
         enable_ruby: true
         records:
-        - message: ${record["message"].gsub(/\033\[\d{1,2}(;\d{1,2}){0,2}[mGK]/, '')}
+        - message: ${record["message"].gsub(/\033\[\d{1,2}(;\d{1,2}){0,2}[mGK]/, '').gsub(/INF/, 'info').gsub(/ERR/, 'error').gsub(/DBG/, 'debug')}
     - record_modifier:
         records:
         - fluentd_worker: $${ENV["HOSTNAME"]}
         replaces:
         - key: message
-          expression: "/^(\\d{1,2}:\\d{2}[A|P]M)\\s(\\w{3})\\s([^=]+)\\s(.*)$/"
+          expression: "/^(\\d{1,2}:\\d{2}[A|P]M)\\s(\\w+)\\s([^=]+)\\s(.*)$/"
           replace: "event_time=\\1 level=\\2 msg=\\3 \\4"
     - parser:
         remove_key_name_field: true
