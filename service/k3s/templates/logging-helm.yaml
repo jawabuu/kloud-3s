@@ -242,6 +242,9 @@ spec:
     - exclude:
         labels:
           app.kubernetes.io/name: traefik
+    - exclude:
+        labels:
+          app.kubernetes.io/instance: pomerium
     - select: {}
   globalOutputRefs:
     - loki
@@ -326,6 +329,39 @@ spec:
     - select:
         labels:
           app.kubernetes.io/name: traefik
+  globalOutputRefs:
+    - loki
+---
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: ClusterFlow
+metadata:
+  name: pomerium
+  namespace: logging
+spec:
+  filters:
+    - record_transformer:
+        enable_ruby: true
+        records:
+        - message: ${record["message"].gsub(/\033\[\d{1,2}(;\d{1,2}){0,2}[mGK]/, '')}
+    - record_modifier:
+        records:
+        - fluentd_worker: $${ENV["HOSTNAME"]}
+        replaces:
+        - key: message
+          expression: "/^(\\d{1,2}:\\d{2}[A|P]M)\\s(\\w{3})\\s([^=]+)\\s(.*)$/"
+          replace: "event_time=\\1 level=\\2 msg=\\3 \\4"
+    - parser:
+        remove_key_name_field: true
+        reserve_data: true
+        parse:
+          type: multi_format
+          patterns:
+          - format: json
+          - format: logfmt
+  match:
+    - select:
+        labels:
+          app.kubernetes.io/instance: pomerium
   globalOutputRefs:
     - loki
 ---
