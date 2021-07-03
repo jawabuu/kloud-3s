@@ -209,7 +209,7 @@ spec:
       event_namespace: ""
       log_type: ""
     extra_labels:
-      cluster: "${domain}"
+      cluster: ${domain}
     buffer:
       overflow_action: throw_exception
       timekey: 1m
@@ -245,6 +245,9 @@ spec:
     - exclude:
         labels:
           app.kubernetes.io/instance: pomerium
+    - exclude:
+        labels:
+          type: varnish
     - select: {}
   globalOutputRefs:
     - loki
@@ -296,6 +299,9 @@ spec:
         records:
         - fluentd_worker: $${ENV["HOSTNAME"]}
   match:
+    - exclude:
+        labels:
+          type: varnish
     - select:
         namespaces:
         - default
@@ -335,6 +341,38 @@ spec:
 apiVersion: logging.banzaicloud.io/v1beta1
 kind: ClusterFlow
 metadata:
+  name: varnish
+  namespace: logging
+spec:
+  filters:
+    - grep:
+        exclude:
+        - key: message
+          pattern: "^$|^\\*"
+    - concat:
+        key: "message"
+        multiline_start_regexp: "/^-\\s+Begin/"
+        multiline_end_regexp: "/^-\\s+End/"
+    - record_transformer:
+        enable_ruby: true
+        records:
+        - message: $${record["message"].gsub(/(^-\s\s+(End\s\s+)?)|(\s)*"/, '').gsub(/=/, ':').gsub(/\s\s+/, '="').gsub(/\n/, '" ')}
+        - text: $${record["message"].gsub(/(^-\s\s+(End\s\s+)?)|(\s)*"/, '').gsub(/=/, ':').gsub(/\s\s+/, '=').gsub(/\n/, ' ').gsub(/[ ]+$/, '')}
+    - parser:
+        parse:
+          type: logfmt
+        remove_key_name_field: true
+        reserve_data: true
+  match:
+    - select:
+        labels:
+          type: varnish
+  globalOutputRefs:
+    - loki
+---
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: ClusterFlow
+metadata:
   name: pomerium
   namespace: logging
 spec:
@@ -342,7 +380,7 @@ spec:
     - record_transformer:
         enable_ruby: true
         records:
-        - message: ${record["message"].gsub(/\033\[\d{1,2}(;\d{1,2}){0,2}[mGK]/, '').gsub(/INF/, 'info').gsub(/ERR/, 'error').gsub(/DBG/, 'debug')}
+        - message: $${record["message"].gsub(/\033\[\d{1,2}(;\d{1,2}){0,2}[mGK]/, '').gsub(/INF/, 'info').gsub(/ERR/, 'error').gsub(/DBG/, 'debug')}
     - record_modifier:
         records:
         - fluentd_worker: $${ENV["HOSTNAME"]}
@@ -380,14 +418,19 @@ spec:
         remove_key_name_field: true
         reserve_data: true
         key_name: log
+        emit_invalid_record_to_error: false
         parse:
           type: multi_format
           patterns:
           - format: regexp
             expression: "^(?<timestamp>[^ ]* {1,2}[^ ]* [^ ]*) (?<host>[^ ]*) (?<ident>[^ :\\[]*)(?:\\[(?<pid>[0-9]+)\\])?(?:[^\\:]*\\:)? *(?<message>.*)$"
+            time_key: timestamp
+            time_format: "%b %d %H:%M:%S"
+            timezone: "+02:00"
+            keep_time_key: false
     - record_modifier:
         records:
-        - fluentd_worker: ${ENV["HOSTNAME"]}
+        - fluentd_worker: $${ENV["HOSTNAME"]}
         - log_type: k3s-syslog
   globalOutputRefs:
     - loki
@@ -426,7 +469,6 @@ spec:
         - ip-config
   globalOutputRefs:
     - loki
-    - all-logs
 ---
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
