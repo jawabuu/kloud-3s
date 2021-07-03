@@ -358,6 +358,7 @@ spec:
         records:
         - message: $${record["message"].gsub(/(^-\s\s+(End\s\s+)?)|(\s)*"/, '').gsub(/=/, ':').gsub(/\s\s+/, '="').gsub(/\n/, '" ')}
         - text: $${record["message"].gsub(/(^-\s\s+(End\s\s+)?)|(\s)*"/, '').gsub(/=/, ':').gsub(/\s\s+/, '=').gsub(/\n/, ' ').gsub(/[ ]+$/, '')}
+        # - reconstruct: $${record["text"].gsub(/=/, '="').gsub(/(\s\w+=)/, '"\\1')}
     - parser:
         parse:
           type: logfmt
