@@ -351,7 +351,7 @@ resource "null_resource" "syslog_config" {
 }
 EOF
       sed "s|/etc/logrotate.conf|/etc/custom-logrotate.conf|;s|exit 0|echo 'Exit Skipped'|" /etc/cron.daily/logrotate > /etc/cron.hourly/custom-logrotate;
-      chmod +x /etc/custom-logrotate.conf;
+      chmod +x /etc/cron.hourly/custom-logrotate;
       logrotate -d /etc/custom-logrotate.conf;
       logrotate -f -v /etc/custom-logrotate.conf;
       EOT
