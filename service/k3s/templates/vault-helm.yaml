@@ -24,6 +24,16 @@ spec:
   chart: vault-secrets-webhook
   repo: https://kubernetes-charts.banzaicloud.com
   targetNamespace: vault
+  valuesContent: |-
+    configMapMutation: true
+    rbac:
+      authDelegatorRole:
+        enabled: false
+    # env:
+    #   VAULT_ADDR: https://external-vault.example.com
+    #   VAULT_AUTH_METHOD: kubernetes
+    #   VAULT_PATH: ${domain}
+    #   VAULT_ROLE: default
 ---
 kind: ServiceAccount
 apiVersion: v1
