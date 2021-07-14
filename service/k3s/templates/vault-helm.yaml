@@ -227,6 +227,22 @@ spec:
     - name: vault-ui-tls
       mountPath: /etc/cert-manager
 
+  resources:
+    # A YAML representation of resource ResourceRequirements for vault container
+    # Detail can reference: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container
+    vault:
+      requests:
+        memory: "100Mi"
+        cpu: "75m"
+    prometheusExporter:
+      requests:
+        memory: "100Mi"
+        cpu: "75m"
+    bankVaults:
+      requests:
+        memory: "100Mi"
+        cpu: "75m"
+
   # Support for distributing the generated CA certificate Secret to other namespaces.
   # Define a list of namespaces or use ["*"] for all namespaces. Default  "vswh".
   caNamespaces:
