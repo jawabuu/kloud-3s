@@ -14,7 +14,7 @@ spec:
   repo: https://charts.longhorn.io
   targetNamespace: longhorn-system
   bootstrap: true
-  version: 1.1.1
+  version: 1.1.2
   valuesContent: |-
     defaultSettings:
       defaultReplicaCount: ${longhorn_replicas}
