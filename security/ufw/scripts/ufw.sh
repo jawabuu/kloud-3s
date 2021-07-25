@@ -16,3 +16,5 @@ ${additional_rules}
 ufw default deny incoming
 ufw --force enable || ufw logging off && ufw --force enable
 ufw status verbose
+# https://bugs.launchpad.net/ubuntu/+source/ufw/+bug/1726856
+sed -i.bak '/ufw enable/d' /etc/crontab && echo '@reboot root ufw enable' >> /etc/crontab
