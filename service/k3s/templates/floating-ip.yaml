@@ -15,6 +15,7 @@ spec:
       labels:
         app: floating-ip-controller
     spec:
+      shareProcessNamespace: true
       serviceAccountName: floating-ip
       priorityClassName: system-node-critical
       tolerations:
@@ -53,6 +54,15 @@ spec:
           subPath: floating-ip.sh
         - mountPath: /etc/hosts
           name: etc-hosts
+      - image: shakiyam/oci-cli
+        command:
+        - /bin/bash
+        - -c
+        - sleep 10000
+        name: oci
+        resources:
+          requests:
+            cpu: 10m
       restartPolicy: Always
       volumes:
       - name: floating-ip

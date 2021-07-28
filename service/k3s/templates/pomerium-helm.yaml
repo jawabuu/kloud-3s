@@ -18,7 +18,7 @@ spec:
     image:
       tag: "v0.14.0"
     operator:
-      enabled: true
+      enabled: false
       config:
         ingressClass: "traefik-cert-manager"
     ingress:
