@@ -62,11 +62,19 @@ spec:
       - --entrypoints.web.http.redirections.entryPoint.to=:443
       - --entrypoints.web.http.redirections.entrypoint.priority=100
     ports:
+      web:
+        hostPort: 80
+      websecure:
+        hostPort: 443
       tcp:
         port: 8800
         expose: true
         exposedPort: 8800
         protocol: TCP
+    securityContext:
+      capabilities:
+        drop: [ALL]
+        add: [NET_BIND_SERVICE]
 ---
 kind: Service
 apiVersion: v1
