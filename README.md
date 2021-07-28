@@ -72,7 +72,7 @@ Dependencies
 ---
 kloud-3s requires the following installed on your system
 * terraform
-* wireguard
+* ~~wireguard~~
 * jq
 * kubectl
 * git-bash if on Windows
