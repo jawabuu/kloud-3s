@@ -15,6 +15,10 @@ spec:
     logLevel: debug
     txtPrefix: exdns.
     replicas: 1
+    image:
+      registry: gcr.io
+      repository: k8s-staging-external-dns/external-dns
+      tag: v20210720-v0.8.0-121-gf9a3fe3d
     extraEnv:
       - name: EXTERNAL_DNS_TXT_WILDCARD_REPLACEMENT
         value: wild

@@ -8,6 +8,7 @@ spec:
   chart: pomerium
   repo: https://helm.pomerium.io
   targetNamespace: kube-system
+  version: 20.1.0
   bootstrap: true
   set:
 %{ for oidc in oidc_config ~}

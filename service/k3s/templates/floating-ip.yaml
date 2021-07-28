@@ -33,7 +33,7 @@ spec:
             value: '2'
       containers:
       - name: floating-ip-controller
-        image: linkyard/kubectl
+        image: praqma/network-multitool:alpine-extra #linkyard/kubectl
         env:
         - name: HOST_IP
           valueFrom:

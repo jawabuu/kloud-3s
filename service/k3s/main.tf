@@ -475,9 +475,17 @@ EOF
         
         # Download CNI plugins to /opt/cni/bin/ because most CNI's will look in that path
         %{if local.cni != "default"~}
+        rm -rf /opt/cni/bin
+        arch=$(uname -i)
+        if [ "$arch" = "$${arch#arm}" ] || [ "$arch" = "aarch64" ]; then
+          export id_arch=arm64
+        else
+          export id_arch=amd64
+        fi
         [ -d "/opt/cni/bin" ] || \
-        (wget https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz && \
-        tar zxvf cni-plugins-linux-amd64-v0.8.6.tgz && mkdir -p /opt/cni/bin && mv * /opt/cni/bin/);
+        (echo "[ARCH] $(uname -i) : $id_arch" && \
+        wget https://github.com/containernetworking/plugins/releases/download/v0.9.1/cni-plugins-linux-$${id_arch}-v0.9.1.tgz && \
+        tar zxvf cni-plugins-linux-$${id_arch}-v0.9.1.tgz && mkdir -p /opt/cni/bin && mv * /opt/cni/bin/);
         %{endif~}
         
         echo "==================================";
@@ -546,9 +554,17 @@ EOF
         
         # Download CNI plugins to /opt/cni/bin/ because most CNI's will look in that path
         %{if local.cni != "default"~}
+        rm -rf /opt/cni/bin
+        arch=$(uname -i)
+        if [ "$arch" = "$${arch#arm}" ] || [ "$arch" = "aarch64" ]; then
+          export id_arch=arm64
+        else
+          export id_arch=amd64
+        fi
         [ -d "/opt/cni/bin" ] || \
-        (wget https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz && \
-        tar zxvf cni-plugins-linux-amd64-v0.8.6.tgz && mkdir -p /opt/cni/bin && mv * /opt/cni/bin/);
+        (echo "[ARCH] $(uname -i) : $id_arch" && \
+        wget https://github.com/containernetworking/plugins/releases/download/v0.9.1/cni-plugins-linux-$${id_arch}-v0.9.1.tgz && \
+        tar zxvf cni-plugins-linux-$${id_arch}-v0.9.1.tgz && mkdir -p /opt/cni/bin && mv * /opt/cni/bin/);
         %{endif~}
         
         %{if local.cni == "cilium"~}

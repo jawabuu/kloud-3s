@@ -14,6 +14,14 @@ spec:
   repo: https://charts.bitnami.com/bitnami
   targetNamespace: metallb-system
   valuesContent: |-
+    controller:
+      image:
+        repository: metallb/controller
+        tag: v0.10
+    speaker:
+      image:
+        repository: metallb/speaker
+        tag: v0.10
     configInline:
       address-pools:
       - name: default
@@ -42,7 +50,7 @@ spec:
         type: "net"
     spec:
       containers:
-      - image: giantswarm/tiny-tools
+      - image: praqma/network-multitool:alpine-minimal #giantswarm/tiny-tools
         imagePullPolicy: Always
         name: net
         args: ["sh", "-c", "sleep 100000"]
@@ -134,7 +142,7 @@ spec:
         key: node-role.kubernetes.io/master
       containers:
       - name: external-ip-updater
-        image: linkyard/kubectl #bskim45/helm-kubectl-jq
+        image: rancher/k3s:v1.18.20-k3s1 #linkyard/kubectl #bskim45/helm-kubectl-jq
         env:
         - name: CURRENT_NODE
           valueFrom:
