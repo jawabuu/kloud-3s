@@ -1,0 +1,261 @@
+/* general */
+variable "node_count" {
+  default = 3
+}
+
+/* etcd_node_count must be <= node_count; odd numbers provide quorum */
+variable "etcd_node_count" {
+  default = 3
+}
+
+variable "domain" {
+  default = "kloud3s.io"
+}
+
+variable "hostname_format" {
+  default = "kube%d"
+}
+
+variable "ssh_key_path" {
+  default = "../../.ssh/tf-kube"
+}
+
+variable "ssh_pubkey_path" {
+  default = "../../.ssh/tf-kube.pub"
+}
+
+variable "ssh_keys_dir" {
+  default = "../../.ssh"
+}
+
+variable "k3s_version" {
+  default = "latest"
+}
+
+variable "kubeconfig_path" {
+  default = "../../.ssh/kubeconfig"
+}
+
+variable "create_zone" {
+  default = false
+}
+
+variable "cni" {
+  default     = "cilium"
+  description = "Choice of CNI to install e.g. flannel, weave, cilium, calico"
+}
+
+variable "overlay_cidr" {
+  default     = "10.42.0.0/16"
+  description = "Cluster pod cidr"
+}
+
+variable "service_cidr" {
+  default     = "10.43.0.0/16"
+  description = "Cluster service cidr"
+}
+
+variable "vpc_cidr" {
+  default     = "10.115.0.0/24"
+  description = "CIDR for nodes provider vpc if available"
+}
+
+variable "vpn_iprange" {
+  default     = "10.0.1.0/24"
+  description = "CIDR for nodes wireguard vpn"
+}
+
+variable "ha_cluster" {
+  default     = false
+  description = "Create highly available cluster. Currently experimental and requires node_count >= 3"
+}
+
+variable "trform_domain" {
+  type        = bool
+  default     = false
+  description = "Manage this domain and it's wildcard domain using terraform."
+}
+
+variable "test-traefik" {
+  type        = bool
+  default     = true
+  description = "Deploy traefik test."
+}
+
+variable "create_certs" {
+  type        = bool
+  default     = false
+  description = "Option to create letsencrypt certs. Only enable if certain that your deployment is reachable."
+}
+
+variable "ha_nodes" {
+  default     = 3
+  description = "Number of controller nodes for HA cluster. Must be greater than 3 and odd-numbered."
+}
+
+variable "install_app" {
+  description = "Additional apps to Install"
+  type        = map(any)
+  default = {
+    kubernetes_dashboard = true
+    kube_prometheus      = false
+    k8dash               = false
+    elastic_cloud        = false
+    longhorn             = false
+  }
+}
+
+variable "additional_rules" {
+  type        = list(string)
+  default     = []
+  description = "add custom firewall rules during provisioning e.g. allow 1194/udp, allow ftp"
+}
+
+variable "auth_user" {
+  default     = "kloud-3s"
+  description = "Traefik basic auth username"
+}
+
+variable "auth_password" {
+  default     = ""
+  description = "Traefik basic auth password"
+}
+
+variable "loadbalancer" {
+  default     = "metallb"
+  description = "How LoadBalancer IPs are assigned. Options are metallb(default), traefik, ccm, kube-vip & akrobateo"
+}
+
+variable "registry_user" {
+  default     = "kloud-3s"
+  description = "Trow Registry username"
+}
+
+variable "registry_password" {
+  default     = ""
+  description = "Trow Registry password"
+}
+
+variable "apt_packages" {
+  type        = list(any)
+  default     = []
+  description = "Additional packages to install"
+}
+
+variable "oidc_config" {
+  type        = list(map(string))
+  description = "OIDC Configuration for protecting private resources. Used by Pomerium IAP & Vault."
+  default     = []
+}
+
+variable "mail_config" {
+  type        = map(string)
+  description = "SMTP Configuration for email services."
+  default     = {}
+}
+
+variable "enable_volumes" {
+  default     = false
+  description = "Whether to use volumes or not"
+}
+
+variable "volume_size" {
+  default     = 50
+  description = "Volume size in GB"
+}
+
+variable "enable_floatingip" {
+  default     = false
+  description = "Whether to use a floating ip or not"
+}
+
+/* oracle */
+variable "tenancy_ocid" {
+  type        = string
+  description = "OCID of your tenancy"
+}
+
+variable "user_ocid" {
+  type        = string
+  description = "OCID of the user calling the API"
+}
+
+variable "private_key_path" {
+  type        = string
+  description = "The path (including filename) of the private key stored on your computer."
+  default     = ""
+}
+
+variable "fingerprint" {
+  type        = string
+  description = " Fingerprint for the key pair being used"
+  default     = ""
+}
+
+variable "oci_ssh_keys" {
+  type    = list(string)
+  default = [""]
+}
+
+variable "region" {
+  default     = "uk-london-1"
+  description = "An OCI region"
+}
+
+variable "oci_type" {
+  default     = "1c6g"
+  description = "Server type format [CPU]c[RAM]g e.g. 1c6g, 2c12g, 4c24g, 2c1g"
+}
+
+variable "oci_shape" {
+  default     = ""
+  description = "Literal server shape, overrides oci_type e.g. VM.Standard.E2.1.Micro"
+}
+
+variable "oci_image" {
+  default = "Ubuntu 20.04"
+}
+
+/* digitalocean */
+variable "digitalocean_token" {
+  default = ""
+}
+
+/* aws dns */
+variable "aws_access_key" {
+  default = ""
+}
+
+variable "aws_secret_key" {
+  default = ""
+}
+
+variable "aws_region" {
+  default = "eu-west-1"
+}
+
+/* cloudflare dns */
+variable "cloudflare_email" {
+  default = ""
+}
+
+variable "cloudflare_api_token" {
+  default = ""
+}
+
+/* google dns */
+variable "google_project" {
+  default = ""
+}
+
+variable "google_region" {
+  default = ""
+}
+
+variable "google_managed_zone" {
+  default = ""
+}
+
+variable "google_credentials_file" {
+  default = ""
+}

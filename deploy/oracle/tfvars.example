@@ -1,0 +1,40 @@
+# DNS Settings
+# Delete the DNS module in main.tf if you do not have these
+create_zone = "true"
+domain = <required>
+digitalocean_token = <required>
+
+node_count = 2
+k3s_version = "v1.21.1+k3s1"
+cni = "weave"
+
+# Configure your provider
+# https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/terraformproviderconfiguration.htm
+region           = <required>
+tenancy_ocid     = <required>
+user_ocid        = <required>
+private_key_path = <required>
+fingerprint      = <required>
+
+enable_volumes           = "false"
+volume_size              = 50
+enable_floatingip        = "false"
+size = "1c6g"
+# Additional apps
+install_app = {
+  kubernetes_dashboard = false,
+  longhorn             = false,
+  floating-ip          = false,
+  vault                = false,
+  trow                 = false,
+  superset             = false,
+  sentry               = false,
+  kube_prometheus      = false,
+  elastic_cloud        = false
+}
+# HA Cluster
+#ha_cluster = "true"
+# External DNS Management and WildCard Letsencrypt Certs
+#trform_domain = "false"
+# LetsEncrypt Cert Issuance 
+#create_certs = "true"
