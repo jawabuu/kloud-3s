@@ -13,6 +13,7 @@ The following are currently tested;
 * [Azure](https://azure.microsoft.com/en-us/)
 * [Amazon Web Services](https://aws.amazon.com/)
 * [Alibaba Cloud](https://www.alibabacloud.com/)
+* [Oracle Cloud](https://cloud.oracle.com/)
 
 You may support the project by using the referral links above.
 
