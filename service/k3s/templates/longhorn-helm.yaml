@@ -57,3 +57,17 @@ provisioner: rancher.io/local-path
 volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: Delete
 ---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-w
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+parameters:
+  numberOfReplicas: "${longhorn_replicas}"
+  staleReplicaTimeout: "30"
+  dataLocality: "best-effort"
+provisioner: driver.longhorn.io
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+---
