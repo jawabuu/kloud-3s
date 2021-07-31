@@ -108,16 +108,6 @@ spec:
           preserve_host_header: true
           pass_identity_headers: true
           tls_skip_verify: true
-        # Auth Forward Mode Policy
-        - from: https://whoami.${domain}
-          to: http://whoami.whoami
-          allowed_users:
-            - admin@${domain}
-          allowed_domains:
-            - ${domain}
-          preserve_host_header: true
-          pass_identity_headers: true
-          tls_skip_verify: true
         - from: https://k8s-api.${domain}
           to: https://kubernetes.default.svc
           tls_custom_ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
