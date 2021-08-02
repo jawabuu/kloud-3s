@@ -10,7 +10,9 @@ spec:
     txtOwnerId: ${dns_auth.domain}
     domainFilters:
       - ${dns_auth.domain}
+%{ if dns_auth.provider == "cloudflare" ~}
       - ${dns_auth.zone}
+%{ endif ~}
     policy: sync
     interval: 2m
     logLevel: debug
