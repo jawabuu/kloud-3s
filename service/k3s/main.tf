@@ -277,6 +277,8 @@ locals {
 
   server_follower_flags = [
     "--server https://${local.registration_domain}:6443",
+    "--cluster-cidr ${local.overlay_cidr}",
+    "--service-cidr ${local.service_cidr}",
   ]
 
   server_install_flags   = join(" ", concat(local.server_default_flags, local.server_leader_flags))
