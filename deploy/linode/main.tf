@@ -46,6 +46,24 @@ module "dns" {
   trform_domain = var.trform_domain
 }
 
+/*
+# Replace digitalocean above with this to use cloudflare for dns ###
+module "dns" {
+  source = "../../dns/cloudflare"
+
+  node_count      = var.node_count
+  api_token       = var.cloudflare_api_token
+  email           = var.cloudflare_email
+  domain          = var.domain
+  public_ips      = module.provider.public_ips
+  hostnames       = module.provider.hostnames
+  create_zone     = var.create_zone
+  trform_domain   = var.trform_domain
+  cloudflare_zone = var.cloudflare_zone
+}
+*/
+
+
 module "wireguard" {
   source = "../../security/wireguard"
 

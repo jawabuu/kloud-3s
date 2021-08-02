@@ -259,6 +259,10 @@ variable "cloudflare_api_token" {
   default = ""
 }
 
+variable "cloudflare_zone" {
+  default = ""
+}
+
 /* google dns */
 variable "google_project" {
   default = ""

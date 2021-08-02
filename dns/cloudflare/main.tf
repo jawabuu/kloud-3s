@@ -1,5 +1,6 @@
 locals {
-  zone_id = lookup(data.cloudflare_zones.domain_zones.zones[0], "id")
+  zone_id = var.create_zone ? cloudflare_zone.kube[0].id : lookup(data.cloudflare_zones.domain_zones.zones[0], "id")
+  zone    = var.cloudflare_zone == "" ? var.domain : var.cloudflare_zone
 }
 
 variable "node_count" {}
@@ -7,6 +8,10 @@ variable "node_count" {}
 variable "email" {}
 
 variable "api_token" {}
+
+variable "cloudflare_zone" {
+  default = ""
+}
 
 variable "domain" {}
 
@@ -24,14 +29,27 @@ variable "trform_domain" {
   description = "Manage the root and wildcard domain using this module."
 }
 
-provider "cloudflare" {
-  email     = var.email
-  api_token = var.api_token
+variable "create_zone" {
+  type = bool
 }
+
+provider "cloudflare" {
+  version = "~> 2.0"
+  email   = var.email
+  api_key = var.api_token
+}
+
+
+# Create a new domain/zone
+resource "cloudflare_zone" "kube" {
+  count = var.create_zone ? 1 : 0
+  zone  = local.zone
+}
+
 
 data "cloudflare_zones" "domain_zones" {
   filter {
-    name   = var.domain
+    name   = local.zone
     status = "active"
     paused = false
   }
@@ -79,6 +97,11 @@ output "dns_auth" {
     domain    = var.domain
     email     = var.email
     api_token = var.api_token
-
+    zone_id   = local.zone_id
+    zone      = local.zone
   }
+}
+
+output "trform_domain" {
+  value = var.trform_domain
 }

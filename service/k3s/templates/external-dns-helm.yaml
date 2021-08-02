@@ -10,6 +10,7 @@ spec:
     txtOwnerId: ${dns_auth.domain}
     domainFilters:
       - ${dns_auth.domain}
+      - ${dns_auth.zone}
     policy: sync
     interval: 2m
     logLevel: debug
@@ -28,8 +29,10 @@ spec:
       apiToken: ${dns_auth.token}
 %{ endif ~}
 %{ if dns_auth.provider == "cloudflare" ~}
+    zoneIdFilters:
+      - ${dns_auth.zone_id}
     provider: cloudflare
     cloudflare:
-      apiToken: ${dns_auth.api_token}
+      apiKey: ${dns_auth.api_token}
       email: ${dns_auth.email}
 %{ endif ~}
