@@ -62,6 +62,7 @@ No provider.
 | client\_secret | n/a | `string` | `""` | no |
 | cloudflare\_api\_token | n/a | `string` | `""` | no |
 | cloudflare\_email | n/a | `string` | `""` | no |
+| cloudflare\_zone | n/a | `string` | `""` | no |
 | cni | Choice of CNI to install e.g. flannel, weave, cilium, calico | `string` | `"cilium"` | no |
 | create\_certs | Option to create letsencrypt certs. Only enable if certain that your deployment is reachable. | `bool` | `false` | no |
 | create\_zone | n/a | `bool` | `false` | no |
