@@ -11,7 +11,7 @@ resource "random_password" "redis_password" {
 }
 
 resource "null_resource" "redis" {
-  count = var.node_count > 0 ? 1 : 0
+  count = var.node_count > 0 && lookup(var.install_app, "redis", false) == true  ? 1 : 0
   triggers = {
     k3s_id           = md5(join(" ", null_resource.k3s.*.id))
     redis            = md5(local.redis)
