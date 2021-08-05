@@ -1,0 +1,98 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: postgres-operator
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: postgres-operator-ui
+  namespace: kube-system
+spec:
+  chart: postgres-operator-ui
+  repo: https://opensource.zalando.com/postgres-operator/charts/postgres-operator-ui/
+  targetNamespace: postgres-operator
+  valuesContent: |-
+
+    resources:
+      limits:
+        cpu: 100m
+        memory: 100Mi
+      requests:
+        cpu: 100m
+        memory: 100Mi
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    ingress.kubernetes.io/ssl-proxy-headers: 'X-Forwarded-Proto: https'
+    ingress.pomerium.io/allowed_domains: '["${zone}"]'
+    ingress.pomerium.io/allowed_idp_claims: '{"groups":["${zone}"]}'
+    ingress.pomerium.io/to: http://postgres-operator-ui.postgres-operator:80
+    ingress.pomerium.io/tls_skip_verify: "true"
+    ingress.pomerium.io/preserve_host_header: "true"
+    ingress.pomerium.io/pass_identity_headers: "true"
+    kubernetes.io/ingress.class: traefik-cert-manager
+    kubernetes.io/tls-acme: "true"
+    traefik.ingress.kubernetes.io/router.entrypoints: web, websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+  name: postgres-operator-ui
+  namespace: kube-system
+spec:
+  tls:
+    - hosts:
+      - pg-ui.${domain}
+      secretName: pg-ui-tls
+  rules:
+    - host: pg-ui.${domain}
+      http:
+        paths:
+          - backend:
+              serviceName: pomerium-proxy
+              servicePort: 80
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: postgres-operator
+  namespace: kube-system
+spec:
+  chart: postgres-operator
+  repo: https://opensource.zalando.com/postgres-operator/charts/postgres-operator/
+  targetNamespace: postgres-operator
+  valuesContent: |-
+  
+    configKubernetes:
+      enable_pod_antiaffinity: "true"
+      pod_environment_configmap: "postgres-pod-config"
+      watched_namespace: "*"
+
+    configAwsOrGcp:
+      aws_region: {s3_region}
+      aws_endpoint: ${s3_endpoint}
+      wal_s3_bucket: ${s3_bucket}
+
+    configLogicalBackup:
+      logical_backup_s3_access_key_id: ${s3_access_key}
+      logical_backup_s3_bucket: ${s3_bucket}
+      logical_backup_s3_endpoint: "${s3_endpoint}"
+      logical_backup_s3_secret_access_key: ${s3_secret_key}
+      logical_backup_s3_sse: ""
+      logical_backup_schedule: "0 */23 * * *"
+
+    resources:
+      limits:
+        cpu: 100m
+        memory: 250Mi
+      requests:
+        cpu: 100m
+        memory: 250Mi
+
+    # configure connection pooler deployment created by the operator
+    configConnectionPooler:
+      connection_pooler_default_cpu_request: 100m
+      connection_pooler_default_memory_request: 100Mi
+      connection_pooler_default_cpu_limit: "250"
+      connection_pooler_default_memory_limit: 100Mi
