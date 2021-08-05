@@ -84,6 +84,7 @@ No provider.
 | overlay\_cidr | Cluster pod cidr | `string` | `"10.42.0.0/16"` | no |
 | registry\_password | Trow Registry password | `string` | `""` | no |
 | registry\_user | Trow Registry username | `string` | `"kloud-3s"` | no |
+| s3\_config | S3 config for backups and other storage needs. | `map(string)` | `{}` | no |
 | service\_cidr | Cluster service cidr | `string` | `"10.43.0.0/16"` | no |
 | ssh\_key\_path | n/a | `string` | `"../../.ssh/tf-kube"` | no |
 | ssh\_keys\_dir | n/a | `string` | `"../../.ssh"` | no |

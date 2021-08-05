@@ -83,6 +83,7 @@ No provider.
 | overlay\_cidr | Cluster pod cidr | `string` | `"10.42.0.0/16"` | no |
 | registry\_password | Trow Registry password | `string` | `""` | no |
 | registry\_user | Trow Registry username | `string` | `"kloud-3s"` | no |
+| s3\_config | S3 config for backups and other storage needs. | `map(string)` | `{}` | no |
 | scaleway\_access\_key | n/a | `string` | `"SCWXXXXXXXXXXXXXXXXX"` | no |
 | scaleway\_image | n/a | `string` | `"ubuntu_focal"` | no |
 | scaleway\_organization\_id | n/a | `string` | `""` | no |
