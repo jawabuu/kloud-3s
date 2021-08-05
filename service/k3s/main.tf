@@ -124,6 +124,12 @@ variable "mail_config" {
   default     = {}
 }
 
+variable "s3_config" {
+  type        = map(string)
+  description = "S3 config for backups and other storage needs."
+  default     = {}
+}
+
 variable "floating_ip" {
   description = "Floating IP"
   default     = {}

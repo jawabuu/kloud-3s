@@ -1,0 +1,97 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dex
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: dex
+  namespace: kube-system
+spec:
+  chart: dex
+  repo: https://charts.dexidp.io
+  targetNamespace: dex
+  jobImage: rancher/klipper-helm:v0.6.0-build20210608
+  version: 0.5.0
+  timeout: 900s
+  valuesContent: |-
+
+    service:
+      type: ClusterIP
+    config:
+      # The base path of dex and the external name of the OpenID Connect service.
+      # This is the canonical URL that all clients MUST use to refer to dex. If a
+      # path is provided, dex's HTTP service will listen at a non-root URL.
+      issuer: "https://dex.${domain}"
+
+      # The storage configuration determines where dex stores its state. Supported
+      # options include SQL flavors and Kubernetes third party resources.
+      #
+      # See the documentation (https://dexidp.io/docs/storage/) for further information.
+      storage:
+        type: memory
+
+      # Configuration for the HTTP endpoints.
+      web:
+        http: 0.0.0.0:5556
+      # Configuration for telemetry
+      telemetry:
+        http: 0.0.0.0:5558
+      # Options for controlling the logger.
+      logger:
+        level: "debug"
+        format: "text" # can also be "json"
+      # Default values shown below
+      oauth2:
+        responseTypes: ["code", "token", "id_token"]
+      # Instead of reading from an external storage, use this list of clients.
+      # If this option isn't chosen clients may be added through the gRPC API.
+      staticClients:
+      - id: minio
+        redirectURIs:
+        - 'https://s3.${domain}/oauth_callback'
+        - 'https://minio.${domain}/oauth_callback'
+        - 'https://s3.${domain}/minio/login/openid'
+        - 'https://minio.${domain}/minio/login/openid'
+        name: ${dex_client_id}
+        secret: ${dex_client_secret}
+      connectors:
+      - type: oidc
+        # Required field for connector id.
+        id: ${idp_id}
+        # Required field for connector name.
+        name: ${idp_name}
+        config:
+          baseURL: '{idp_url}'
+          # Credentials can be string literals or pulled from the environment.
+          clientID: ${client_id}
+          clientSecret:  ${client_secret}
+          redirectURI: 'https://dex.${domain}/callback'
+      enablePasswordDB: false
+
+      # Configuration for dex appearance
+      frontend:
+        issuer: ${domain}
+%{ if logo_url != "" ~}
+        logoURL: ${logo_url}
+%{ endif ~}
+    ingress:
+      enabled: true
+      annotations:
+        ingress.kubernetes.io/ssl-proxy-headers: 'X-Forwarded-Proto: https'
+        kubernetes.io/ingress.class: traefik-cert-manager
+        kubernetes.io/tls-acme: "true"
+        traefik.ingress.kubernetes.io/router.entrypoints: web, websecure
+        traefik.ingress.kubernetes.io/router.tls: "true"
+      hosts:
+        - host: dex.${domain}
+          paths:
+            - path: /
+              pathType: ImplementationSpecific
+      tls:
+        - secretName: dex-tls
+          hosts:
+            - dex.${domain}
+---
