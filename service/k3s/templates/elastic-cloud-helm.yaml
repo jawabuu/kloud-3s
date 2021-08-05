@@ -116,3 +116,8 @@ spec:
         resources:
           requests:
             memory: 300Mi
+---
+# Fetch Credentials
+# kubectl -n elastic-system get secret -l eck.k8s.elastic.co/credentials=true
+# kubectl -n elastic-system get secret es-es-elastic-user -o=jsonpath='{.data.elastic}' | base64 --decode
+# kubectl -n elastic-system get secret es-kibana-user -o=jsonpath='{.data.elastic-system-es-kibana-user}' | base64 --decode
