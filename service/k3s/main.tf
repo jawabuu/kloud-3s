@@ -63,6 +63,16 @@ variable "service_cidr" {
   description = "Cluster service cidr"
 }
 
+variable "vpn_iprange" {
+  default     = "10.0.1.0/24"
+  description = "Wireguard cidr"
+}
+
+variable enable_wireguard {
+  default     = true
+  description = "Create a vpn network for the hosts"
+}
+
 variable "cni" {
   default = "default"
 }
@@ -103,6 +113,7 @@ variable "cni_to_overlay_interface_map" {
     weave   = "weave"
     cilium  = "cilium_host"
     calico  = "vxlan.calico"
+    kilo    = "kilo0"
   }
 }
 
@@ -200,7 +211,7 @@ locals {
   domain        = var.domain
   debug_level   = var.debug_level
   cni           = var.cni
-  valid_cni     = ["weave", "calico", "cilium", "flannel", "default"]
+  valid_cni     = ["weave", "calico", "cilium", "flannel", "default", (var.enable_wireguard == false ? "kilo" : "")]
   validate_cni  = index(local.valid_cni, local.cni)
   loadbalancer  = var.loadbalancer
   floating_ip   = lookup(var.floating_ip, "ip_address", "")
@@ -408,31 +419,7 @@ resource "null_resource" "k3s" {
     content     = data.http.k3s_installer.body
     destination = "/tmp/k3s-installer"
   }
-  /*
-  # Upload calico.yaml for CNI
-  provisioner "file" {
-    content     = data.template_file.calico-configuration.rendered
-    destination = "/tmp/calico.yaml"
-  }
 
-  # Upload flannel.yaml for CNI
-  provisioner "file" {
-    content     = data.template_file.flannel-configuration.rendered
-    destination = "/tmp/flannel.yaml"
-  }
-
-  # Upload weave.yaml for CNI
-  provisioner "file" {
-    content     = data.template_file.weave-configuration.rendered
-    destination = "/tmp/weave.yaml"
-  }
-
-  # Upload cilium.yaml for CNI
-  provisioner "file" {
-    content     = data.template_file.cilium-configuration.rendered
-    destination = "/tmp/cilium.yaml"
-  }
-*/
   # Unify CNI upload
   provisioner "remote-exec" {
     inline = count.index == 0 && local.cni != "default" ? [<<EOT
@@ -454,6 +441,11 @@ EOF
   %{if local.cni == "weave"~}
   cat <<-EOF > /tmp/weave.yaml
 ${data.template_file.weave-configuration.rendered}
+EOF
+  %{endif~}
+  %{if local.cni == "kilo"~}
+  cat <<-EOF > /tmp/kilo.yaml
+${data.template_file.kilo-configuration.rendered}
 EOF
   %{endif~}
       EOT
@@ -535,6 +527,10 @@ EOF
         %{if local.cni == "flannel"~}
         kubectl apply -f /tmp/flannel.yaml;
         kubectl rollout status ds kube-flannel-ds -n kube-system;
+        %{endif~}
+        
+        %{if local.cni == "kilo"~}
+        kubectl apply -f /tmp/kilo.yaml;
         %{endif~}
         
         echo "[INFO] ---Finished installing CNI ${local.cni}---";        
@@ -705,6 +701,15 @@ data "template_file" "cilium-configuration" {
   vars = {
     interface   = local.kubernetes_interface
     cilium_cidr = local.overlay_cidr
+  }
+}
+
+data "template_file" "kilo-configuration" {
+  template = file("${path.module}/templates/kilo.yaml")
+
+  vars = {
+    interface = local.kubernetes_interface
+    kilo_cidr = local.vpn_iprange
   }
 }
 

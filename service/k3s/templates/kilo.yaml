@@ -1,0 +1,334 @@
+  
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.6.0
+  creationTimestamp: null
+  name: peers.kilo.squat.ai
+spec:
+  group: kilo.squat.ai
+  names:
+    kind: Peer
+    listKind: PeerList
+    plural: peers
+    singular: peer
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Peer is a WireGuard peer that should have access to the VPN.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: 'Specification of the desired behavior of the Kilo Peer.
+              More info: https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#spec-and-status'
+            properties:
+              allowedIPs:
+                description: AllowedIPs is the list of IP addresses that are allowed
+                  for the given peer's tunnel.
+                items:
+                  type: string
+                type: array
+              endpoint:
+                description: Endpoint is the initial endpoint for connections to the
+                  peer.
+                properties:
+                  dnsOrIP:
+                    description: DNSOrIP is a DNS name or an IP address.
+                    properties:
+                      dns:
+                        description: DNS must be a valid RFC 1123 subdomain.
+                        type: string
+                      ip:
+                        description: IP must be a valid IP address.
+                        type: string
+                    type: object
+                  port:
+                    description: Port must be a valid port number.
+                    format: int32
+                    type: integer
+                required:
+                - dnsOrIP
+                - port
+                type: object
+              persistentKeepalive:
+                description: PersistentKeepalive is the interval in seconds of the
+                  emission of keepalive packets by the peer. This defaults to 0, which
+                  disables the feature.
+                type: integer
+              presharedKey:
+                description: PresharedKey is the optional symmetric encryption key
+                  for the peer.
+                type: string
+              publicKey:
+                description: PublicKey is the WireGuard public key for the peer.
+                type: string
+            required:
+            - allowedIPs
+            - publicKey
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kilo
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: kilo
+data:
+  cni-conf.json: |
+    {
+       "cniVersion":"0.3.1",
+       "name":"kilo",
+       "plugins":[
+          {
+             "name":"kubernetes",
+             "type":"bridge",
+             "bridge":"kube-bridge",
+             "isDefaultGateway":true,
+             "forceAddress":true,
+             "mtu": 1420,
+             "ipam":{
+                "type":"host-local"
+             }
+          },
+          {
+             "type":"portmap",
+             "snat":true,
+             "capabilities":{
+                "portMappings":true
+             }
+          }
+       ]
+    }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kilo
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kilo
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - kilo.squat.ai
+  resources:
+  - peers
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kilo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kilo
+subjects:
+  - kind: ServiceAccount
+    name: kilo
+    namespace: kube-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kilo-scripts
+  namespace: kube-system
+data:
+  init.sh: |
+    #!/bin/sh
+    cat > /etc/kubernetes/kubeconfig <<EOF
+        apiVersion: v1
+        kind: Config
+        name: kilo
+        clusters:
+        - cluster:
+            server: $(sed -n 's/.*server: \(.*\)/\1/p' /var/lib/rancher/k3s/agent/kubelet.kubeconfig)
+            certificate-authority: /var/lib/rancher/k3s/agent/server-ca.crt
+        users:
+        - name: kilo
+          user:
+            token: $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+        contexts:
+        - name: kilo
+          context:
+            cluster: kilo
+            namespace: ${NAMESPACE}
+            user: kilo
+        current-context: kilo
+    EOF
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kilo
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: kilo
+    app.kubernetes.io/part-of: kilo
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kilo
+      app.kubernetes.io/part-of: kilo
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kilo
+        app.kubernetes.io/part-of: kilo
+    spec:
+      serviceAccountName: kilo
+      hostNetwork: true
+      containers:
+      - name: kilo
+        image: squat/kilo
+        args:
+        - --kubeconfig=/etc/kubernetes/kubeconfig
+        - --hostname=$(NODE_NAME)
+        - --topology-label="kubernetes.io/hostname"
+        - --log-level=debug
+        - --subnet=${kilo_cidr}
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        ports:
+        - containerPort: 1107
+          name: metrics
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: cni-conf-dir
+          mountPath: /etc/cni/net.d
+        - name: kilo-dir
+          mountPath: /var/lib/kilo
+        - name: kubeconfig
+          mountPath: /etc/kubernetes
+          readOnly: true
+        - name: lib-modules
+          mountPath: /lib/modules
+          readOnly: true
+        - name: xtables-lock
+          mountPath: /run/xtables.lock
+          readOnly: false
+      initContainers:
+      - name: generate-kubeconfig
+        image: squat/kilo
+        command:
+        - /bin/sh
+        args:
+        - /scripts/init.sh
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: kubeconfig
+          mountPath: /etc/kubernetes
+        - name: scripts
+          mountPath: /scripts/
+          readOnly: true
+        - name: k3s-agent
+          mountPath: /var/lib/rancher/k3s/agent/
+          readOnly: true
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+      - name: install-cni
+        image: squat/kilo
+        command:
+        - /bin/sh
+        - -c
+        - set -e -x;
+          cp /opt/cni/bin/* /host/opt/cni/bin/;
+          TMP_CONF="$CNI_CONF_NAME".tmp;
+          echo "$CNI_NETWORK_CONFIG" > $TMP_CONF;
+          rm -f /host/etc/cni/net.d/*;
+          mv $TMP_CONF /host/etc/cni/net.d/$CNI_CONF_NAME
+        env:
+        - name: CNI_CONF_NAME
+          value: 10-kilo.conflist
+        - name: CNI_NETWORK_CONFIG
+          valueFrom:
+            configMapKeyRef:
+              name: kilo
+              key: cni-conf.json
+        volumeMounts:
+        - name: cni-bin-dir
+          mountPath: /host/opt/cni/bin
+        - name: cni-conf-dir
+          mountPath: /host/etc/cni/net.d
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      - effect: NoExecute
+        operator: Exists
+      volumes:
+      - name: cni-bin-dir
+        hostPath:
+          path: /opt/cni/bin
+      - name: cni-conf-dir
+        hostPath:
+          path: /etc/cni/net.d
+      - name: kilo-dir
+        hostPath:
+          path: /var/lib/kilo
+      - name: kubeconfig
+        emptyDir: {}
+      - name: scripts
+        configMap:
+          name: kilo-scripts
+      - name: k3s-agent
+        hostPath:
+          path: /var/lib/rancher/k3s/agent
+      - name: lib-modules
+        hostPath:
+          path: /lib/modules
+      - name: xtables-lock
+        hostPath:
+          path: /run/xtables.lock
+          type: FileOrCreate
+---
