@@ -227,7 +227,7 @@ spec:
         image: squat/kilo
         args:
         - --kubeconfig=/etc/kubernetes/kubeconfig
-        - --hostname=$(NODE_NAME)
+        - --hostname=$$(NODE_NAME)
         - --topology-label="kubernetes.io/hostname"
         - --log-level=debug
         - --subnet=${kilo_cidr}

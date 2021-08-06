@@ -478,7 +478,7 @@ EOF
         %{if local.cni != "default"~}
         rm -rf /opt/cni/bin
         arch=$(uname -i)
-        if [ "$arch" = "$${arch#arm}" ] || [ "$arch" = "aarch64" ]; then
+        if [ "$arch" = "$$${arch#arm}" ] || [ "$arch" = "aarch64" ]; then
           export id_arch=arm64
         else
           export id_arch=amd64
@@ -561,7 +561,7 @@ EOF
         %{if local.cni != "default"~}
         rm -rf /opt/cni/bin
         arch=$(uname -i)
-        if [ "$arch" = "$${arch#arm}" ] || [ "$arch" = "aarch64" ]; then
+        if [ "$arch" = "$$${arch#arm}" ] || [ "$arch" = "aarch64" ]; then
           export id_arch=arm64
         else
           export id_arch=amd64
