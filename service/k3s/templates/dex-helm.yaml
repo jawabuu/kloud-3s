@@ -64,11 +64,16 @@ spec:
         # Required field for connector name.
         name: ${idp_name}
         config:
-          baseURL: "${idp_url}"
+          issuer: "${idp_url}"
           # Credentials can be string literals or pulled from the environment.
           clientID: ${client_id}
           clientSecret:  ${client_secret}
           redirectURI: "https://dex.${domain}/callback"
+          getUserInfo: true
+          scopes:
+          - profile
+          - email
+          - groups
       enablePasswordDB: false
 
       # Configuration for dex appearance
