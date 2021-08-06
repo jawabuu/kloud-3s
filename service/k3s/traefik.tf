@@ -3,7 +3,7 @@ locals {
     domain        = var.domain
     create_certs  = var.create_certs
     auth_user     = var.auth_user
-    auth_password = var.auth_password == "" ? random_string.default_password.result : var.auth_password
+    auth_password = var.auth_password == "" ? random_password.default_password.result : var.auth_password
     master_ips    = local.ha_cluster == true ? join(",", slice(var.connections, 0, local.ha_nodes)) : false
   })
 }
@@ -42,5 +42,5 @@ output "traefik" {
 }
 
 output "default_password" {
-  value = random_string.default_password.result
+  value = random_password.default_password.result
 }

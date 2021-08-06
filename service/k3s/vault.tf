@@ -3,7 +3,7 @@ locals {
     domain         = var.domain
     mail_config    = var.mail_config
     oidc_config    = var.oidc_config
-    admin_password = var.auth_password == "" ? random_string.default_password.result : var.auth_password
+    admin_password = var.auth_password == "" ? random_password.default_password.result : var.auth_password
     client_id      = join(",", [for x in var.oidc_config : x.value if x.name == "authenticate.idp.clientID"])
     client_secret  = join(",", [for x in var.oidc_config : x.value if x.name == "authenticate.idp.clientSecret"])
   })
