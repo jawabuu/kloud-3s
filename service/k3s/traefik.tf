@@ -8,7 +8,7 @@ locals {
   })
 }
 
-resource "random_string" "default_password" {
+resource "random_password" "default_password" {
   length  = 16
   special = true
 }

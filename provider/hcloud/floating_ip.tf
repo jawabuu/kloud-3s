@@ -16,6 +16,7 @@ output "floating_ip" {
     provider      = "hcloud"
     provider_auth = var.token
     id            = try(hcloud_floating_ip.kloud3s[0].id, ""),
+    network_id    = hcloud_network.kube-vpc.id
   }
 }
 

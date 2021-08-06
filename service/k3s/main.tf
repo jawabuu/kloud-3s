@@ -193,20 +193,20 @@ variable "enable_volumes" {
   default = "false"
 }
 
-resource "random_string" "token1" {
-  length  = 6
+resource "random_password" "token1" {
+  length  = 16
   upper   = false
   special = false
 }
 
-resource "random_string" "token2" {
+resource "random_password" "token2" {
   length  = 16
   upper   = false
   special = false
 }
 
 locals {
-  cluster_token = "${random_string.token1.result}.${random_string.token2.result}"
+  cluster_token = "${random_password.token1.result}.${random_password.token2.result}"
   k3s_version   = var.k3s_version == "latest" ? jsondecode(data.http.k3s_version[0].body).tag_name : var.k3s_version
   domain        = var.domain
   debug_level   = var.debug_level
@@ -231,6 +231,7 @@ locals {
   ha_nodes            = var.ha_nodes >= 3 && var.ha_nodes % 2 == 1 ? var.ha_nodes : 3
   ha_cluster          = var.node_count >= local.ha_nodes ? var.ha_cluster : false
   registration_domain = "k3s.${local.domain}"
+  vpn_iprange         = var.vpn_iprange
 
   agent_node_labels = [
     "topology.kubernetes.io/region=${var.region}",

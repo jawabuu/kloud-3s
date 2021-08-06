@@ -196,7 +196,7 @@ data:
         - name: kilo
           context:
             cluster: kilo
-            namespace: ${NAMESPACE}
+            namespace: $${NAMESPACE}
             user: kilo
         current-context: kilo
     EOF
