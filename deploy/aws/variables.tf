@@ -175,6 +175,11 @@ variable "enable_floatingip" {
   description = "Whether to use a floating ip or not"
 }
 
+variable enable_wireguard {
+  default     = true
+  description = "Create a vpn network for the hosts"
+}
+
 /* aws */
 
 variable "aws_region_zone" {

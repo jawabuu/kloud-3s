@@ -41,7 +41,7 @@ variable "k3s_version" {
 
 variable "debug_level" {
   description = "K3S debug level"
-  default     = 5
+  default     = 3
 }
 
 variable "overlay_interface" {

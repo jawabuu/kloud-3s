@@ -172,6 +172,11 @@ variable "enable_floatingip" {
   description = "Whether to use a floating ip or not"
 }
 
+variable enable_wireguard {
+  default     = true
+  description = "Create a vpn network for the hosts"
+}
+
 /* upcloud */
 variable "upcloud_username" {
   default = ""

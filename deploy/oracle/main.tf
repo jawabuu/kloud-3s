@@ -68,14 +68,16 @@ module "dns" {
 module "wireguard" {
   source = "../../security/wireguard"
 
-  node_count   = var.node_count
-  connections  = module.provider.public_ips
-  private_ips  = module.provider.private_ips
-  hostnames    = module.provider.hostnames
-  overlay_cidr = module.k3s.overlay_cidr
-  service_cidr = var.service_cidr
-  vpn_iprange  = var.vpn_iprange
-  ssh_key_path = module.ssh.private_key
+  node_count        = var.node_count
+  connections       = module.provider.public_ips
+  private_ips       = module.provider.private_ips
+  private_interface = module.provider.private_network_interface
+  enable_wireguard  = var.enable_wireguard
+  hostnames         = module.provider.hostnames
+  overlay_cidr      = module.k3s.overlay_cidr
+  service_cidr      = var.service_cidr
+  vpn_iprange       = var.vpn_iprange
+  ssh_key_path      = module.ssh.private_key
 }
 
 module "firewall" {
@@ -98,8 +100,10 @@ module "k3s" {
   node_count        = var.node_count
   connections       = module.provider.public_ips
   cluster_name      = var.domain
-  vpn_interface     = module.wireguard.vpn_interface #module.provider.private_network_interface
-  vpn_ips           = module.wireguard.vpn_ips       #module.provider.private_ips
+  vpn_interface     = module.wireguard.vpn_interface
+  vpn_ips           = module.wireguard.vpn_ips
+  enable_wireguard  = module.wireguard.enable_wireguard
+  vpn_iprange       = module.wireguard.vpn_iprange
   hostname_format   = var.hostname_format
   ssh_key_path      = module.ssh.private_key
   k3s_version       = var.k3s_version

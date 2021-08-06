@@ -175,6 +175,11 @@ variable "enable_floatingip" {
   description = "Whether to use a floating ip or not"
 }
 
+variable enable_wireguard {
+  default     = true
+  description = "Create a vpn network for the hosts"
+}
+
 /* oracle */
 variable "tenancy_ocid" {
   type        = string

@@ -76,7 +76,7 @@ module "k3s" {
   connections       = module.provider.public_ips
   cluster_name      = var.domain
   vpn_interface     = module.wireguard.vpn_interface #module.provider.private_network_interface
-  vpn_ips           = module.wireguard.vpn_ips       #module.provider.private_ips
+  vpn_ips           = module.wireguard.vpn_ips
   hostname_format   = var.hostname_format
   k3s_version       = var.k3s_version
   cni               = var.cni

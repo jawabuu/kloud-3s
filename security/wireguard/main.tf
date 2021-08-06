@@ -12,6 +12,10 @@ variable "private_ips" {
   type = list(any)
 }
 
+variable "private_interface" {
+  type = string
+}
+
 variable "vpn_interface" {
   default = "wg0"
 }
@@ -36,8 +40,13 @@ variable "vpn_iprange" {
   default = "10.0.1.0/24"
 }
 
+variable enable_wireguard {
+  default     = true
+  description = "Create a vpn network for the hosts"
+}
+
 resource "null_resource" "wireguard" {
-  count = var.node_count
+  count = var.enable_wireguard ? var.node_count : 0
 
   triggers = {
     node_public_ip = element(var.connections, count.index)
@@ -92,25 +101,10 @@ resource "null_resource" "wireguard" {
     ]
   }
 
-  /*
-  # Redundant because we can set node ips in k3s on startup and cni will use the interface we specify.
-  provisioner "file" {
-    content     = element(data.template_file.overlay-route-service.*.rendered, count.index)
-    destination = "/etc/systemd/system/overlay-route.service"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "systemctl is-enabled overlay-route.service || systemctl enable overlay-route.service",
-      "systemctl daemon-reload",
-      "systemctl start overlay-route.service",
-    ]
-  }
-  //*/
 }
 
 data "template_file" "interface-conf" {
-  count    = var.node_count
+  count    = var.enable_wireguard ? var.node_count : 0
   template = file("${path.module}/templates/interface.conf")
 
   vars = {
@@ -122,7 +116,7 @@ data "template_file" "interface-conf" {
 }
 
 data "template_file" "peer-conf" {
-  count    = var.node_count
+  count    = var.enable_wireguard ? var.node_count : 0
   template = file("${path.module}/templates/peer.conf")
 
   vars = {
@@ -134,7 +128,7 @@ data "template_file" "peer-conf" {
 }
 
 data "template_file" "overlay-route-service" {
-  count    = var.node_count
+  count    = var.enable_wireguard ? var.node_count : 0
   template = file("${path.module}/templates/overlay-route.service")
 
   vars = {
@@ -147,14 +141,14 @@ data "template_file" "overlay-route-service" {
 
 # Trigger wireguard key creation whenever public ip changes.
 resource "null_resource" "create_keys" {
-  count = var.node_count
+  count = var.enable_wireguard ? var.node_count : 0
   triggers = {
     node_public_ip = element(var.connections, count.index)
   }
 }
 
 data "external" "keys" {
-  count = var.node_count
+  count = var.enable_wireguard ? var.node_count : 0
 
   program = ["sh", "${path.module}/scripts/gen_keys.sh"]
   query = {
@@ -165,7 +159,7 @@ data "external" "keys" {
 }
 
 data "template_file" "vpn_ips" {
-  count    = var.node_count
+  count    = var.enable_wireguard ? var.node_count : 0
   template = "$${ip}"
 
   vars = {
@@ -175,7 +169,7 @@ data "template_file" "vpn_ips" {
 
 output "vpn_ips" {
   depends_on = [null_resource.wireguard]
-  value      = data.template_file.vpn_ips.*.rendered
+  value      = var.enable_wireguard ? data.template_file.vpn_ips.*.rendered : var.private_ips
 }
 
 output "vpn_unit" {
@@ -184,7 +178,7 @@ output "vpn_unit" {
 }
 
 output "vpn_interface" {
-  value = var.vpn_interface
+  value = var.enable_wireguard ? var.vpn_interface : var.private_interface
 }
 
 output "vpn_port" {
@@ -193,4 +187,12 @@ output "vpn_port" {
 
 output "overlay_cidr" {
   value = var.overlay_cidr
+}
+
+output "enable_wireguard" {
+  value = var.enable_wireguard
+}
+
+output "vpn_iprange" {
+  value = var.vpn_iprange
 }
