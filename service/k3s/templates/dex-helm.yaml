@@ -73,7 +73,7 @@ spec:
 
       # Configuration for dex appearance
       frontend:
-        issuer: ${domain}
+        issuer: "https://dex.${domain}"
 %{ if logo_url != "" ~}
         logoURL: ${logo_url}
 %{ endif ~}

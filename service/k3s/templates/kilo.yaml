@@ -186,17 +186,17 @@ data:
         name: kilo
         clusters:
         - cluster:
-            server: $(sed -n 's/.*server: \(.*\)/\1/p' /var/lib/rancher/k3s/agent/kubelet.kubeconfig)
+            server: \$(sed -n 's/.*server: \(.*\)/\1/p' /var/lib/rancher/k3s/agent/kubelet.kubeconfig)
             certificate-authority: /var/lib/rancher/k3s/agent/server-ca.crt
         users:
         - name: kilo
           user:
-            token: $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            token: \$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
         contexts:
         - name: kilo
           context:
             cluster: kilo
-            namespace: $${NAMESPACE}
+            namespace: \$${NAMESPACE}
             user: kilo
         current-context: kilo
     EOF
@@ -227,10 +227,11 @@ spec:
         image: squat/kilo
         args:
         - --kubeconfig=/etc/kubernetes/kubeconfig
-        - --hostname=$$(NODE_NAME)
-        - --topology-label="kubernetes.io/hostname"
+        - --hostname=\$(NODE_NAME)
+        - --topology-label=kubernetes.io/hostname
         - --log-level=debug
         - --subnet=${kilo_cidr}
+        - --encapsulate=never
         env:
         - name: NODE_NAME
           valueFrom:
@@ -284,10 +285,10 @@ spec:
         - -c
         - set -e -x;
           cp /opt/cni/bin/* /host/opt/cni/bin/;
-          TMP_CONF="$CNI_CONF_NAME".tmp;
-          echo "$CNI_NETWORK_CONFIG" > $TMP_CONF;
+          TMP_CONF="\$CNI_CONF_NAME".tmp;
+          echo "\$CNI_NETWORK_CONFIG" > \$TMP_CONF;
           rm -f /host/etc/cni/net.d/*;
-          mv $TMP_CONF /host/etc/cni/net.d/$CNI_CONF_NAME
+          mv \$TMP_CONF /host/etc/cni/net.d/\$CNI_CONF_NAME
         env:
         - name: CNI_CONF_NAME
           value: 10-kilo.conflist
