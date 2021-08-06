@@ -7,7 +7,7 @@ locals {
     client_secret     = join(",", [for x in var.oidc_config : x.value if x.name == "authenticate.idp.clientSecret"])
     idp_url           = join(",", [for x in var.oidc_config : x.value if x.name == "authenticate.idp.url"])
     idp_id            = join(",", [for x in var.oidc_config : x.value if x.name == "authenticate.idp.provider"])
-    idp_name          = join(",", [for x in var.oidc_config : x.value if x.name == "authenticate.idp.provider"]).title
+    idp_name          = try(join(",", [for x in var.oidc_config : x.value if x.name == "authenticate.idp.provider"]).title, "Kloud-3s")
     logo_url          = ""
   })
 }

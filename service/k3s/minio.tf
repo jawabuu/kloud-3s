@@ -7,6 +7,8 @@ locals {
     s3_secret_key            = random_password.s3_secret_key.result
     console_pbkdf_salt       = random_password.console_pbkdf_salt.result
     console_pbkdf_passphrase = random_password.console_pbkdf_passphrase.result
+    console_access_key       = random_password.console_access_key.result
+    console_secret_key       = random_password.console_secret_key.result
   })
 }
 
@@ -16,6 +18,16 @@ resource "random_password" "s3_access_key" {
 }
 
 resource "random_password" "s3_secret_key" {
+  length  = 31
+  special = false
+}
+
+resource "random_password" "console_access_key" {
+  length  = 15
+  special = false
+}
+
+resource "random_password" "console_secret_key" {
   length  = 31
   special = false
 }
