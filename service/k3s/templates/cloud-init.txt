@@ -1,0 +1,108 @@
+#!/bin/bash
+export DEBIAN_FRONTEND=noninteractive
+export HOME=/root/
+while fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do sleep 1; done
+apt-get update
+apt-get install -yq jq net-tools ufw wireguard-tools wireguard open-iscsi nfs-common
+
+echo '${ssh_key}' >> /root/.ssh/authorized_keys
+
+${hosts}
+
+echo "===================================";
+echo "[INFO] ---UFW Rules---";
+echo "===================================";
+ufw --force reset
+ufw allow ssh
+ufw allow in on ${vpn_interface}
+# Kubernetes pod overlay interface created by CNI
+ufw allow in on ${overlay_interface}
+
+%{if enable_wireguard~}
+# VPN on private interface
+ufw allow in on ${private_interface} to any port ${vpn_port}
+%{else~}
+# VPN plus etcd and metrics ports
+ufw allow in on ${private_interface}
+%{endif~}
+
+%{if cni == "kilo" ~}
+echo net.ipv4.ip_forward=1 > /etc/sysctl.conf
+sysctl -p
+ufw default deny routed
+# Instead of ufw default allow routed, we try to be more specific
+ufw route allow in on ${overlay_interface}
+ufw route allow in on ${vpn_interface}
+# Packets from the internet to, for example, traefik pods
+ufw route allow out on ${overlay_interface} to ${overlay_cidr}
+%{endif~}
+
+ufw allow 6443 # Kubernetes API secure remote port
+ufw allow 80
+ufw allow 443
+ufw default deny incoming
+ufw --force enable || ufw logging off && ufw --force enable || true
+ufw status verbose
+# https://bugs.launchpad.net/ubuntu/+source/ufw/+bug/1726856
+sed -i.bak '/ufw enable/d' /etc/crontab && echo '@reboot root ufw enable' >> /etc/crontab
+
+echo "===================================";
+echo "[INFO] ---Add syslog config---";
+echo "===================================";
+cat <<-EOF > /etc/custom-logrotate.conf
+/var/log/syslog
+{
+        su root syslog
+        rotate 7
+        daily
+        maxsize 50M
+        missingok
+        notifempty
+        delaycompress
+        compress
+        postrotate
+                /usr/lib/rsyslog/rsyslog-rotate
+        endscript
+}
+EOF
+sed "s|/etc/logrotate.conf|/etc/custom-logrotate.conf|;s|exit 0|echo 'Exit Skipped'|" /etc/cron.daily/logrotate > /etc/cron.hourly/custom-logrotate;
+chmod +x /etc/cron.hourly/custom-logrotate;
+logrotate -d /etc/custom-logrotate.conf;
+logrotate -f -v /etc/custom-logrotate.conf;
+systemctl daemon-reload
+
+
+echo "===================================";
+echo "[INFO] ---Installing CNI Plugins---";
+echo "===================================";
+rm -rf /opt/cni/bin
+arch=$(uname -i)
+
+if [ "$arch" != "$${arch#arm}" ] || [ "$arch" = "aarch64" ]; then
+    export id_arch=arm64
+else
+    export id_arch=amd64
+fi
+
+echo "[ARCH] $(uname -i) : $id_arch";
+mkdir -p /opt/cni/bin && \
+wget -q https://github.com/containernetworking/plugins/releases/download/v0.9.1/cni-plugins-linux-$${id_arch}-v0.9.1.tgz && \
+tar zxvf cni-plugins-linux-$${id_arch}-v0.9.1.tgz --directory /opt/cni/bin/;
+
+curl -L https://raw.githubusercontent.com/rancher/k3s/master/install.sh -o /tmp/k3s-installer
+
+echo "===================================";
+echo "[INFO] ---Installing k3s agent---";
+echo "===================================";
+
+until $(curl -f -so nul https://${registration_domain}:6443/ping --cacert /var/lib/rancher/k3s/agent/server-ca.crt); 
+do echo '[WARN] Waiting for master to be ready';
+
+INSTALL_K3S_VERSION=${k3s_version} \
+sh /tmp/k3s-installer agent ${agent_install_flags} \
+--node-name $(curl -s http://169.254.169.254/hetzner/v1/metadata/hostname) \
+--node-external-ip $(curl -s http://169.254.169.254/hetzner/v1/metadata/public-ipv4) \
+--node-ip $(curl -s http://169.254.169.254/hetzner/v1/metadata/private-networks | sed -e 's/.*\s//g' | head -n 1)
+
+done;
+echo "[INFO] ---Finished installing k3s agent---";

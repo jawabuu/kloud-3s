@@ -1,0 +1,20 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: cluster-overprovisioner
+  namespace: kube-system
+spec:
+  chart: cluster-overprovisioner
+  repo: https://charts.deliveryhero.io/
+  targetNamespace: default
+  valuesContent: |-
+    deployments:
+      - name: default
+        replicaCount: ${replicas}
+        resources:
+          limits:
+            cpu: ${cpu}
+            memory: ${memory}
+          requests:
+            cpu: ${cpu}
+            memory: ${memory}
