@@ -17,6 +17,8 @@ output "floating_ip" {
     provider_auth = var.token
     id            = try(hcloud_floating_ip.kloud3s[0].id, ""),
     network_id    = hcloud_network.kube-vpc.id
+    ssh_key_id    = hcloud_ssh_key.tf-kube.id
+    ssh_key       = chomp(file(var.ssh_pubkey_path))
   }
 }
 

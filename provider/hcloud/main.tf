@@ -63,9 +63,11 @@ resource "hcloud_ssh_key" "tf-kube" {
   }
 }
 
+data "hcloud_locations" "ds" {}
+
 resource "hcloud_server" "host" {
   name        = format(var.hostname_format, count.index + 1)
-  location    = var.location
+  location    = element(data.hcloud_locations.ds.names, count.index % 3) #var.location 
   image       = var.image
   server_type = var.type
   ssh_keys    = [hcloud_ssh_key.tf-kube.id]
