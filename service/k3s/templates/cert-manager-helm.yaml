@@ -148,8 +148,8 @@ spec:
         %{ endif }
         %{~ if dns_auth.provider == "cloudflare" }
         cloudflare:
-          email: dns_auth.email
-          apiTokenSecretRef:
+          email: ${dns_auth.email}
+          apiKeySecretRef:
             name: cloudflare-dns
             key: cloudflare-api-key
         %{ endif } %{ endif }
@@ -175,8 +175,8 @@ spec:
         %{ endif }
         %{~ if dns_auth.provider == "cloudflare" }
         cloudflare:
-          email: dns_auth.email
-          apiTokenSecretRef:
+          email: ${dns_auth.email}
+          apiKeySecretRef:
             name: cloudflare-dns
             key: cloudflare-api-key
         %{ endif } %{ endif }
