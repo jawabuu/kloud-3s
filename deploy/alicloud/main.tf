@@ -90,6 +90,8 @@ module "firewall" {
   overlay_cidr      = module.k3s.overlay_cidr
   ssh_key_path      = module.ssh.private_key
   additional_rules  = var.additional_rules
+  enable_wireguard  = module.wireguard.enable_wireguard
+  cni               = module.k3s.cni
 }
 
 module "k3s" {

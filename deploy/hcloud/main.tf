@@ -31,6 +31,7 @@ module "swap" {
   ssh_key_path = module.ssh.private_key
 }
 
+/*
 ## Comment out if you do not have a domain ###
 module "dns" {
   source = "../../dns/digitalocean"
@@ -43,8 +44,8 @@ module "dns" {
   create_zone   = var.create_zone
   trform_domain = var.trform_domain
 }
+*/
 
-/*
 # Replace digitalocean above with this to use cloudflare for dns ###
 module "dns" {
   source = "../../dns/cloudflare"
@@ -59,7 +60,6 @@ module "dns" {
   trform_domain   = var.trform_domain
   cloudflare_zone = var.cloudflare_zone
 }
-*/
 
 
 module "wireguard" {
@@ -89,16 +89,17 @@ module "firewall" {
   overlay_cidr      = module.k3s.overlay_cidr
   ssh_key_path      = module.ssh.private_key
   additional_rules  = var.additional_rules
+  enable_wireguard  = module.wireguard.enable_wireguard
+  cni               = module.k3s.cni
 }
 
 module "k3s" {
   source = "../../service/k3s"
 
-  node_count    = var.node_count
-  connections   = module.provider.public_ips
-  cluster_name  = var.domain
-  vpn_interface = module.wireguard.vpn_interface
-
+  node_count        = var.node_count
+  connections       = module.provider.public_ips
+  cluster_name      = var.domain
+  vpn_interface     = module.wireguard.vpn_interface
   vpn_ips           = module.wireguard.vpn_ips
   enable_wireguard  = module.wireguard.enable_wireguard
   vpn_iprange       = module.wireguard.vpn_iprange
@@ -130,6 +131,7 @@ module "k3s" {
   registry_password = var.registry_password
   enable_volumes    = var.enable_volumes
   floating_ip       = module.provider.floating_ip
+  debug_level       = 4
 }
 
 output "private_key" {
