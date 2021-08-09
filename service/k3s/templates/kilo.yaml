@@ -231,7 +231,7 @@ spec:
         - --topology-label=kubernetes.io/hostname
         - --log-level=debug
         - --subnet=${kilo_cidr}
-        - --encapsulate=never
+        - --encapsulate=always
         env:
         - name: NODE_NAME
           valueFrom:

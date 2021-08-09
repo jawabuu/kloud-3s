@@ -113,7 +113,7 @@ variable "cni_to_overlay_interface_map" {
     weave   = "weave"
     cilium  = "cilium_host"
     calico  = "vxlan.calico"
-    kilo    = "kilo0"
+    kilo    = "kube-bridge"
   }
 }
 
@@ -221,7 +221,7 @@ locals {
   overlay_cidr         = var.overlay_cidr
   service_cidr         = var.service_cidr
   private_interface    = var.private_interface
-  kubernetes_interface = var.kubernetes_interface == "" ? var.vpn_interface : var.kubernetes_interface
+  kubernetes_interface = var.kubernetes_interface == "" ? (var.enable_wireguard ? var.vpn_interface : var.private_interface) : var.kubernetes_interface
 
   master_ip         = length(var.vpn_ips) > 0 ? var.vpn_ips[0] : ""
   master_public_ip  = length(var.connections) > 0 ? var.connections[0] : ""
@@ -232,6 +232,7 @@ locals {
   ha_cluster          = var.node_count >= local.ha_nodes ? var.ha_cluster : false
   registration_domain = "k3s.${local.domain}"
   vpn_iprange         = var.vpn_iprange
+  vpn_interface       = var.enable_wireguard || var.cni == "kilo" ? var.vpn_interface : var.private_interface
 
   agent_node_labels = [
     "topology.kubernetes.io/region=${var.region}",
@@ -461,10 +462,10 @@ EOF
       
         echo "[INFO] ---Uninstalling k3s-server---";
         # Clear CNI routes
-        k3s-uninstall.sh && ip route | grep -e 'calico' -e 'weave' -e 'cilium' -e 'bird' | \
+        k3s-uninstall.sh && ip route | grep -e 'calico' -e 'weave' -e 'cilium' -e 'bird' -e 'kilo' | \
         while read -r line; do ip route del $line; done; \
         # Clear CNI interfaces
-        ls /sys/class/net | grep -e 'cili' -e 'cali' -e 'weave' -e 'veth' -e 'vxlan' -e 'datapath' | \
+        ls /sys/class/net | grep -e 'cili' -e 'cali' -e 'weave' -e 'veth' -e 'vxlan' -e 'datapath' -e 'kube-bridge' -e 'kilo' -e 'tun' | \
         while read -r line; do ip link delete $line; done; \
         # Clean CNI config folder
         rm -rf /etc/cni/net.d/*; \
@@ -478,15 +479,16 @@ EOF
         %{if local.cni != "default"~}
         rm -rf /opt/cni/bin
         arch=$(uname -i)
-        if [ "$arch" = "$$${arch#arm}" ] || [ "$arch" = "aarch64" ]; then
+        if [ "$arch" != "$${arch#arm}" ] || [ "$arch" = "aarch64" ]; then
           export id_arch=arm64
         else
           export id_arch=amd64
         fi
         [ -d "/opt/cni/bin" ] || \
         (echo "[ARCH] $(uname -i) : $id_arch" && \
+        mkdir -p /opt/cni/bin && \
         wget https://github.com/containernetworking/plugins/releases/download/v0.9.1/cni-plugins-linux-$${id_arch}-v0.9.1.tgz && \
-        tar zxvf cni-plugins-linux-$${id_arch}-v0.9.1.tgz && mkdir -p /opt/cni/bin && mv * /opt/cni/bin/);
+        tar zxvf cni-plugins-linux-$${id_arch}-v0.9.1.tgz --directory /opt/cni/bin/);
         %{endif~}
         
         echo "==================================";
@@ -494,6 +496,7 @@ EOF
         echo "===================================";
                 
         INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer server ${local.server_install_flags} \
+        --tls-san ${cidrhost(local.vpn_iprange, count.index + 1)} \
         --node-name ${self.triggers.node_name} --node-external-ip ${self.triggers.node_public_ip};
         until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
         echo "[SUCCESS] API server is ready";
@@ -532,6 +535,7 @@ EOF
         
         %{if local.cni == "kilo"~}
         kubectl apply -f /tmp/kilo.yaml;
+        kubectl rollout status ds kilo -n kube-system;
         %{endif~}
         
         echo "[INFO] ---Finished installing CNI ${local.cni}---";        
@@ -540,10 +544,10 @@ EOF
       %{else~}
         echo "[INFO] ---Uninstalling k3s---";
         # Clear CNI routes
-        (k3s-agent-uninstall.sh || k3s-uninstall.sh) && ip route | grep -e 'calico' -e 'weave' -e 'cilium' -e 'bird' | \
+        (k3s-agent-uninstall.sh || k3s-uninstall.sh) && ip route | grep -e 'calico' -e 'weave' -e 'cilium' -e 'bird' -e 'kilo' | \
         while read -r line; do ip route del $line; done; \
         # Clear CNI interfaces
-        ls /sys/class/net | grep -e 'cili' -e 'cali' -e 'weave' -e 'veth' -e 'vxlan' -e 'datapath' | \
+        ls /sys/class/net | grep -e 'cili' -e 'cali' -e 'weave' -e 'veth' -e 'vxlan' -e 'datapath' -e 'kube-bridge' -e 'kilo' -e 'tun' | \
         while read -r line; do ip link delete $line; done; \
         # Clean CNI config folder
         rm -rf /etc/cni/net.d/*; \
@@ -561,15 +565,16 @@ EOF
         %{if local.cni != "default"~}
         rm -rf /opt/cni/bin
         arch=$(uname -i)
-        if [ "$arch" = "$$${arch#arm}" ] || [ "$arch" = "aarch64" ]; then
+        if [ "$arch" != "$${arch#arm}" ] || [ "$arch" = "aarch64" ]; then
           export id_arch=arm64
         else
           export id_arch=amd64
         fi
         [ -d "/opt/cni/bin" ] || \
         (echo "[ARCH] $(uname -i) : $id_arch" && \
+        mkdir -p /opt/cni/bin && \
         wget https://github.com/containernetworking/plugins/releases/download/v0.9.1/cni-plugins-linux-$${id_arch}-v0.9.1.tgz && \
-        tar zxvf cni-plugins-linux-$${id_arch}-v0.9.1.tgz && mkdir -p /opt/cni/bin && mv * /opt/cni/bin/);
+        tar zxvf cni-plugins-linux-$${id_arch}-v0.9.1.tgz --directory /opt/cni/bin/);
         %{endif~}
         
         %{if local.cni == "cilium"~}
@@ -589,6 +594,7 @@ EOF
 
         INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer server ${local.follower_install_flags} \
         --node-name ${self.triggers.node_name} --node-ip ${self.triggers.node_ip} --node-external-ip ${self.triggers.node_public_ip} \
+        --tls-san ${cidrhost(local.vpn_iprange, count.index + 1)} \
         --tls-san ${self.triggers.node_ip} --tls-san ${self.triggers.node_public_ip} --tls-san ${self.triggers.node_private_ip};
         
         done;
@@ -729,4 +735,8 @@ output "overlay_interface" {
 
 output "overlay_cidr" {
   value = local.overlay_cidr
+}
+
+output "cni" {
+  value = local.cni
 }
