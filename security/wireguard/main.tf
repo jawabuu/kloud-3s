@@ -178,7 +178,7 @@ output "vpn_unit" {
 }
 
 output "vpn_interface" {
-  value = var.enable_wireguard ? var.vpn_interface : var.private_interface
+  value = var.enable_wireguard ? var.vpn_interface : "kilo0"
 }
 
 output "vpn_port" {

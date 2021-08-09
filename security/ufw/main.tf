@@ -33,6 +33,16 @@ variable "additional_rules" {
   default = []
 }
 
+variable enable_wireguard {
+  default     = true
+  description = "Create a vpn network for the hosts"
+}
+
+variable cni {
+  default     = ""
+  description = "Cluster CNI"
+}
+
 resource "null_resource" "firewall" {
   count = var.node_count
 
@@ -66,5 +76,7 @@ data "template_file" "ufw" {
     vpn_port          = var.vpn_port
     overlay_cidr      = var.overlay_cidr
     additional_rules  = join("\nufw ", flatten(["", var.additional_rules]))
+    enable_wireguard  = var.enable_wireguard
+    cni               = var.cni
   }
 }
