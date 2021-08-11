@@ -17,7 +17,7 @@ resource "null_resource" "elastic_cloud_apply" {
 
   # Upload elastic-cloud
   provisioner "file" {
-    source      = "${path.module}/templates/elastic_cloud-helm.yaml"
+    source      = "${path.module}/templates/elastic-cloud-helm.yaml"
     destination = "/var/lib/rancher/k3s/server/manifests/elastic_cloud.yaml"
   }
 
