@@ -167,10 +167,11 @@ spec:
             - --v=6 %{ for nodes in node_pools }
             - --nodes=${nodes} %{ endfor }
             - --max-total-unready-percentage=90
-            - --scale-down-delay-after-add=3m
-            - --scale-down-unneeded-time=3m
+            - --scale-down-delay-after-add=4m
+            - --scale-down-unneeded-time=4m
             - --scale-down-unready-time=5m
             - --ok-total-unready-count=10
+            - --scan-interval=1m20s
           envFrom:
           - secretRef:
               name: cluster-autoscaler
