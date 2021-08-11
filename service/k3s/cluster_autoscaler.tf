@@ -9,7 +9,7 @@ locals {
   ssh_key_id     = lookup(var.floating_ip, "ssh_key_id", "")
   ssh_key        = lookup(var.floating_ip, "ssh_key", "")
   vpn_port       = 51820
-  vpn_ips        = local.ha_cluster == true ? join(" ", slice(var.vpn_ips, 0, local.ha_nodes)) : local.master_ip
+  vpn_ips        = local.ha_cluster == true ? try(join(" ", slice(var.vpn_ips, 0, local.ha_nodes)),local.master_ip) : local.master_ip
   cluster-autoscaler = templatefile("${path.module}/templates/cluster-autoscaler.yaml", {
     domain             = var.domain
     provider_auth      = local.provider_auth
