@@ -10,6 +10,22 @@ echo '${ssh_key}' >> /root/.ssh/authorized_keys
 ${hosts}
 
 echo "===================================";
+echo "[INFO] ---Enable IP Forwarding---";
+echo "===================================";
+echo net.ipv4.ip_forward=1 > /etc/sysctl.conf
+sysctl -p
+
+echo "===================================";
+echo "[INFO] ---Create SWAP---";
+echo "===================================";
+
+fallocate -l 2G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
+
+echo "===================================";
 echo "[INFO] ---UFW Rules---";
 echo "===================================";
 ufw --force reset
