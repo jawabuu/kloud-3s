@@ -12,6 +12,7 @@ module "provider" {
   client_secret     = var.client_secret
   tenant_id         = var.tenant_id
   subscription_id   = var.subscription_id
+  resource_group    = var.resource_group
   region            = var.azure_region
   size              = var.azure_size
   image             = var.azure_image

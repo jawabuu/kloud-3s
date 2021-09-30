@@ -23,6 +23,11 @@ variable "project" {
   default = "kloud-3s"
 }
 
+variable "resource_group" {
+  type    = string
+  default = ""
+}
+
 variable "hosts" {
   default = 0
 }
@@ -69,20 +74,25 @@ provider "azurerm" {
   client_secret   = var.client_secret
   tenant_id       = var.tenant_id
   subscription_id = var.subscription_id
+  skip_provider_registration  = true
 
   features {}
 }
 
 resource "azurerm_resource_group" "kloud-3s" {
+  count    = var.resource_group == "" ? 1 : 0
   name     = var.project
   location = var.region
 }
 
+data "azurerm_resource_group" "kloud-3s" {
+  name     = var.resource_group == "" ? azurerm_resource_group.kloud-3s[0].name : var.resource_group
+}
 
 resource "azurerm_network_security_group" "default" {
   name                = "kube-firewall"
-  location            = azurerm_resource_group.kloud-3s.location
-  resource_group_name = azurerm_resource_group.kloud-3s.name
+  location            = data.azurerm_resource_group.kloud-3s.location
+  resource_group_name = data.azurerm_resource_group.kloud-3s.name
 
   security_rule {
     name                       = "kube-firewall"
@@ -105,8 +115,8 @@ resource "azurerm_network_security_group" "default" {
 resource "azurerm_public_ip" "default" {
   count               = var.hosts
   name                = format(var.hostname_format, count.index + 1)
-  location            = azurerm_resource_group.kloud-3s.location
-  resource_group_name = azurerm_resource_group.kloud-3s.name
+  location            = data.azurerm_resource_group.kloud-3s.location
+  resource_group_name = data.azurerm_resource_group.kloud-3s.name
   allocation_method   = "Dynamic"
 
   tags = {
@@ -118,8 +128,8 @@ resource "azurerm_public_ip" "default" {
 resource "azurerm_network_interface" "default" {
   count               = var.hosts
   name                = format(var.hostname_format, count.index + 1)
-  location            = azurerm_resource_group.kloud-3s.location
-  resource_group_name = azurerm_resource_group.kloud-3s.name
+  location            = data.azurerm_resource_group.kloud-3s.location
+  resource_group_name = data.azurerm_resource_group.kloud-3s.name
 
   enable_ip_forwarding = true
 
@@ -145,8 +155,8 @@ resource "azurerm_linux_virtual_machine" "host" {
 
   count               = var.hosts
   name                = format(var.hostname_format, count.index + 1)
-  location            = azurerm_resource_group.kloud-3s.location
-  resource_group_name = azurerm_resource_group.kloud-3s.name
+  location            = data.azurerm_resource_group.kloud-3s.location
+  resource_group_name = data.azurerm_resource_group.kloud-3s.name
   size                = var.size
   admin_username      = "kloud3s"
   network_interface_ids = [

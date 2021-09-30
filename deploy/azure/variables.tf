@@ -202,6 +202,11 @@ variable "subscription_id" {
   default = ""
 }
 
+variable "resource_group" {
+  type    = string
+  default = ""
+}
+
 variable "azure_region" {
   type    = string
   default = "West Europe"
