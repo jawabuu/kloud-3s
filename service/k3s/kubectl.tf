@@ -6,6 +6,10 @@ variable "kubeconfig_path" {
   type = string
 }
 
+variable "generate_kubeconfig" {
+  default = false
+}
+
 resource "null_resource" "key_wait" {
   count = var.node_count > 0 ? 1 : 0
   triggers = {
@@ -23,12 +27,13 @@ EOT
 
 resource "null_resource" "kubeconfig" {
 
-  count = var.node_count > 0 ? 1 : 0
+  count = var.node_count > 0 && var.generate_kubeconfig ? 1 : 0
   triggers = {
-    endpoint_ip     = local.floating_ip != "" && lookup(var.install_app, "floating-ip", false) == true ? local.floating_ip : local.master_public_ip
-    kubeconfig_path = var.kubeconfig_path
-    key             = join(" ", null_resource.key_wait.*.id)
-    cluster_name    = var.cluster_name
+    endpoint_ip         = local.loadbalancer_ip != "" ? local.loadbalancer_ip : (local.floating_ip != "" && lookup(var.install_app, "floating-ip", false) == true ? local.floating_ip : local.master_public_ip)
+    kubeconfig_path     = var.kubeconfig_path
+    key                 = join(" ", null_resource.key_wait.*.id)
+    cluster_name        = var.cluster_name
+    generate_kubeconfig = var.generate_kubeconfig ? timestamp() : false
   }
 
   provisioner "local-exec" {
@@ -88,3 +93,4 @@ output "ssh-master" {
 output "kubeconfig_path" {
   value = "${abspath(var.kubeconfig_path)}/${var.cluster_name}-k3s.yaml"
 }
+
