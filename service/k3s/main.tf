@@ -41,7 +41,7 @@ variable "k3s_version" {
 
 variable "debug_level" {
   description = "K3S debug level"
-  default     = 3
+  default     = 5
 }
 
 variable "overlay_interface" {
@@ -66,6 +66,11 @@ variable "service_cidr" {
 variable "vpn_iprange" {
   default     = "10.0.1.0/24"
   description = "Wireguard cidr"
+}
+
+variable "vpc_cidr" {
+  default     = "10.115.0.0/24"
+  description = "Virtual Private Cloud Network"
 }
 
 variable enable_wireguard {
@@ -141,9 +146,25 @@ variable "s3_config" {
   default     = {}
 }
 
+variable "db_config" {
+  type        = map(string)
+  description = "Database config."
+  default     = {}
+}
+
+variable "overprovisioner_config" {
+  default     = {}
+  description = "Autoscaling Pods configuration"
+}
+
 variable "floating_ip" {
   description = "Floating IP"
   default     = {}
+}
+
+variable "loadbalancer_ip" {
+  description = "Cloud loadbalancer ip"
+  default     = ""
 }
 
 variable "longhorn_replicas" {
@@ -193,6 +214,18 @@ variable "enable_volumes" {
   default = "false"
 }
 
+variable "vault_address" {
+  default     = ""
+  description = "Vault Server Address"
+}
+
+variable "reboot_on_etcd_error" {
+  default     = false
+  description = "Reboot node if etcd is unresponsive"
+}
+
+
+
 resource "random_password" "token1" {
   length  = 16
   upper   = false
@@ -206,15 +239,16 @@ resource "random_password" "token2" {
 }
 
 locals {
-  cluster_token = "${random_password.token1.result}.${random_password.token2.result}"
-  k3s_version   = var.k3s_version == "latest" ? jsondecode(data.http.k3s_version[0].body).tag_name : var.k3s_version
-  domain        = var.domain
-  debug_level   = var.debug_level
-  cni           = var.cni
-  valid_cni     = ["weave", "calico", "cilium", "flannel", "default", (var.enable_wireguard == false ? "kilo" : "")]
-  validate_cni  = index(local.valid_cni, local.cni)
-  loadbalancer  = var.loadbalancer
-  floating_ip   = lookup(var.floating_ip, "ip_address", "")
+  cluster_token   = "${random_password.token1.result}.${random_password.token2.result}"
+  k3s_version     = var.k3s_version == "latest" ? jsondecode(data.http.k3s_version[0].body).tag_name : var.k3s_version
+  domain          = var.domain
+  debug_level     = var.debug_level
+  cni             = var.cni
+  valid_cni       = ["weave", "calico", "cilium", "flannel", "default", (var.enable_wireguard == "false" ? "kilo" : "")]
+  validate_cni    = index(local.valid_cni, local.cni)
+  loadbalancer    = var.loadbalancer
+  floating_ip     = lookup(var.floating_ip, "ip_address", "")
+  loadbalancer_ip = var.loadbalancer_ip
 
   # Set overlay interface from map, but optionally allow override
   overlay_interface    = var.overlay_interface == "" ? lookup(var.cni_to_overlay_interface_map, local.cni, "cni0") : var.overlay_interface
@@ -251,7 +285,7 @@ locals {
     local.cni == "default" ? "--flannel-iface ${local.kubernetes_interface}" : "",
     # https://github.com/kubernetes/kubernetes/issues/75457
     "--kubelet-arg 'node-labels=role.node.kubernetes.io/worker=worker'",
-    "--kubelet-arg 'node-status-update-frequency=4s'",
+    "--kubelet-arg 'node-status-update-frequency=20s'",
     "--kubelet-arg 'node-labels=${join(",", local.agent_node_labels)}'",
   ]
 
@@ -268,12 +302,12 @@ locals {
     # Disable Traefik
     "--disable traefik",
     "--token ${local.cluster_token}",
-    "--kubelet-arg 'node-status-update-frequency=4s'",
-    "--kube-controller-manager-arg 'node-monitor-period=4s'",
-    "--kube-controller-manager-arg 'node-monitor-grace-period=12s'",
-    "--kube-controller-manager-arg 'pod-eviction-timeout=24s'",
-    "--kube-apiserver-arg 'default-not-ready-toleration-seconds=10'",
-    "--kube-apiserver-arg 'default-unreachable-toleration-seconds=10'",
+    "--kubelet-arg 'node-status-update-frequency=20s'",
+    "--kube-controller-manager-arg 'node-monitor-period=20s'",
+    "--kube-controller-manager-arg 'node-monitor-grace-period=60s'",
+    "--kube-controller-manager-arg 'pod-eviction-timeout=120s'",
+    "--kube-apiserver-arg 'default-not-ready-toleration-seconds=60'",
+    "--kube-apiserver-arg 'default-unreachable-toleration-seconds=60'",
     "--kubelet-arg 'node-labels=${join(",", local.server_node_labels)}'",
     # Flags left below to serve as examples for args that may need editing.
     # "--kube-controller-manager-arg 'node-cidr-mask-size=22'",
@@ -292,6 +326,7 @@ locals {
     "--node-label 'kloud-3s.io/deploy-traefik=true'",
     local.ha_cluster == true ? "--cluster-init" : "--cluster-init",
     local.floating_ip == "" ? "--tls-san 127.0.0.2" : "--tls-san ${local.floating_ip}",
+    local.loadbalancer_ip == "" ? "--tls-san 127.0.0.3" : "--tls-san ${local.loadbalancer_ip}",
   ]
 
   server_follower_flags = [
@@ -380,6 +415,87 @@ EOF
   }
 }
 
+
+resource "null_resource" "etcd_node_healthcheck" {
+  count = local.ha_cluster == true ? local.ha_nodes : 1
+
+  triggers = {
+    node_public_ip        = element(var.connections, count.index)
+    etcd_node_healthcheck = md5(data.template_file.etcd_node_healthcheck.rendered)
+    reboot_on_etcd_error  = var.reboot_on_etcd_error
+  }
+
+  connection {
+    host        = element(var.connections, count.index)
+    user        = "root"
+    agent       = false
+    private_key = file(var.ssh_key_path)
+  }
+
+  # Upload etcd_node_healthcheck file
+  provisioner "file" {
+    content     = data.template_file.etcd_node_healthcheck.rendered
+    destination = "/etc/etcd_node_healthcheck.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [<<EOT
+    cat <<-EOF > /etc/systemd/system/etcd_node_healthcheck.service
+[Unit]
+Description=Etcd Node HealthCheck
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/etc/etcd_node_healthcheck.sh
+TimeoutSec=30
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
+EOF
+      chmod u+x /etc/etcd_node_healthcheck.sh;
+      systemctl enable etcd_node_healthcheck.service;
+      systemctl start etcd_node_healthcheck.service;
+      systemctl daemon-reload;      
+      EOT
+    ]
+  }
+}
+
+resource "null_resource" "provider_id" {
+  count = var.node_count
+
+  triggers = {
+    node_public_ip        = element(var.connections, count.index)
+    provider_id           = md5(data.template_file.provider-id.rendered)
+  }
+
+  connection {
+    host        = element(var.connections, count.index)
+    user        = "root"
+    agent       = false
+    private_key = file(var.ssh_key_path)
+  }
+
+
+  # Upload provider-id retrieval script
+  provisioner "file" {
+    content     = data.template_file.provider-id.rendered
+    destination = "/tmp/provider-id.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [<<EOT
+      chmod u+x /tmp/provider-id.sh;
+      EOT
+    ]
+  }
+}
+
+
+
 resource "null_resource" "k3s" {
   count = var.node_count
 
@@ -421,6 +537,7 @@ resource "null_resource" "k3s" {
     content     = data.http.k3s_installer.body
     destination = "/tmp/k3s-installer"
   }
+
 
   # Unify CNI upload
   provisioner "remote-exec" {
@@ -496,8 +613,9 @@ EOF
         echo "===================================";
                 
         INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer server ${local.server_install_flags} \
-        --tls-san ${cidrhost(local.vpn_iprange, count.index + 1)} \
-        --node-name ${self.triggers.node_name} --node-external-ip ${self.triggers.node_public_ip};
+        --tls-san ${cidrhost(local.vpn_iprange, count.index + 1)} --etcd-expose-metrics=true \
+        --node-name ${self.triggers.node_name} --node-external-ip ${self.triggers.node_public_ip} \
+        --kubelet-arg="provider-id=$(sh /tmp/provider-id.sh)";
         until $(nc -z localhost 6443); do echo '[WARN] Waiting for API server to be ready'; sleep 1; done;
         echo "[SUCCESS] API server is ready";
         until $(curl -fk -so nul https://${local.registration_domain}:6443/ping); do echo '[WARN] Waiting for master to be ready'; sleep 5; done;
@@ -589,13 +707,14 @@ EOF
         echo "[INFO] ---Installing k3s server ${self.triggers.node_type}[${count.index}]---";
         echo "=============================================";
 
-        until $(curl -f -so nul https://${local.registration_domain}:6443/ping --cacert /var/lib/rancher/k3s/agent/server-ca.crt); 
+        until $(curl -f -so nul https://${local.registration_domain}:6443/ping --cacert /var/lib/rancher/k3s/server/tls/server-ca.crt); 
         do echo '[WARN] Waiting for master to be ready';
 
         INSTALL_K3S_VERSION=${local.k3s_version} sh /tmp/k3s-installer server ${local.follower_install_flags} \
         --node-name ${self.triggers.node_name} --node-ip ${self.triggers.node_ip} --node-external-ip ${self.triggers.node_public_ip} \
-        --tls-san ${cidrhost(local.vpn_iprange, count.index + 1)} \
-        --tls-san ${self.triggers.node_ip} --tls-san ${self.triggers.node_public_ip} --tls-san ${self.triggers.node_private_ip};
+        --tls-san ${cidrhost(local.vpn_iprange, count.index + 1)} --etcd-expose-metrics=true \
+        --tls-san ${self.triggers.node_ip} --tls-san ${self.triggers.node_public_ip} --tls-san ${self.triggers.node_private_ip} \
+        --kubelet-arg="provider-id=$(sh /tmp/provider-id.sh)";
         
         done;
         echo "[INFO] ---Finished installing k3s server-follower---";
@@ -611,7 +730,8 @@ EOF
 
         INSTALL_K3S_VERSION=${local.k3s_version} \
         sh /tmp/k3s-installer agent ${local.agent_install_flags} --node-ip ${self.triggers.node_ip} \
-        --node-name ${self.triggers.node_name} --node-external-ip ${self.triggers.node_public_ip};
+        --node-name ${self.triggers.node_name} --node-external-ip ${self.triggers.node_public_ip} \
+        --kubelet-arg="provider-id=$(sh /tmp/provider-id.sh)";
         
         done;
         echo "[INFO] ---Finished installing k3s agent---";
@@ -717,6 +837,22 @@ data "template_file" "kilo-configuration" {
   vars = {
     interface = local.kubernetes_interface
     kilo_cidr = local.vpn_iprange
+  }
+}
+
+data "template_file" "etcd_node_healthcheck" {
+  template = file("${path.module}/templates/etcd_node_healthcheck.sh")
+
+  vars = {
+    reboot  = var.reboot_on_etcd_error
+  }
+}
+
+data "template_file" "provider-id" {
+  template = file("${path.module}/templates/provider-id.sh")
+
+  vars = {
+    provider  = local.provider
   }
 }
 

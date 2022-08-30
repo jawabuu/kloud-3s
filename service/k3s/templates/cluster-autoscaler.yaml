@@ -164,8 +164,14 @@ spec:
             - ./cluster-autoscaler
             - --cloud-provider=${formatted_provider}
             - --stderrthreshold=info
-            - --v=6 %{ for nodes in node_pools }
-            - --nodes=${nodes} %{ endfor }
+            - --v=6
+%{~ if auto-discovery  != "" }
+            - --node-group-auto-discovery=${auto-discovery}
+%{~ else }
+%{~ for nodes in node_pools }
+            - --nodes=${nodes}
+%{~ endfor }
+%{~ endif }
             - --max-total-unready-percentage=90
             - --scale-down-delay-after-add=4m
             - --scale-down-unneeded-time=4m
@@ -192,8 +198,37 @@ metadata:
   namespace: kube-system
 type: Opaque
 stringData:
+%{ if formatted_provider == "hcloud" }
   HCLOUD_TOKEN: ${provider_auth}
   HCLOUD_CLOUD_INIT:  ${cloud_init}
   HCLOUD_NETWORK: "${network_id}"
   HCLOUD_SSH_KEY: "${ssh_key_id}"
-  
+%{ endif }
+%{ if formatted_provider == "azure" }
+  ARM_SUBSCRIPTION_ID: ${subscription_id}
+  ARM_RESOURCE_GROUP: ${resource_group}
+  ARM_TENANT_ID: ${tenant_id}
+  ARM_CLIENT_ID: ${client_id}
+  ARM_CLIENT_SECRET: ${client_secret}
+  ARM_VM_TYPE: vmss
+  ARM_DEPLOYMENT: cluster-autoscaler
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: azure-cloud-provider
+  namespace: kube-system
+stringData:
+  cloud-config: |
+    {
+    "cloud":"AzurePublicCloud",
+    "tenantId": "${tenant_id}",
+    "subscriptionId": "${subscription_id}",
+    "aadClientId": "${client_id}",
+    "aadClientSecret": "${client_secret}",
+    "resourceGroup": "${resource_group}",
+    "location": "${location}",
+    "vmType": "standard",
+    "useInstanceMetadata": true
+    }
+%{ endif }

@@ -8,31 +8,54 @@ module "ssh" {
 module "provider" {
   source = "../../provider/azure"
 
-  client_id         = var.client_id
-  client_secret     = var.client_secret
-  tenant_id         = var.tenant_id
-  subscription_id   = var.subscription_id
-  resource_group    = var.resource_group
-  region            = var.azure_region
-  size              = var.azure_size
-  image             = var.azure_image
-  hosts             = var.node_count
-  hostname_format   = var.hostname_format
-  vpc_cidr          = var.vpc_cidr
-  ssh_key_path      = module.ssh.private_key #var.ssh_key_path Override to use predefined key
-  ssh_pubkey_path   = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
-  enable_volumes    = var.enable_volumes
-  volume_size       = var.volume_size
-  enable_floatingip = var.enable_floatingip
+  client_id           = var.client_id
+  client_secret       = var.client_secret
+  tenant_id           = var.tenant_id
+  subscription_id     = var.subscription_id
+  resource_group      = var.resource_group
+  region              = var.azure_region
+  size                = var.azure_size
+  image               = var.azure_image
+  hosts               = var.node_count
+  hostname_format     = var.hostname_format
+  vpc_cidr            = var.vpc_cidr
+  ssh_key_path        = module.ssh.private_key #var.ssh_key_path Override to use predefined key
+  ssh_pubkey_path     = module.ssh.public_key  #var.ssh_pubkey_path Override to use predefined key
+  enable_volumes      = var.enable_volumes
+  volume_size         = var.volume_size
+  enable_floatingip   = var.enable_floatingip
+  enable_loadbalancer = var.enable_loadbalancer
 }
 
-module "swap" {
-  source = "../../service/swap"
+module "scaleset" {
+  source = "../../provider/azure/scaleset"
 
-  node_count   = var.node_count
-  connections  = module.provider.public_ips
-  ssh_key_path = module.ssh.private_key
+  client_id           = var.client_id
+  client_secret       = var.client_secret
+  tenant_id           = var.tenant_id
+  subscription_id     = var.subscription_id
+  resource_group      = var.resource_group
+  region              = var.azure_region
+  size                = var.azure_size
+  image               = var.azure_image
+  hosts               = var.node_count
+  hostname_format     = var.hostname_format
+  vpc_cidr            = var.vpc_cidr
+  ssh_key_path        = module.ssh.private_key
+  ssh_pubkey_path     = module.ssh.public_key
+  enable_volumes      = var.enable_volumes
+  volume_size         = var.volume_size
+  floating_ip         = module.provider.floating_ip
+  cloud_init          = module.k3s.cloud_init
 }
+
+# module "swap" {
+#   source = "../../service/swap"
+
+#   node_count   = var.node_count
+#   connections  = module.provider.public_ips
+#   ssh_key_path = module.ssh.private_key
+# }
 
 ## Comment out if you do not have a domain ###
 module "dns" {
@@ -112,6 +135,7 @@ module "k3s" {
   cni               = var.cni
   overlay_cidr      = var.overlay_cidr
   service_cidr      = var.service_cidr
+  vpc_cidr          = var.vpc_cidr
   kubeconfig_path   = var.kubeconfig_path
   private_ips       = module.provider.private_ips
   private_interface = module.provider.private_network_interface
@@ -120,20 +144,23 @@ module "k3s" {
   ha_cluster        = var.ha_cluster
   ### Optional Settings Below. You may safely omit them. ###
   # Uncomment below if you have specified the DNS module
-  dns_auth          = module.dns.dns_auth
-  trform_domain     = module.dns.trform_domain
-  create_certs      = var.create_certs
-  ha_nodes          = var.ha_nodes
-  install_app       = var.install_app
-  auth_user         = var.auth_user
-  auth_password     = var.auth_password
-  oidc_config       = var.oidc_config
-  mail_config       = var.mail_config
-  loadbalancer      = var.loadbalancer
-  registry_user     = var.registry_user
-  registry_password = var.registry_password
-  enable_volumes    = var.enable_volumes
-  floating_ip       = module.provider.floating_ip
+  dns_auth            = module.dns.dns_auth
+  trform_domain       = module.dns.trform_domain
+  create_certs        = var.create_certs
+  ha_nodes            = var.ha_nodes
+  install_app         = var.install_app
+  auth_user           = var.auth_user
+  auth_password       = var.auth_password
+  oidc_config         = var.oidc_config
+  mail_config         = var.mail_config
+  loadbalancer        = var.loadbalancer
+  registry_user       = var.registry_user
+  registry_password   = var.registry_password
+  enable_volumes      = var.enable_volumes
+  floating_ip         = module.provider.floating_ip
+  loadbalancer_ip     = module.provider.loadbalancer_ip
+  generate_kubeconfig = true
+  debug_level         = 5
 }
 
 output "private_key" {
@@ -166,4 +193,8 @@ output "default_password" {
 
 output "floating_ip" {
   value = try(module.provider.floating_ip.ip_address, "")
+}
+
+output "loadbalancer_ip" {
+  value = module.provider.loadbalancer_ip
 }

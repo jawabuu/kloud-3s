@@ -15,17 +15,15 @@ ufw allow in on ${private_interface} to any port ${vpn_port}
 ufw allow in on ${private_interface}
 %{endif~}
 
-%{if cni == "kilo" ~}
 echo net.ipv4.ip_forward=1 > /etc/sysctl.conf
 sysctl -p
-# ufw default allow routed
-ufw default deny routed
+ufw default allow routed
+# ufw default deny routed
 ## Instead of `ufw default allow routed`, we try to be more specific
-ufw route allow in on ${overlay_interface}
-ufw route allow in on ${vpn_interface}
+# ufw route allow in on ${overlay_interface}
+# ufw route allow in on ${vpn_interface}
 ## Packets from the internet to, for example, traefik pods
-ufw route allow out on ${overlay_interface} to ${overlay_cidr}
-%{endif~}
+# ufw route allow out on ${overlay_interface} to ${overlay_cidr}
 
 ## Enable this to debug if pods cannot communicate across nodes and we pick the wrong overlay_interface
 ## Especially useful for CNIs that create multiple interfaces

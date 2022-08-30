@@ -7,7 +7,7 @@ variable "kubeconfig_path" {
 }
 
 variable "generate_kubeconfig" {
-  default = false
+  default = true
 }
 
 resource "null_resource" "key_wait" {

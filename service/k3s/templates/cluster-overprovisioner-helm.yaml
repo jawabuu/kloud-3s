@@ -8,6 +8,7 @@ spec:
   repo: https://charts.deliveryhero.io/
   targetNamespace: default
   valuesContent: |-
+
     deployments:
       - name: default
         replicaCount: ${replicas}
@@ -18,3 +19,20 @@ spec:
           requests:
             cpu: ${cpu}
             memory: ${memory}
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: node-role.kubernetes.io/master
+                  operator: DoesNotExist
+        # affinity:
+        #   nodeAffinity:
+        #     requiredDuringSchedulingIgnoredDuringExecution:
+        #       nodeSelectorTerms:
+        #       - matchExpressions:
+        #         - key: k8s.io/node-type
+        #           operator: DoesNot
+        #           value: "agent"
+        # nodeSelector:
+        #   k8s.io/node-type: "agent"

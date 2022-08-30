@@ -70,6 +70,7 @@ spec:
         port: 8800
         expose: true
         exposedPort: 8800
+        hostPort: 8800
         protocol: TCP
     securityContext:
       capabilities:
@@ -126,7 +127,7 @@ spec:
   tls:
     - hosts:
       - dash.${domain}
-      secretName: kube-system
+      secretName: traefik-dash-tls
   rules:
     - host: dash.${domain}
       http:
@@ -176,6 +177,49 @@ spec:
   selector:
     app: whoami
 ---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: whoamitcp
+  namespace: default
+  labels:
+    app: containous
+    name: whoamitcp
+
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: containous
+      task: whoamitcp
+  template:
+    metadata:
+      labels:
+        app: containous
+        task: whoamitcp
+    spec:
+      containers:
+        - name: whoamitcp
+          image: containous/whoamitcp
+          ports:
+            - containerPort: 8080
+          args:
+          - --banner
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whoamitcp
+  namespace: default
+
+spec:
+  ports:
+    - protocol: TCP
+      port: 8080
+  selector:
+    app: containous
+    task: whoamitcp
+---
 # Serve global default cert i.e. self-signed-cert
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
@@ -209,8 +253,6 @@ spec:
       services:
         - name: whoami
           port: 80
-  tls:
-    secretName: test-http01-cert
 ---
 # Use PassThrough TLS
 apiVersion: traefik.containo.us/v1alpha1
@@ -229,6 +271,21 @@ spec:
           port: 443
   tls:
     passthrough: true
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: whoamitcp
+  namespace: default
+
+spec:
+  entryPoints:
+    - tcp
+  routes:
+    - match: HostSNI(`*`)
+      services:
+      - name: whoamitcp
+        port: 8080
 ---
 apiVersion: traefik.containo.us/v1alpha1
 kind: TLSStore

@@ -116,11 +116,20 @@ do echo '[WARN] Waiting for master to be ready';
 
 INSTALL_K3S_VERSION=${k3s_version} \
 sh /tmp/k3s-installer agent ${agent_install_flags} \
+%{if provider == "hetzner" ~}
 --node-name $(curl -s http://169.254.169.254/hetzner/v1/metadata/hostname) \
 --node-external-ip $(curl -s http://169.254.169.254/hetzner/v1/metadata/public-ipv4) \
 --node-ip $(curl -s http://169.254.169.254/hetzner/v1/metadata/private-networks | sed -e 's/.*\s//g' | head -n 1) \
 --kubelet-arg="provider-id=hcloud://$(curl -s http://169.254.169.254/hetzner/v1/metadata/instance-id)"
-#-- kubelet-arg "cloud-provider=external"
+%{endif~}
+%{if provider == "azure" ~}
+--node-name $(curl -s -H Metadata:true http://169.254.169.254/metadata/instance/compute/osProfile/computerName?api-version=2021-05-01\&format=text) \
+--node-external-ip $(curl -s https://api.ipify.org/) \
+--node-ip $(curl -s -H Metadata:true http://169.254.169.254/metadata/instance/network/interface/0/ipv4/ipAddress/0/privateIpAddress?api-version=2021-05-01\&format=text) \
+--kubelet-arg="provider-id=azure://$(curl -s -H Metadata:true http://169.254.169.254/metadata/instance/compute/resourceId?api-version=2021-05-01\&format=text)"
+%{endif~}
 
 done;
 echo "[INFO] ---Finished installing k3s agent---";
+echo $(curl -s -H Metadata:true http://169.254.169.254/metadata/instance/compute/name?api-version=2021-05-01\&format=text) \
+echo "--with-node-id $(curl -s -H Metadata:true http://169.254.169.254/metadata/instance/compute/vmId?api-version=2021-05-01\&format=text)"

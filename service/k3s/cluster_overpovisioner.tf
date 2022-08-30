@@ -1,8 +1,8 @@
 locals {
   cluster-overprovisioner = templatefile("${path.module}/templates/cluster-overprovisioner-helm.yaml", {
     domain   = var.domain
-    cpu      = "1000m"
-    memory   = "1000Mi"
+    cpu      = "1500m"
+    memory   = "500Mi"
     replicas = 0
   })
 }

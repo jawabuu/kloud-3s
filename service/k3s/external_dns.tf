@@ -3,7 +3,7 @@ locals {
   dns_auth      = var.dns_auth
   external_dns = templatefile("${path.module}/templates/external-dns-helm.yaml", {
     dns_auth   = local.dns_auth
-    master_ips = local.ha_cluster == true ? try(join(",", slice(var.connections, 0, local.ha_nodes)),false) : false
+    master_ips = local.ha_cluster == true ? try(join(",", slice(var.connections, 0, local.ha_nodes)), false) : false
   })
 }
 

@@ -68,13 +68,13 @@ variable "vpc_cidr" {
 resource "time_static" "id" {}
 
 provider "azurerm" {
-  version = "=2.4.0"
+  version = "=2.79"
 
-  client_id       = var.client_id
-  client_secret   = var.client_secret
-  tenant_id       = var.tenant_id
-  subscription_id = var.subscription_id
-  skip_provider_registration  = true
+  client_id                  = var.client_id
+  client_secret              = var.client_secret
+  tenant_id                  = var.tenant_id
+  subscription_id            = var.subscription_id
+  skip_provider_registration = true
 
   features {}
 }
@@ -86,7 +86,7 @@ resource "azurerm_resource_group" "kloud-3s" {
 }
 
 data "azurerm_resource_group" "kloud-3s" {
-  name     = var.resource_group == "" ? azurerm_resource_group.kloud-3s[0].name : var.resource_group
+  name = var.resource_group == "" ? azurerm_resource_group.kloud-3s[0].name : var.resource_group
 }
 
 resource "azurerm_network_security_group" "default" {
@@ -117,7 +117,8 @@ resource "azurerm_public_ip" "default" {
   name                = format(var.hostname_format, count.index + 1)
   location            = data.azurerm_resource_group.kloud-3s.location
   resource_group_name = data.azurerm_resource_group.kloud-3s.name
-  allocation_method   = "Dynamic"
+  allocation_method   = "Static"
+  sku                 = "Standard"
 
   tags = {
     environment = "kube-node"
@@ -132,6 +133,7 @@ resource "azurerm_network_interface" "default" {
   resource_group_name = data.azurerm_resource_group.kloud-3s.name
 
   enable_ip_forwarding = true
+  enable_accelerated_networking = true
 
   ip_configuration {
     name                          = "internal"
@@ -139,6 +141,10 @@ resource "azurerm_network_interface" "default" {
     private_ip_address_allocation = "Static"
     private_ip_address            = cidrhost(azurerm_subnet.kube-vpc.address_prefix, count.index + 101)
     public_ip_address_id          = azurerm_public_ip.default[count.index].id
+  }
+
+  tags = {
+    environment = "kube-node"
   }
 }
 
@@ -150,6 +156,15 @@ resource "azurerm_network_interface_security_group_association" "default" {
   network_security_group_id = azurerm_network_security_group.default.id
 }
 
+# resource "azurerm_availability_set" "default" {
+#   name                = "av-${time_static.id.unix}"
+#   location            = data.azurerm_resource_group.kloud-3s.location
+#   resource_group_name = data.azurerm_resource_group.kloud-3s.name
+
+#   tags = {
+#     environment = "kloud3s"
+#   }
+# }
 
 resource "azurerm_linux_virtual_machine" "host" {
 
@@ -176,7 +191,7 @@ resource "azurerm_linux_virtual_machine" "host" {
   source_image_reference {
     publisher = "Canonical"
     offer     = "0001-com-ubuntu-server-focal"
-    sku       = "20_04-lts-gen2"
+    sku       = "20_04-lts"
     version   = "latest"
   }
 
@@ -198,6 +213,8 @@ resource "azurerm_linux_virtual_machine" "host" {
       "sudo systemctl restart sshd",
     ]
   }
+
+  # availability_set_id = azurerm_availability_set.default.id
 
   lifecycle {
     ignore_changes = [
@@ -248,7 +265,7 @@ output "azurerm_linux_virtual_machines" {
 }
 
 output "region" {
-  value = var.region
+  value = data.azurerm_resource_group.kloud-3s.location
 }
 
 output "nodes" {
